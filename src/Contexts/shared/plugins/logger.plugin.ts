@@ -1,7 +1,7 @@
 import type { MongoClient } from 'mongodb';
 import winston from 'winston';
 import 'winston-mongodb';
-import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
+import { getEnvs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
 
 export interface AppLogger {
   debug: (message: string) => void;
@@ -50,6 +50,7 @@ const buildFileTransports = (): winston.transports.FileTransportInstance[] => [
 ];
 
 const buildTransports = (): winston.transport[] => {
+  const envs = getEnvs();
   if (envs.NODE_ENV === 'test') {
     return [buildConsoleTransport(!envs.TEST_LOGS)];
   }
@@ -61,16 +62,23 @@ const buildTransports = (): winston.transport[] => {
   return [...buildFileTransports(), buildConsoleTransport(false)];
 };
 
-const rootLogger = winston.createLogger({
-  level: 'info',
-  format: combine(timestamp(), json()),
-  transports: buildTransports()
-});
+let rootLoggerInstance: winston.Logger | undefined;
+
+const getRootLogger = (): winston.Logger => {
+  if (!rootLoggerInstance) {
+    rootLoggerInstance = winston.createLogger({
+      level: 'info',
+      format: combine(timestamp(), json()),
+      transports: buildTransports()
+    });
+  }
+  return rootLoggerInstance;
+};
 
 export const attachMongoTransport = (client: MongoClient): void => {
-  if (envs.NODE_ENV === 'test') return;
+  if (getEnvs().NODE_ENV === 'test') return;
 
-  rootLogger.add(
+  getRootLogger().add(
     new winston.transports.MongoDB({
       db: Promise.resolve(client),
       collection: DIRECTORY,
@@ -80,25 +88,27 @@ export const attachMongoTransport = (client: MongoClient): void => {
 };
 
 export const detachMongoTransport = (): void => {
-  rootLogger.transports.forEach((t) => {
-    if (t instanceof winston.transports.MongoDB) {
-      rootLogger.remove(t);
+  if (!rootLoggerInstance) return;
+  const transports = [...rootLoggerInstance.transports];
+  for (const transport of transports) {
+    if (transport instanceof winston.transports.MongoDB) {
+      rootLoggerInstance.remove(transport);
     }
-  });
+  }
 };
 
 export const buildLogger = (service: string): AppLogger => {
   return {
     debug: (message: string) => {
-      rootLogger.debug({ service, message });
+      getRootLogger().debug({ service, message });
     },
 
     info: (message: string) => {
-      rootLogger.info({ service, message });
+      getRootLogger().info({ service, message });
     },
 
     warn: (message: string, error?: unknown) => {
-      rootLogger.warn({
+      getRootLogger().warn({
         service,
         message,
         error: error instanceof Error ? error.stack : error
@@ -106,7 +116,7 @@ export const buildLogger = (service: string): AppLogger => {
     },
 
     error: (message: string, error?: unknown) => {
-      rootLogger.error({
+      getRootLogger().error({
         service,
         message,
         error: error instanceof Error ? error.stack : error

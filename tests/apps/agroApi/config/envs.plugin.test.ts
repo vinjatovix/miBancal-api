@@ -10,7 +10,8 @@ const loadEnvs = (): unknown => {
       __esModule: true,
       default: { config: jest.fn() }
     }));
-    loaded = jest.requireActual<{ envs: unknown }>(ENVS_MODULE).envs;
+    const module = jest.requireActual<{ getEnvs: () => unknown }>(ENVS_MODULE);
+    loaded = module.getEnvs();
   });
 
   return loaded;
@@ -20,8 +21,6 @@ describe('envs plugin', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    // `.env.test` is already in `process.env`: every other setting is valid.
-    jest.requireActual(ENVS_MODULE);
     process.env = { ...originalEnv };
   });
 
@@ -80,4 +79,31 @@ describe('envs plugin', () => {
       expect(loadEnvs).toThrow(new RegExp(key));
     }
   );
+
+  describe('caching and resetEnvsCache', () => {
+    it('should return the same cached instance on consecutive calls', () => {
+      const { getEnvs } = jest.requireActual<{
+        getEnvs: () => unknown;
+      }>(ENVS_MODULE);
+
+      const firstCall = getEnvs();
+      const secondCall = getEnvs();
+
+      expect(secondCall).toBe(firstCall);
+    });
+
+    it('should return a new instance after cache reset', () => {
+      const { getEnvs, resetEnvsCache } = jest.requireActual<{
+        getEnvs: () => unknown;
+        resetEnvsCache: () => void;
+      }>(ENVS_MODULE);
+
+      const initial = getEnvs();
+      resetEnvsCache();
+      const reloaded = getEnvs();
+
+      expect(reloaded).not.toBe(initial);
+      expect(reloaded).toEqual(initial);
+    });
+  });
 });

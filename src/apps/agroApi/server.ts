@@ -8,7 +8,7 @@ import qs from 'qs';
 import migrations from '../../../migrations/index.js';
 import type { BackgroundTasks } from '../../Contexts/shared/application/background/index.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/logger.plugin.js';
-import { envs } from './config/plugins/envs.plugin.js';
+import { getEnvs } from './config/plugins/envs.plugin.js';
 import type { AppContainer } from './container.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import {
@@ -18,16 +18,19 @@ import {
 import { setupSwagger } from './openapi/setupSwagger.js';
 import { registerRoutes } from './routes/registerRoutes.js';
 
-const allowedOrigins = envs.ALLOWED_ORIGINS.split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const buildCorsOptions = (allowedOriginsConfig: string): cors.CorsOptions => {
+  const allowedOrigins = allowedOriginsConfig
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
-const corsOptions: cors.CorsOptions = {
-  origin: allowedOrigins,
-  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-  // `allowedHeaders` stays unset so requested headers (incl. If-Match) are reflected.
-  exposedHeaders: ['ETag'],
-  credentials: true
+  return {
+    origin: allowedOrigins,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+    // `allowedHeaders` stays unset so requested headers (incl. If-Match) are reflected.
+    exposedHeaders: ['ETag'],
+    credentials: true
+  };
 };
 
 export class Server {
@@ -44,6 +47,7 @@ export class Server {
     logger: AppLogger,
     container: AppContainer
   ) {
+    const envs = getEnvs();
     this.port = port;
     this.host = host;
     this.express = express();
@@ -53,7 +57,7 @@ export class Server {
     this.container = container;
     this.logger = logger;
 
-    this.express.use(cors(corsOptions));
+    this.express.use(cors(buildCorsOptions(envs.ALLOWED_ORIGINS)));
     this.express.use(globalLimiter);
     this.express.use(express.json({ limit: envs.JSON_BODY_LIMIT }));
     this.express.use(
@@ -94,6 +98,7 @@ export class Server {
 
     return new Promise((resolve) => {
       const env: string = this.express.get('env') as string;
+      const envs = getEnvs();
 
       this.httpServer = this.express.listen(this.port, () => {
         this.httpServer!.requestTimeout = envs.REQUEST_TIMEOUT_MS;
@@ -154,6 +159,7 @@ export class Server {
   private async drainBackgroundTasks(): Promise<void> {
     const backgroundTasks =
       this.container.resolve<BackgroundTasks>('backgroundTasks');
+    const envs = getEnvs();
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<'timeout'>((resolve) => {
       timer = setTimeout(() => resolve('timeout'), envs.MAIL_SEND_TIMEOUT_MS);
