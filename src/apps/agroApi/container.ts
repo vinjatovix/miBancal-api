@@ -28,7 +28,7 @@ import {
   buildLogger,
   type AppLogger
 } from '../../Contexts/shared/plugins/index.js';
-import { envs } from './config/plugins/envs.plugin.js';
+import { getEnvs } from './config/plugins/envs.plugin.js';
 import { COMPONENT_ROLES } from './wiring/componentRoles.js';
 import type {
   AppContainer,
@@ -57,6 +57,7 @@ export function buildExplicitRegistrations({
   'db' | 'client'
 >): NameAndRegistrationPair<ContainerCradle> {
   const logger = buildLogger('agroApi');
+  const envs = getEnvs();
 
   return {
     db: asValue(db), // Runtime Mongo database instance connected at start-up

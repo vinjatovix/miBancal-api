@@ -14,7 +14,7 @@ jest.mock('jsonwebtoken', () => ({
   }
 }));
 
-import { envs } from '../../../../src/apps/agroApi/config/plugins/envs.plugin.js';
+import { getEnvs } from '../../../../src/apps/agroApi/config/plugins/envs.plugin.js';
 import { EncrypterAdapter } from '../../../../src/Contexts/shared/plugins/EncrypterAdapter.js';
 import type { UnknownRecord } from '../../../../src/shared/domain/types/UnknownRecord.js';
 
@@ -43,7 +43,7 @@ describe('EncrypterAdapter', () => {
       expect(result).toBe('hashed-password');
       expect(mockedHash).toHaveBeenCalledWith(
         'plain-password',
-        envs.BCRYPT_SALT_ROUNDS
+        getEnvs().BCRYPT_SALT_ROUNDS
       );
     });
   });
@@ -81,7 +81,7 @@ describe('EncrypterAdapter', () => {
       expect(mockedHash).toHaveBeenCalledTimes(1);
       expect(mockedHash).toHaveBeenCalledWith(
         expect.any(String),
-        envs.BCRYPT_SALT_ROUNDS
+        getEnvs().BCRYPT_SALT_ROUNDS
       );
       expect(mockedCompare).toHaveBeenCalledWith(
         'first-password',

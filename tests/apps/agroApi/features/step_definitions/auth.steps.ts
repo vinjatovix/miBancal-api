@@ -1,7 +1,7 @@
 import { Given, Then, When } from '@cucumber/cucumber';
 import { assert } from 'chai';
 
-import { envs } from '../../../../../src/apps/agroApi/config/plugins/envs.plugin.js';
+import { getEnvs } from '../../../../../src/apps/agroApi/config/plugins/envs.plugin.js';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
 import type { EmailMessage } from '../../../../../src/Contexts/shared/application/mailer/index.js';
 import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
@@ -387,7 +387,7 @@ Then(
 
     assert.include(
       message.text,
-      `${envs.FRONTEND_BASE_URL}/activate#token=${token}`
+      `${getEnvs().FRONTEND_BASE_URL}/activate#token=${token}`
     );
     assert.notInclude(message.subject, token);
   }
@@ -637,7 +637,7 @@ Then(
 
     assert.include(
       message.text,
-      `${envs.FRONTEND_BASE_URL}/reset-password#token=${token}`
+      `${getEnvs().FRONTEND_BASE_URL}/reset-password#token=${token}`
     );
     assert.notInclude(message.subject, token);
   }
