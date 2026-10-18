@@ -34,7 +34,12 @@ import type {
 } from '../../domain/value-objects/types/EmailTokenPrimitives.js';
 import type { UserAuthMethodPrimitives } from '../../domain/value-objects/types/UserAuthMethodPrimitives.js';
 import { Username } from '../../domain/value-objects/Username.js';
-import type { UserRole } from '../../domain/value-objects/UserRoles.js';
+import type {
+  ManageableRole,
+  UserRole
+} from '../../domain/value-objects/UserRoles.js';
+
+const ROLE_GUARDS_COLLECTION = 'roleGuards';
 
 export interface AuthDocument {
   _id: string | Binary | UUID;
@@ -167,6 +172,31 @@ export class MongoAuthRepository
       { roles: role },
       this.sessionOptions()
     );
+  }
+
+  /**
+   * Touches the shared `roleGuards` document inside the active transaction so
+   * concurrent admin mutations collide on it. A plain update, not an upsert: a
+   * missing guard must surface as a setup error, never be silently created
+   * (the migration seeds it). `updatedAt` is rewritten so the write is a real
+   * mutation WiredTiger treats as a conflict, never a no-op. A `matchedCount`
+   * of 0 means the guard is absent, which silently voids the whole
+   * last-holder protection, so it fails loudly instead of returning.
+   */
+  async reserveMinimumHolderGuard(role: ManageableRole): Promise<void> {
+    const result = await this.db
+      .collection<{ _id: string; updatedAt: Date }>(ROLE_GUARDS_COLLECTION)
+      .updateOne(
+        { _id: role },
+        { $set: { updatedAt: new Date() } },
+        this.sessionOptions()
+      );
+
+    if (result.matchedCount === 0) {
+      throw new Error(
+        `Missing <${role}> guard in ${ROLE_GUARDS_COLLECTION}: run the roles migration`
+      );
+    }
   }
 
   async deleteIfReplaceable(user: User, at: Date): Promise<boolean> {

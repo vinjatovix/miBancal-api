@@ -9,6 +9,7 @@ import {
 import { up as createAccountIndexes } from '../../../../../migrations/scripts/20261003130000-account-family-unique-indexes.js';
 import { up as createEmailTokenIndex } from '../../../../../migrations/scripts/20261016120000-create-users-email-token-index.js';
 import { up as createProviderUserIdIndex } from '../../../../../migrations/scripts/20261017120000-create-users-provider-user-id-index.js';
+import { up as createRolesIndexAndGuard } from '../../../../../migrations/scripts/20261018120000-users-roles-index-and-admin-guard.js';
 import type { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
@@ -89,6 +90,7 @@ describe('MongoAuthRepository', () => {
     await createAccountIndexes(db);
     await createEmailTokenIndex(db);
     await createProviderUserIdIndex(db);
+    await createRolesIndexAndGuard(db);
 
     repository = context.container.resolve<AuthRepository>('authRepository');
     unitOfWork = context.container.resolve<UnitOfWork>('unitOfWork');
@@ -590,6 +592,50 @@ describe('MongoAuthRepository', () => {
       );
 
       expect(await repository.countByRole('admin')).toBe(2);
+    });
+
+    it('should count by role with the users_roles index, never a collection scan', async () => {
+      await repository.create(UserMother.active());
+      await repository.create(
+        UserMother.create({ roles: new UserRoles(['user', 'admin']) })
+      );
+
+      const explain = await usersCollection()
+        .find({ roles: 'admin' })
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_roles'
+      });
+    });
+
+    it('should leave the users_roles index and admin guard unchanged when its migration runs again', async () => {
+      const beforeIndexes = await usersCollection().indexes();
+
+      await createRolesIndexAndGuard(db);
+
+      expect(await usersCollection().indexes()).toEqual(beforeIndexes);
+    });
+  });
+
+  describe('reserveMinimumHolderGuard', () => {
+    it('should touch the seeded guard document', async () => {
+      await createRolesIndexAndGuard(db);
+
+      await expect(
+        repository.reserveMinimumHolderGuard('admin')
+      ).resolves.toBeUndefined();
+    });
+
+    it('should fail loudly when the guard document is absent', async () => {
+      await expect(
+        repository.reserveMinimumHolderGuard('admin')
+      ).rejects.toThrow(/guard/i);
     });
   });
 
