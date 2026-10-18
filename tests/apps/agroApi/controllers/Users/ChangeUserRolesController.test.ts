@@ -9,6 +9,7 @@ import { ChangeUserRoles } from '../../../../../src/Contexts/Auth/application/us
 import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { AuthRepositoryMock } from '../../../../Contexts/Auth/__mocks__/index.js';
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
+import { UnitOfWorkMock } from '../../../../Contexts/shared/__mocks__/UnitOfWorkMock.js';
 import {
   buildNext,
   buildRequest,
@@ -41,7 +42,10 @@ describe('ChangeUserRolesController', () => {
   beforeEach(() => {
     repository = new AuthRepositoryMock();
     controller = new ChangeUserRolesController({
-      changeUserRoles: new ChangeUserRoles({ authRepository: repository })
+      changeUserRoles: new ChangeUserRoles({
+        authRepository: repository,
+        unitOfWork: new UnitOfWorkMock()
+      })
     });
   });
 

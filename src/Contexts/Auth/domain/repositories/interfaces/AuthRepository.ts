@@ -4,7 +4,10 @@ import type { UserPrimitives } from '../../entities/types/UserPrimitives.js';
 import type { User } from '../../entities/User.js';
 import type { AuthProvider } from '../../value-objects/types/AuthProvider.js';
 import type { EmailTokenPurpose } from '../../value-objects/types/EmailTokenPrimitives.js';
-import type { UserRole } from '../../value-objects/UserRoles.js';
+import type {
+  ManageableRole,
+  UserRole
+} from '../../value-objects/UserRoles.js';
 
 /**
  * `created`, or which unique value another account already stores:
@@ -55,6 +58,15 @@ export interface AuthRepository {
 
   /** Count of accounts holding `role`; equality filter on `roles`. */
   countByRole(role: UserRole): Promise<number>;
+
+  /**
+   * Writes the shared guard document for a minimum-holder `role` using the
+   * ambient unit-of-work session, forcing a write–write conflict between
+   * concurrent transactions that mutate the same role. MUST be invoked only
+   * inside a running `UnitOfWork.run`. MUST NOT create business state: the
+   * guard carries only its `_id` (the role) and `updatedAt`.
+   */
+  reserveMinimumHolderGuard(role: ManageableRole): Promise<void>;
 
   /**
    * Deletes the account only if it is still unvalidated and holds no

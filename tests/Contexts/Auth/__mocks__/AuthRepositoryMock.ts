@@ -13,7 +13,10 @@ import type {
   AuthProvider,
   EmailTokenPurpose
 } from '../../../../src/Contexts/Auth/domain/value-objects/types/index.js';
-import type { UserRole } from '../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import type {
+  ManageableRole,
+  UserRole
+} from '../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import type { WriteOutcome } from '../../../../src/Contexts/shared/domain/repositories/WriteOutcome.js';
 import { Email } from '../../../../src/Contexts/shared/domain/valueObject/index.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
@@ -39,6 +42,10 @@ export class AuthRepositoryMock implements AuthRepository {
   >();
   private readonly searchByUsernameMock = jest.fn<Nullable<User>, [string]>();
   private readonly countByRoleMock = jest.fn<Promise<number>, [UserRole]>();
+  private readonly reserveMinimumHolderGuardMock = jest.fn<
+    Promise<void>,
+    [ManageableRole]
+  >();
   private readonly deleteIfReplaceableMock = jest.fn<
     Promise<boolean>,
     [User, Date]
@@ -66,6 +73,7 @@ export class AuthRepositoryMock implements AuthRepository {
     this.updateMock.mockResolvedValue('written');
     this.updateRolesMock.mockResolvedValue('written');
     this.countByRoleMock.mockResolvedValue(2);
+    this.reserveMinimumHolderGuardMock.mockResolvedValue(undefined);
     this.deleteIfReplaceableMock.mockResolvedValue(true);
     this.searchByIdMock.mockReturnValue(null);
     this.searchByUsernameMock.mockReturnValue(null);
@@ -138,6 +146,10 @@ export class AuthRepositoryMock implements AuthRepository {
     return this.countByRoleMock(role);
   }
 
+  reserveMinimumHolderGuard(role: ManageableRole): Promise<void> {
+    return this.reserveMinimumHolderGuardMock(role);
+  }
+
   deleteIfReplaceable(user: User, at: Date): Promise<boolean> {
     return this.deleteIfReplaceableMock(user, at);
   }
@@ -201,6 +213,28 @@ export class AuthRepositoryMock implements AuthRepository {
 
   setCountByRole(count: number): void {
     this.countByRoleMock.mockResolvedValue(count);
+  }
+
+  assertGuardReservedWith(role: ManageableRole): void {
+    expect(this.reserveMinimumHolderGuardMock).toHaveBeenCalledWith(role);
+  }
+
+  assertGuardNotReserved(): void {
+    expect(this.reserveMinimumHolderGuardMock).not.toHaveBeenCalled();
+  }
+
+  /** The guard must be the contention point: reserved before the count read. */
+  assertGuardReservedBeforeCount(): void {
+    const guardOrder =
+      this.reserveMinimumHolderGuardMock.mock.invocationCallOrder[0];
+    const countOrder = this.countByRoleMock.mock.invocationCallOrder[0];
+    if (guardOrder === undefined) {
+      throw new TypeError('The guard was not reserved');
+    }
+    if (countOrder === undefined) {
+      throw new TypeError('The administrator count was not read');
+    }
+    expect(guardOrder).toBeLessThan(countOrder);
   }
 
   setSearchByEmailTokenResult(user: Nullable<User>): void {

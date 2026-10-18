@@ -5,6 +5,7 @@ import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import { UnitOfWorkMock } from '../../../shared/__mocks__/UnitOfWorkMock.js';
 import { AuthRepositoryMock } from '../../__mocks__/index.js';
 import { UserMother } from '../../domain/mothers/UserMother.js';
 
@@ -12,6 +13,7 @@ describe('ChangeUserRoles', () => {
   const actor = 'acting-admin';
 
   let repository: AuthRepositoryMock;
+  let unitOfWork: UnitOfWorkMock;
   let useCase: ChangeUserRoles;
 
   const seedTarget = (roles: string[]) => {
@@ -25,7 +27,11 @@ describe('ChangeUserRoles', () => {
 
   beforeEach(() => {
     repository = new AuthRepositoryMock();
-    useCase = new ChangeUserRoles({ authRepository: repository });
+    unitOfWork = new UnitOfWorkMock();
+    useCase = new ChangeUserRoles({
+      authRepository: repository,
+      unitOfWork
+    });
   });
 
   describe('grant', () => {
@@ -45,6 +51,20 @@ describe('ChangeUserRoles', () => {
       // Target started at version 0; a written role change advances it to 1.
       expect(result.version).toBe(1);
       expect(result.metadata.updatedBy).toBe(actor);
+    });
+
+    it('runs inside the unit of work and reserves no guard for a pure grant', async () => {
+      const target = seedTarget(['user']);
+      repository.setUpdateRolesOutcome('written');
+
+      await useCase.execute(
+        { userId: target.id, add: ['admin'], remove: [] },
+        actor,
+        [target.version]
+      );
+
+      expect(unitOfWork.runCount).toBe(1);
+      repository.assertGuardNotReserved();
     });
   });
 
@@ -104,6 +124,8 @@ describe('ChangeUserRoles', () => {
 
       expect(result.roles).toEqual(['user']);
       expect(repository.updateRolesCount()).toBe(1);
+      repository.assertGuardReservedWith('admin');
+      repository.assertGuardReservedBeforeCount();
     });
   });
 });
