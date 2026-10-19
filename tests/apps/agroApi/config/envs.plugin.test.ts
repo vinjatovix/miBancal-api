@@ -80,6 +80,22 @@ describe('envs plugin', () => {
     }
   );
 
+  it('should default TRUST_PROXY_HOPS to 2 when absent', () => {
+    delete process.env.TRUST_PROXY_HOPS;
+
+    expect(loadEnvs()).toMatchObject({
+      TRUST_PROXY_HOPS: 2
+    });
+  });
+
+  it('should load custom TRUST_PROXY_HOPS when provided', () => {
+    process.env.TRUST_PROXY_HOPS = '3';
+
+    expect(loadEnvs()).toMatchObject({
+      TRUST_PROXY_HOPS: 3
+    });
+  });
+
   describe('caching and resetEnvsCache', () => {
     it('should return the same cached instance on consecutive calls', () => {
       const { getEnvs } = jest.requireActual<{

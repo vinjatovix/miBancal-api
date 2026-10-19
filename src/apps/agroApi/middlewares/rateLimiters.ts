@@ -1,5 +1,6 @@
 import type { Request, RequestHandler } from 'express';
 import { rateLimit } from 'express-rate-limit';
+import { getClientIp } from '../../../shared/infrastructure/http/real-ip.js';
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
@@ -27,7 +28,9 @@ export const createAuthLimiter = ({
     message: 'Too many authentication attempts, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { trustProxy: false, xForwardedForHeader: false },
     skipSuccessfulRequests: true,
+    keyGenerator: getClientIp,
     skip
   });
 
@@ -45,6 +48,8 @@ const createEveryRequestLimiter = (
     message,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { trustProxy: false, xForwardedForHeader: false },
+    keyGenerator: getClientIp,
     skipSuccessfulRequests: false,
     skip
   });

@@ -30,6 +30,7 @@ function loadEnvs() {
       .get('KEEP_ALIVE_TIMEOUT_MS')
       .default('5000')
       .asIntPositive(),
+    TRUST_PROXY_HOPS: env.get('TRUST_PROXY_HOPS').default('2').asIntPositive(),
     MONGO_CONNECTION: env.get('MONGO_CONNECTION').required().asString(),
     MONGO_URL: env.get('MONGO_URL').required().asString(),
     MONGO_APP_NAME: env.get('MONGO_APP_NAME').required().asString(),
