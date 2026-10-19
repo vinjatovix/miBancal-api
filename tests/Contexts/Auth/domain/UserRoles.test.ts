@@ -1,5 +1,7 @@
 import {
+  BASE_ROLE,
   MANAGEABLE_ROLES,
+  USER_ROLES,
   UserRoles
 } from '../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { InvalidArgumentException } from '../../../../src/Contexts/shared/domain/errors/index.js';
@@ -12,14 +14,9 @@ describe('UserRoles', () => {
     expect(userRoles).toBeInstanceOf(UserRoles);
   });
 
-  it('should create roles with "admin"', () => {
-    const roles = new UserRoles(['admin']);
-    expect(roles.value).toContain('admin');
-  });
-
-  it('should create roles with "user"', () => {
-    const roles = new UserRoles(['user']);
-    expect(roles.value).toContain('user');
+  it.each(USER_ROLES)('should create roles with "%s"', (role) => {
+    const roles = new UserRoles([role]);
+    expect(roles.value).toContain(role);
   });
 
   it('should deduplicate repeated roles', () => {
@@ -117,13 +114,28 @@ describe('UserRoles', () => {
     });
   });
 
+  describe('USER_ROLES', () => {
+    it.each(['admin', 'user', 'collaborator'] as const)(
+      'contains "%s"',
+      (role) => {
+        expect(USER_ROLES).toContain(role);
+      }
+    );
+  });
+
+  describe('BASE_ROLE', () => {
+    it('is preserved as "user"', () => {
+      expect(BASE_ROLE).toBe('user');
+    });
+  });
+
   describe('MANAGEABLE_ROLES', () => {
     it('excludes the base role "user"', () => {
       expect(MANAGEABLE_ROLES).not.toContain('user');
     });
 
-    it('contains the elevated role "admin"', () => {
-      expect(MANAGEABLE_ROLES).toContain('admin');
+    it.each(MANAGEABLE_ROLES)('contains the elevated role "%s"', (role) => {
+      expect(MANAGEABLE_ROLES).toContain(role);
     });
   });
 });

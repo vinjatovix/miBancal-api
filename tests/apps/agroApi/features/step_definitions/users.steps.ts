@@ -4,6 +4,7 @@ import { assert } from 'chai';
 import { API_PREFIXES } from '../../../../../src/apps/agroApi/routes/shared/apiPrefixes.js';
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import type { EncrypterTool } from '../../../../../src/Contexts/shared/plugins/EncrypterTool.js';
 import { UserMother } from '../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { prepareRequest, suite, type AgroWorld } from './utils/index.js';
 
@@ -58,6 +59,10 @@ Given('a user-only account exists', async function (this: AgroWorld) {
   await seedTarget(this, ['user']);
 });
 
+Given('a collaborator account exists', async function (this: AgroWorld) {
+  await seedTarget(this, ['user', 'collaborator']);
+});
+
 Given(
   'an administrator account exists as the only administrator',
   async function (this: AgroWorld) {
@@ -70,6 +75,31 @@ Given(
   async function (this: AgroWorld) {
     await seedTarget(this, ['user', 'admin']);
     await store(['user', 'admin']);
+  }
+);
+
+When(
+  'the user receives a refreshed session token',
+  async function (this: AgroWorld) {
+    if (!this.userId) {
+      assert.fail('No seeded account in this scenario');
+    }
+    const user = await authRepository().searchById(this.userId);
+    if (!user) {
+      assert.fail(`User ${this.userId} not found`);
+    }
+
+    const token = await suite()
+      .container.resolve<EncrypterTool>('encrypter')
+      .generateToken({
+        id: user.id,
+        email: user.email.value,
+        username: user.username.value,
+        roles: user.roles.toPrimitives()
+      });
+
+    assert.exists(token, 'Could not issue refreshed session token');
+    this.loggedInToken = token;
   }
 );
 

@@ -1,7 +1,7 @@
 import { InvalidArgumentException } from '../../../shared/domain/errors/index.js';
 import type { Serializable } from '../../../shared/domain/interfaces/Serializable.js';
 
-export const USER_ROLES = ['admin', 'user'] as const;
+export const USER_ROLES = ['admin', 'user', 'collaborator'] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
@@ -10,9 +10,8 @@ export type UserRole = (typeof USER_ROLES)[number];
 export const BASE_ROLE: UserRole = 'user';
 
 // The elevated roles an administrator can grant or revoke: a subset of the
-// holdable roles, with the base role `user` deliberately excluded. Iteration 31
-// widens this with `collaborator`.
-export const MANAGEABLE_ROLES = ['admin'] as const;
+// holdable roles, with the base role `user` deliberately excluded.
+export const MANAGEABLE_ROLES = ['admin', 'collaborator'] as const;
 
 export type ManageableRole = (typeof MANAGEABLE_ROLES)[number];
 

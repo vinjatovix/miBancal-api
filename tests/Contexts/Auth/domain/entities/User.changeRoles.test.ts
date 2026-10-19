@@ -1,4 +1,8 @@
-import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import {
+  type ManageableRole,
+  UserRoles
+} from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { UserMother } from '../mothers/UserMother.js';
 
 describe('User.changeRoles', () => {
@@ -12,52 +16,64 @@ describe('User.changeRoles', () => {
     });
 
   describe('grant', () => {
-    it('unions a missing role and records the acting admin and time', () => {
-      const user = userWith(['user']);
+    it.each(['admin', 'collaborator'] as const)(
+      'unions a missing "%s" role and records the acting admin and time',
+      (role) => {
+        const user = userWith(['user']);
 
-      user.changeRoles(['admin'], [], actor, at);
+        user.changeRoles([role], [], actor, at);
 
-      expect(user.roles.has('user')).toBe(true);
-      expect(user.roles.has('admin')).toBe(true);
-      expect(user.metadata.updatedBy).toBe(actor);
-      expect(user.metadata.updatedAt).toEqual(at);
-    });
+        expect(user.roles.has('user')).toBe(true);
+        expect(user.roles.has(role)).toBe(true);
+        expect(user.metadata.updatedBy).toBe(actor);
+        expect(user.metadata.updatedAt).toEqual(at);
+      }
+    );
 
-    it('is an idempotent no-op when the role is already held', () => {
-      const user = userWith(['user', 'admin']);
-      const before = user.metadata.updatedBy;
+    it.each(['admin', 'collaborator'] as const)(
+      'is an idempotent no-op when "%s" is already held',
+      (role) => {
+        const user = userWith(['user', role]);
+        const before = user.metadata.updatedBy;
 
-      user.changeRoles(['admin'], [], actor, at);
+        user.changeRoles([role], [], actor, at);
 
-      expect(user.roles.toPrimitives()).toEqual(
-        expect.arrayContaining(['user', 'admin'])
-      );
-      expect(user.roles.value).toHaveLength(2);
-      expect(user.metadata.updatedBy).toBe(before);
-    });
+        expect(user.roles.toPrimitives()).toEqual(
+          expect.arrayContaining(['user', role])
+        );
+        expect(user.roles.value).toHaveLength(2);
+        expect(user.metadata.updatedBy).toBe(before);
+      }
+    );
   });
 
   describe('revoke', () => {
-    it('yields the difference and updates audit for a held role', () => {
-      const user = userWith(['user', 'admin']);
+    it.each(['admin', 'collaborator'] as const)(
+      'yields the difference and updates audit when revoking "%s"',
+      (role) => {
+        const user = userWith(['user', role]);
 
-      user.changeRoles([], ['admin'], actor, at);
+        user.changeRoles([], [role], actor, at);
 
-      expect(user.roles.has('admin')).toBe(false);
-      expect(user.roles.has('user')).toBe(true);
-      expect(user.metadata.updatedBy).toBe(actor);
-      expect(user.metadata.updatedAt).toEqual(at);
-    });
+        expect(user.roles.has(role)).toBe(false);
+        expect(user.roles.has('user')).toBe(true);
+        expect(user.metadata.updatedBy).toBe(actor);
+        expect(user.metadata.updatedAt).toEqual(at);
+      }
+    );
 
-    it('is an idempotent no-op for a role the account lacks', () => {
-      const user = userWith(['user']);
-      const before = user.metadata.updatedBy;
+    it.each(['admin', 'collaborator'] as const)(
+      'is an idempotent no-op when revoking "%s" from an account that lacks it',
+      (role) => {
+        const user = userWith(['user']);
+        const before = user.metadata.updatedBy;
 
-      user.changeRoles([], ['admin'], actor, at);
+        user.changeRoles([], [role], actor, at);
 
-      expect(user.roles.toPrimitives()).toEqual(['user']);
-      expect(user.metadata.updatedBy).toBe(before);
-    });
+        expect(user.roles.toPrimitives()).toEqual(['user']);
+        expect(user.metadata.updatedBy).toBe(before);
+      }
+    );
   });
 
   describe('base role permanence', () => {
@@ -67,6 +83,16 @@ describe('User.changeRoles', () => {
       user.changeRoles([], ['admin'], actor, at);
 
       expect(user.roles.has('user')).toBe(true);
+    });
+
+    it('throws when the resulting role set drops the base role "user"', () => {
+      const user = userWith(['user']);
+
+      expect(() =>
+        user.changeRoles([], ['user' as unknown as ManageableRole], actor, at)
+      ).toThrow(
+        new InvalidArgumentException('<User> cannot drop the base role <user>')
+      );
     });
   });
 });

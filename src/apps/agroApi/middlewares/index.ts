@@ -8,6 +8,7 @@ export {
 } from './rateLimiters.js';
 export * from './auth.js';
 export * from './isAdmin.js';
+export * from './isCatalogMaintainer.js';
 export * from './EnsureAuthentication.js';
 export * from './optionalAuth.js';
 export * from './requireIfMatch.js';
