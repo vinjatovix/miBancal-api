@@ -9,7 +9,7 @@ import {
 } from '../../controllers/Plants/requestSchemas.js';
 import {
   auth,
-  isAdmin,
+  isCatalogMaintainer,
   optionalAuth,
   requireIfMatch,
   validateRequest
@@ -24,7 +24,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.post(
     `${prefix}/`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     validateRequest(createPlantRequest),
     plantApiInvoker('createPlant')
   );
@@ -45,7 +45,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.patch(
     `${prefix}/:id`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     requireIfMatch,
     validateRequest(updatePlantRequest),
     plantApiInvoker('updatePlant')
@@ -53,7 +53,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.delete(
     `${prefix}/:id`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     requireIfMatch,
     validateRequest(deletePlantRequest),
     plantApiInvoker('deletePlant')

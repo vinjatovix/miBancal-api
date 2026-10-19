@@ -39,12 +39,13 @@ AfterAll(stopSuite);
 const ROLES: Readonly<Record<string, Role>> = {
   user: 'user',
   admin: 'admin',
+  collaborator: 'collaborator',
   'logged-in': 'loggedIn'
 };
 
 defineParameterType({
   name: 'role',
-  regexp: /logged-in|user|admin/,
+  regexp: /logged-in|user|admin|collaborator/,
   transformer: (value: string): Role => {
     const role = ROLES[value];
     if (!role) {

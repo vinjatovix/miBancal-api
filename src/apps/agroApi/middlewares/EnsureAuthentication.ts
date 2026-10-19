@@ -32,6 +32,21 @@ const getAdminDenyReason = (user: unknown): string | null => {
   return null;
 };
 
+const CATALOG_MAINTAINER_ROLES: readonly string[] = ['admin', 'collaborator'];
+
+const getCatalogMaintainerDenyReason = (user: unknown): string | null => {
+  if (!user || !Array.isArray((user as { roles?: unknown }).roles))
+    return 'missing_roles';
+  if (
+    !(user as { roles: string[] }).roles.some((role) =>
+      CATALOG_MAINTAINER_ROLES.includes(role)
+    )
+  )
+    return 'insufficient_role';
+
+  return null;
+};
+
 export class EnsureAuthentication {
   static async run(
     { logger, encrypter }: AuthDeps,
@@ -75,6 +90,23 @@ export class EnsureAuthentication {
   ): void {
     const user = res.locals.user as { roles?: string[] };
     const denyReason = getAdminDenyReason(user);
+
+    if (denyReason) {
+      logger.warn(`[auth] ${denyReason} ${getRequestContext(req)}`);
+      throw createError.forbidden('Insufficient permissions');
+    }
+
+    return next();
+  }
+
+  static isCatalogMaintainer(
+    { logger }: Pick<AuthDeps, 'logger'>,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): void {
+    const user = res.locals.user as { roles?: string[] };
+    const denyReason = getCatalogMaintainerDenyReason(user);
 
     if (denyReason) {
       logger.warn(`[auth] ${denyReason} ${getRequestContext(req)}`);

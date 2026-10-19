@@ -26,6 +26,26 @@ Feature: Admin changes another account's roles
         And the response should have ETag '"1"'
         And response matches OpenAPI contract
 
+    Scenario: Grant the collaborator role to a user-only account
+        Given a user-only account exists
+        And I use If-Match '"0"'
+        When I send a PATCH admin request to "/api/v1/users/<userId>/roles" with body
+            """
+            {
+                "add": ["collaborator"]
+            }
+            """
+        Then the response status code should be 200
+        And the response body should contain
+            """
+            {
+                "id": "<userId>",
+                "roles": ["user", "collaborator"]
+            }
+            """
+        And the response should have ETag '"1"'
+        And response matches OpenAPI contract
+
     Scenario: Granting an already-held role is an idempotent no-op
         Given an administrator account exists as the only administrator
         And I use If-Match '"0"'
@@ -63,6 +83,18 @@ Feature: Admin changes another account's roles
         Then the response status code should be 403
         And response matches OpenAPI contract
 
+    Scenario: A collaborator cannot change roles
+        Given a user-only account exists
+        And I use If-Match '"0"'
+        When I send a PATCH collaborator request to "/api/v1/users/<userId>/roles" with body
+            """
+            {
+                "add": ["collaborator"]
+            }
+            """
+        Then the response status code should be 403
+        And response matches OpenAPI contract
+
     # --- User Story 2: revoke ---
 
     Scenario: Revoke a held role
@@ -83,6 +115,52 @@ Feature: Admin changes another account's roles
             }
             """
         And the response should have ETag '"1"'
+        And response matches OpenAPI contract
+
+    Scenario: Revoke the collaborator role from an account
+        Given a collaborator account exists
+        And I use If-Match '"0"'
+        When I send a PATCH admin request to "/api/v1/users/<userId>/roles" with body
+            """
+            {
+                "remove": ["collaborator"]
+            }
+            """
+        Then the response status code should be 200
+        And the response body should contain
+            """
+            {
+                "id": "<userId>",
+                "roles": ["user"]
+            }
+            """
+        And the response should have ETag '"1"'
+        And response matches OpenAPI contract
+
+    Scenario: Revoked collaborator cannot modify botanical catalogs with a refreshed token
+        Given a collaborator account exists
+        And a family exists
+        And I use If-Match '"0"'
+        When I send a PATCH admin request to "/api/v1/users/<userId>/roles" with body
+            """
+            {
+                "remove": ["collaborator"]
+            }
+            """
+        Then the response status code should be 200
+        And the response should have ETag '"1"'
+        When the user receives a refreshed session token
+        And I send a POST logged-in request to "/api/v1/plants" with body
+            """
+            {
+                "id": "11111111-2222-3333-4444-555555555555",
+                "identity": {
+                    "name": { "primary": "Unauthorized Plant" },
+                    "family": "<familyId>"
+                }
+            }
+            """
+        Then the response status code should be 403
         And response matches OpenAPI contract
 
     Scenario: Revoking a role the account lacks is an idempotent no-op

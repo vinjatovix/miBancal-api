@@ -48,6 +48,11 @@ Feature: Admin looks up an account by email or username
         Then the response status code should be 403
         And response matches OpenAPI contract
 
+    Scenario: A collaborator cannot look up accounts
+        When I send a GET collaborator request to "/api/v1/users/lookup"
+        Then the response status code should be 403
+        And response matches OpenAPI contract
+
     Scenario: A lookup with neither email nor username is rejected
         When I send a GET admin request to "/api/v1/users/lookup"
         Then the response status code should be 400

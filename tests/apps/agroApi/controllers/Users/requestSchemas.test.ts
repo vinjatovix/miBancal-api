@@ -32,6 +32,15 @@ describe('Users requestSchemas', () => {
       expect(body.safeParse({ add: ['admin'] }).success).toBe(true);
     });
 
+    it.each(['add', 'remove'] as const)(
+      'accepts collaborator in %s array',
+      (field) => {
+        const result = body.safeParse({ [field]: ['collaborator'] });
+
+        expect(result.success).toBe(true);
+      }
+    );
+
     it('rejects the non-manageable base role "user" as a 400 (not a ManageableRole)', () => {
       expect(body.safeParse({ add: ['user'] }).success).toBe(false);
     });

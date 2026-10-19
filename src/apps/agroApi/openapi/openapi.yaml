@@ -438,6 +438,9 @@ paths:
     post:
       tags: [Families]
       summary: Create family
+      description: >
+        Creates a new family entry in the shared botanical taxonomy catalog.
+        Requires authentication and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
 
@@ -504,6 +507,9 @@ paths:
     patch:
       tags: [Families]
       summary: Update family
+      description: >
+        Updates an existing family entry by UUID or slug.
+        Requires authentication, mandatory `If-Match`, and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
       parameters:
@@ -608,6 +614,9 @@ paths:
     post:
       tags: [Plants]
       summary: Create plant
+      description: >
+        Creates a new plant in the shared botanical catalog.
+        Requires authentication and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
       requestBody:
@@ -682,6 +691,9 @@ paths:
     patch:
       tags: [Plants]
       summary: Update plant
+      description: >
+        Updates botanical details of a plant in the shared catalog.
+        Requires authentication, mandatory `If-Match`, and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
       parameters:
@@ -727,6 +739,9 @@ paths:
     delete:
       tags: [Plants]
       summary: Delete plant
+      description: >
+        Marks a plant as deleted in the shared catalog.
+        Requires authentication, mandatory `If-Match`, and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
       parameters:
@@ -1177,8 +1192,8 @@ paths:
       tags: [Users]
       summary: Admin grants and/or revokes roles on another account
       description: >
-        Applies a role delta (`add` / `remove`) to the target account's current
-        roles. Administrator only. Mandatory `If-Match`.
+        Applies a role delta (`add` and/or `remove`) over the manageable roles
+        (`admin`, `collaborator`). Administrator only. Mandatory `If-Match`.
       security:
         - bearerAuth: []
       parameters:
@@ -1382,7 +1397,7 @@ components:
       description: >
         HS256 JWT returned as `{ token }` by `/auth/login`, `/auth/google`
         and `/auth/refresh`. Payload: `id` (UUID), `email`, `username`,
-        `roles` (array of `admin` | `user`), plus the standard `iat` and
+        `roles` (array of `admin` | `user` | `collaborator`), plus the standard `iat` and
         `exp` claims. Lifetime comes from `JWT_DEFAULT_DURATION` (2h by
         default); read `exp` instead of assuming it. `/auth/refresh` only
         renews a token that has not expired yet.
@@ -1391,14 +1406,13 @@ components:
     # Roles an account can HOLD and that responses expose.
     Role:
       type: string
-      enum: [admin, user]
+      enum: [admin, user, collaborator]
 
     # Roles the delta can grant/revoke: the manageable (elevated) roles only.
     # The base role `user` is permanent and NOT manageable, so it is excluded.
-    # A later iteration adds `collaborator` here.
     ManageableRole:
       type: string
-      enum: [admin]
+      enum: [admin, collaborator]
 
     ChangeUserRolesRequest:
       type: object
