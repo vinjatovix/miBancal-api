@@ -11,6 +11,7 @@ import {
 import type { Db, MongoClient } from 'mongodb';
 
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
+import { userBookmarksPersistenceMapper } from '../../Contexts/Agro/Bookmarks/mappers/userBookmarksPersistenceMapper.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
@@ -68,6 +69,7 @@ export function buildExplicitRegistrations({
     familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
     plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
     plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
+    userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper), // Plain persistence mapper without class state
     cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
     unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
     familySummaryReader: aliasTo('familyReadRepository'), // Plants' port, served by the family read side

@@ -50,6 +50,13 @@ When(
 );
 
 When(
+  'I send a POST request to {string} with body',
+  function (this: AgroWorld, route: string, body: string) {
+    prepareRequest(this, { method: 'POST', route, body });
+  }
+);
+
+When(
   'I send a PATCH {role} request to {string} with body',
   function (this: AgroWorld, role: Role, route: string, body: string) {
     prepareRequest(this, {
