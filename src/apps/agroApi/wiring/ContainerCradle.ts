@@ -10,6 +10,14 @@ import type {
 } from '../../../Contexts/Agro/Beds/application/useCases/index.js';
 import type { MongoBedRepository } from '../../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
 import type { BedPersistenceMapper } from '../../../Contexts/Agro/Beds/mappers/interfaces/BedPersistenceMapper.js';
+import type {
+  AddPlantBookmark,
+  CheckPlantBookmark,
+  GetUserBookmarks,
+  RemovePlantBookmark
+} from '../../../Contexts/Agro/Bookmarks/application/useCases/index.js';
+import type { MongoUserBookmarksRepository } from '../../../Contexts/Agro/Bookmarks/infrastructure/persistence/MongoUserBookmarksRepository.js';
+import type { UserBookmarksPersistenceMapper } from '../../../Contexts/Agro/Bookmarks/mappers/interfaces/UserBookmarksPersistenceMapper.js';
 import type { FamilyReadRepository } from '../../../Contexts/Agro/Families/application/queries/index.js';
 import type {
   CreateFamily,
@@ -94,6 +102,12 @@ import type {
   UpdateBedController
 } from '../controllers/Beds/index.js';
 import type {
+  AddPlantBookmarkController,
+  CheckPlantBookmarkController,
+  GetUserBookmarksController,
+  RemovePlantBookmarkController
+} from '../controllers/Bookmarks/index.js';
+import type {
   CreateFamilyController,
   GetAllFamiliesController,
   GetFamilyBySlugController,
@@ -129,6 +143,7 @@ export type ContainerCradle = {
   familyPersistenceMapper: FamilyPersistenceMapper;
   plantPersistenceMapper: PlantPersistenceMapper;
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
+  userBookmarksPersistenceMapper: UserBookmarksPersistenceMapper;
   cropSpatialService: CropSpatialService;
   unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
@@ -156,6 +171,7 @@ export type ContainerCradle = {
   plantReadRepository: PlantReadRepository;
   bedRepository: MongoBedRepository;
   plantInstanceRepository: MongoPlantInstanceRepository;
+  userBookmarksRepository: MongoUserBookmarksRepository;
   plantQueryMapper: PlantQueryMapper;
 
   // Scoped use cases
@@ -191,6 +207,10 @@ export type ContainerCradle = {
   listPlantInstances: ListPlantInstances;
   updatePlantInstance: UpdatePlantInstance;
   removePlantInstance: RemovePlantInstance;
+  addPlantBookmark: AddPlantBookmark;
+  removePlantBookmark: RemovePlantBookmark;
+  getUserBookmarks: GetUserBookmarks;
+  checkPlantBookmark: CheckPlantBookmark;
 
   // Scoped controllers
   healthController: HealthController;
@@ -224,6 +244,10 @@ export type ContainerCradle = {
   listPlantInstancesController: ListPlantInstancesController;
   updatePlantInstanceController: UpdatePlantInstanceController;
   removePlantInstanceController: RemovePlantInstanceController;
+  addPlantBookmarkController: AddPlantBookmarkController;
+  removePlantBookmarkController: RemovePlantBookmarkController;
+  getUserBookmarksController: GetUserBookmarksController;
+  checkPlantBookmarkController: CheckPlantBookmarkController;
 };
 
 export type AppContainer = AwilixContainer<ContainerCradle>;

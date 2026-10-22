@@ -27,6 +27,8 @@ tags:
     description: Endpoints for managing crop instances in beds.
   - name: Users
     description: Administrator endpoints for managing accounts and their roles.
+  - name: Bookmarks
+    description: Personal user bookmarks collection for favorite catalog items.
 
 paths:
   /api/v1/health:
@@ -556,7 +558,8 @@ paths:
         Public. The token is optional: anonymous callers and plain users get
         only ACTIVE plants; with an `admin` token the list also includes
         DELETED ones (tell them apart by `status` and `deletedAt`). There is
-        no filter by status. A malformed or expired token → 401.
+        no filter by status. When `filter[bookmarked]` is provided, authentication
+        is required; anonymous requests or invalid tokens return 401 Unauthorized.
       security:
         - {}
         - bearerAuth: []
@@ -1239,6 +1242,135 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/bookmarks:
+    get:
+      tags:
+        - Bookmarks
+      summary: Get user's personal bookmarks collection
+      description: >
+        Retrieves the authenticated user's private collection of bookmarked favorites.
+        By default returns lightweight plant references. If `?include=plant` is specified,
+        returns embedded catalog summaries sorted alphabetically (A-Z) by plant name.
+        Inactive or deleted catalog plants are automatically excluded from the enriched list.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [plant]
+          description: Related catalog entities to embed in the response.
+      responses:
+        '200':
+          description: Bookmarks collection successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserBookmarksResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/bookmarks/plants:
+    post:
+      tags:
+        - Bookmarks
+      summary: Add plant to personal favorites
+      description: >
+        Adds a catalog plant to the authenticated user's favorites collection.
+        Operation is idempotent; duplicate calls do not alter timestamps or create duplicates.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPlantBookmarkRequest'
+      responses:
+        '201':
+          description: Plant successfully added to favorites.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoritePlantItem'
+        '200':
+          description: Plant was already bookmarked; returned existing reference idempotently.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoritePlantItem'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/bookmarks/plants/{plantId}:
+    delete:
+      tags:
+        - Bookmarks
+      summary: Remove plant from personal favorites
+      description: >
+        Removes a plant from the authenticated user's favorites collection.
+        Operation is idempotent; removing an item not present returns 204 No Content safely.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the plant to remove.
+      responses:
+        '204':
+          description: Plant successfully removed or was not present.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Bookmarks
+      summary: Check if plant is in personal favorites
+      description: >
+        Queries whether the specified catalog plant is currently bookmarked in the authenticated
+        user's personal collection.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the plant to check.
+      responses:
+        '200':
+          description: Bookmark presence check succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckPlantBookmarkResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   headers:
     ETag:
@@ -1673,6 +1805,16 @@ components:
             hasAny: { $ref: '#/components/schemas/FilterTextList' }
         edible: { $ref: '#/components/schemas/BooleanFieldFilter' }
         toxic: { $ref: '#/components/schemas/BooleanFieldFilter' }
+        bookmarked:
+          description: Filters by whether the plant is bookmarked in the authenticated user's collection. Requires Bearer token.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              type: string
+              enum: ['true', 'false']
       example:
         sowingMonths:
           hasAny: '3,4,5'
@@ -3022,6 +3164,108 @@ components:
             $ref: '#/components/schemas/PlantInstanceResponse'
         pagination:
           $ref: '#/components/schemas/PaginationResponse'
+
+    FavoritePlantItem:
+      type: object
+      required:
+        - plantId
+        - bookmarkedAt
+      properties:
+        plantId:
+          type: string
+          format: uuid
+          description: Unique identifier of the bookmarked plant in the catalog.
+          example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+        bookmarkedAt:
+          type: string
+          format: date-time
+          description: ISO timestamp indicating when the plant was added to favorites.
+          example: '2026-10-22T14:30:00.000Z'
+
+    EnrichedPlantSummary:
+      type: object
+      required:
+        - id
+        - name
+        - scientificName
+        - family
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+        name:
+          type: string
+          description: Primary vernacular plant name.
+          example: Tomate
+        scientificName:
+          type: string
+          description: Botanical scientific binomial.
+          example: Solanum lycopersicum
+        primaryImage:
+          type: object
+          nullable: true
+          properties:
+            url:
+              type: string
+              format: uri
+              example: https://example.com/tomato.jpg
+            title:
+              type: string
+              example: Ripe Tomato
+            source:
+              type: string
+              example: Wikimedia Commons
+        family:
+          $ref: '#/components/schemas/FamilySummary'
+
+    EnrichedFavoritePlantItem:
+      allOf:
+        - $ref: '#/components/schemas/FavoritePlantItem'
+        - type: object
+          required:
+            - plant
+          properties:
+            plant:
+              $ref: '#/components/schemas/EnrichedPlantSummary'
+
+    UserBookmarksResponse:
+      type: object
+      required:
+        - plants
+      properties:
+        plants:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/FavoritePlantItem'
+              - $ref: '#/components/schemas/EnrichedFavoritePlantItem'
+
+    AddPlantBookmarkRequest:
+      type: object
+      required:
+        - plantId
+      properties:
+        plantId:
+          type: string
+          format: uuid
+          description: Identifier of the catalog plant to bookmark.
+          example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+
+    CheckPlantBookmarkResponse:
+      type: object
+      required:
+        - bookmarked
+      properties:
+        bookmarked:
+          type: boolean
+          description: True if the specified plant is in the user's favorites, false otherwise.
+          example: true
+        bookmarkedAt:
+          type: string
+          format: date-time
+          description: ISO timestamp of when the item was bookmarked (if present).
+          example: '2026-10-22T14:30:00.000Z'
 
   responses:
     UnprocessableEntityError:

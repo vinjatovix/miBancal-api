@@ -385,7 +385,8 @@ const listPlantsQuery = listQuerySchema({
     lightHoursMin: rangeField(),
     sowingMonths: listField(monthItem),
     edible: booleanField(),
-    toxic: booleanField()
+    toxic: booleanField(),
+    bookmarked: booleanField()
   },
   sortableKeys: ['name', 'scientificName'],
   ...plantSelection
