@@ -22,6 +22,8 @@ export type PlantImageView = Readonly<PlantImagePrimitives>;
 export type PlantReadView = {
   readonly id: string;
   readonly version: number;
+  /** Read-only likes projection; defaults to `0`, never absent, never `<0`. */
+  readonly likesCount: number;
   /** `family` is the plain id unless the family is included. */
   readonly identity: Omit<IdentityPrimitives, 'family'> & {
     readonly family: PlantFamilyView;
@@ -52,7 +54,8 @@ export const PLANT_FIELDS = [
   'metadata',
   'status',
   'deletedAt',
-  'version'
+  'version',
+  'likesCount'
 ] as const satisfies readonly (keyof PlantReadView)[];
 
 export type PlantField = (typeof PLANT_FIELDS)[number];

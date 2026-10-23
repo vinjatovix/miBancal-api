@@ -26,17 +26,23 @@ const ENTITY_TAG_LIST = new RegExp(
 // on commas: `"a,b"` is one tag.
 const ENTITY_TAG = new RegExp(ENTITY_TAG_SOURCE, 'g');
 
-const VERSION_VALUE = /^(0|[1-9]\d*)$/;
+const VERSION_TAG = /^(0|[1-9]\d*)(?:-(0|[1-9]\d*))?$/;
 
 const EXPECTED_VERSIONS_KEY = 'expectedVersions';
 
 /** The version a strong tag names; weak tags and other values name none. */
 const toVersion = ([, weak, value = '']: RegExpExecArray): number[] => {
-  if (weak !== undefined || !VERSION_VALUE.test(value)) return [];
+  if (weak !== undefined) return [];
 
-  const version = Number(value);
+  const match = VERSION_TAG.exec(value);
+  if (!match) return [];
 
-  return Number.isSafeInteger(version) ? [version] : [];
+  const version = Number(match[1]);
+  const counter = match[2] !== undefined ? Number(match[2]) : 0;
+
+  return Number.isSafeInteger(version) && Number.isSafeInteger(counter)
+    ? [version]
+    : [];
 };
 
 /**
@@ -66,8 +72,15 @@ export const isFullRepresentation = (query: {
   include?: readonly string[];
 }): boolean => query.fields === undefined && query.include === undefined;
 
-export const setVersionETag = (res: Response, version: number): void => {
-  res.set('ETag', `"${version}"`);
+export const formatVersionETag = (version: number, counter = 0): string =>
+  counter > 0 ? `"${version}-${counter}"` : `"${version}"`;
+
+export const setVersionETag = (
+  res: Response,
+  version: number,
+  counter = 0
+): void => {
+  res.set('ETag', formatVersionETag(version, counter));
 };
 
 export const storeExpectedVersions = (

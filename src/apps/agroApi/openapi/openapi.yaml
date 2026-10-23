@@ -1371,6 +1371,109 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/plants/{plantId}/likes:
+    post:
+      tags:
+        - Plant Likes
+      summary: Like a catalog plant
+      description: >
+        Registers the authenticated user's like on an active catalog plant and
+        increments the plant's projected `likesCount`. Idempotent: liking an
+        already-liked plant succeeds without a second increment.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the plant to like.
+      responses:
+        '201':
+          description: Like registered; the counter increased by one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlantLikeItem'
+        '200':
+          description: Plant was already liked; returned the existing like idempotently (no increment).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlantLikeItem'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Plant Likes
+      summary: Remove a like from a catalog plant
+      description: >
+        Removes the authenticated user's like and decrements the plant's
+        projected `likesCount` (never below zero). Idempotent: removing a like
+        that is not present returns 204 without changing the counter.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the plant to un-like.
+      responses:
+        '204':
+          description: Like removed, or was not present; counter left consistent.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/plants/{plantId}/likes/me:
+    get:
+      tags:
+        - Plant Likes
+      summary: Check the current user's like state on a plant
+      description: >
+        Returns whether the authenticated user currently likes the plant, for
+        rendering a correct toggle state. Never exposes other users' likes.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plantId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the plant to check.
+      responses:
+        '200':
+          description: Like-state check succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckPlantLikeResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   headers:
     ETag:
@@ -1385,14 +1488,15 @@ components:
 
     ReadETag:
       description: >
-        Version of the full resource, as in `ETag`. Sent only when the read
-        uses neither `fields` nor `include`: a tailored body is not the
-        representation the version names, so it carries no tag and
-        `If-None-Match` is ignored.
+        Entity tag of the full resource. Equal to the resource version,
+        optionally extended with counter projections (e.g. `"<version>"` or
+        `"<version>-<counter>"`). Sent only when the read uses neither `fields`
+        nor `include`: a tailored body is not the representation the tag names,
+        so it carries no tag and `If-None-Match` is ignored.
       required: false
       schema:
         type: string
-        pattern: '^"(0|[1-9][0-9]*)"$'
+        pattern: '^"(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?"$'
         example: '"4"'
 
   parameters:
@@ -2180,7 +2284,7 @@ components:
 
     Plant:
       type: object
-      required: [id, identity, traits, phenology, image]
+      required: [id, identity, traits, phenology, image, likesCount]
       properties:
         id:
           type: string
@@ -2189,6 +2293,17 @@ components:
           type: integer
           minimum: 0
           readOnly: true
+
+        likesCount:
+          type: integer
+          format: int32
+          minimum: 0
+          default: 0
+          readOnly: true
+          description: >
+            Read-only projected count of distinct active likes for this plant.
+            Defaults to 0, is never absent and never negative. Cannot be set or
+            modified through any plant write operation.
 
         identity:
           $ref: '#/components/schemas/PlantIdentityView'
@@ -2222,6 +2337,31 @@ components:
           readOnly: true
           description: Set when the plant is deleted; `null` otherwise.
 
+    PlantLikeItem:
+      type: object
+      required: [plantId, likedAt]
+      properties:
+        plantId:
+          type: string
+          format: uuid
+          description: Identifier of the liked catalog plant.
+        likedAt:
+          type: string
+          format: date-time
+          description: ISO timestamp indicating when the like was registered.
+
+    CheckPlantLikeResponse:
+      type: object
+      required: [liked]
+      properties:
+        liked:
+          type: boolean
+          description: True if the current user has an active like on this plant.
+        likedAt:
+          type: string
+          format: date-time
+          description: ISO timestamp of the like, present only when `liked` is true.
+
     PlantPhenology:
       type: object
       required: [sowing, flowering, harvest]
@@ -2247,6 +2387,12 @@ components:
         version:
           type: integer
           minimum: 0
+          readOnly: true
+        likesCount:
+          type: integer
+          format: int32
+          minimum: 0
+          default: 0
           readOnly: true
         identity:
           $ref: '#/components/schemas/PlantIdentityView'

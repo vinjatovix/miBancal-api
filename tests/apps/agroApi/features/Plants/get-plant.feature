@@ -135,7 +135,7 @@ Feature: Get Plant
   Scenario: Get a plant with every field listed
     Given a family exists
     And a plant exists
-    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,version"
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,version,likesCount"
     Then the response status code should be 200
     And a GET user request to "/api/v1/plants/<plantId>" should return the same body
     And the response should not have an ETag

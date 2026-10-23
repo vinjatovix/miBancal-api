@@ -29,7 +29,11 @@ import type { PlantPhenologyChanges } from './types/PlantPhenologyChanges.js';
 import type { PlantTraitsChanges } from './types/PlantTraitsChanges.js';
 
 export class Plant extends AggregateRoot<PlantId> {
-  private props: PlantProps & { status: PlantStatus; version: number };
+  private props: PlantProps & {
+    status: PlantStatus;
+    version: number;
+    likesCount: number;
+  };
 
   constructor(props: PlantProps) {
     super(props.id);
@@ -38,7 +42,8 @@ export class Plant extends AggregateRoot<PlantId> {
       ...props,
       traits: Plant.withEcological(props.traits),
       status: props.status ?? PlantStatus.ACTIVE,
-      version: props.version ?? 0
+      version: props.version ?? 0,
+      likesCount: props.likesCount ?? 0
     });
   }
 
@@ -91,6 +96,16 @@ export class Plant extends AggregateRoot<PlantId> {
 
   get version(): number {
     return this.props.version;
+  }
+
+  /**
+   * Read-only popularity projection. Hydrated from storage only (default `0`);
+   * it is never part of `PlantPrimitives`, so no plant write can set, increment
+   * or overwrite it — the counter is maintained solely by the transactional
+   * `$inc` of `PlantLikesCounterRepository` (FR-008).
+   */
+  get likesCount(): number {
+    return this.props.likesCount;
   }
 
   get status(): PlantStatus {

@@ -53,7 +53,8 @@ const toPlant = (document: MongoPlantDocument): Plant => {
     knowledge: mapKnowledge(document.knowledge),
     metadata: Metadata.fromPrimitives(document.metadata),
     status: document.status,
-    version: document.version
+    version: document.version,
+    likesCount: document.likesCount ?? 0
   };
 
   if (document.deletedAt) {

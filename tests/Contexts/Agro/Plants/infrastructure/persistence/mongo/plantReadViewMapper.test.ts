@@ -245,6 +245,21 @@ describe('toPlantSparseView', () => {
   );
 });
 
+describe('likesCount projection', () => {
+  it('projects the stored likesCount into the read view', () => {
+    const document = { ...stored(PlantFactory.tomato()), likesCount: 42 };
+
+    expect(readView(document).likesCount).toBe(42);
+  });
+
+  it('defaults likesCount to 0 when the document has none', () => {
+    const document = stored(PlantFactory.tomato());
+
+    expect(document).not.toHaveProperty('likesCount');
+    expect(readView(document).likesCount).toBe(0);
+  });
+});
+
 describe('toPlantImage', () => {
   it.each([
     ['missing', undefined],

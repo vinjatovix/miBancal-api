@@ -39,6 +39,13 @@ import type { CropSpatialService } from '../../../Contexts/Agro/PlantInstances/d
 import type { MongoPlantInstanceRepository } from '../../../Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
 import type { PlantInstancePersistenceMapper } from '../../../Contexts/Agro/PlantInstances/mappers/interfaces/PlantInstancePersistenceMapper.js';
 import type {
+  CheckPlantLike,
+  LikePlant,
+  UnlikePlant
+} from '../../../Contexts/Agro/PlantLikes/application/useCases/index.js';
+import type { MongoPlantLikeRepository } from '../../../Contexts/Agro/PlantLikes/infrastructure/persistence/MongoPlantLikeRepository.js';
+import type { PlantLikePersistenceMapper } from '../../../Contexts/Agro/PlantLikes/mappers/interfaces/PlantLikePersistenceMapper.js';
+import type {
   FamilySummaryReader,
   PlantReadRepository
 } from '../../../Contexts/Agro/Plants/application/queries/index.js';
@@ -50,6 +57,7 @@ import type {
   UpdatePlant
 } from '../../../Contexts/Agro/Plants/application/useCases/index.js';
 import type { PlantQueryMapper } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import type { MongoPlantLikesCounterRepository } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantLikesCounterRepository.js';
 import type { MongoPlantRepository } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
 import type { PlantPersistenceMapper } from '../../../Contexts/Agro/Plants/mappers/interfaces/PlantPersistenceMapper.js';
 import type { AccountNotifier } from '../../../Contexts/Auth/application/notifications/index.js';
@@ -122,6 +130,11 @@ import type {
   UpdatePlantInstanceController
 } from '../controllers/PlantInstances/index.js';
 import type {
+  CheckPlantLikeController,
+  LikePlantController,
+  UnlikePlantController
+} from '../controllers/PlantLikes/index.js';
+import type {
   CreatePlantController,
   DeletePlantController,
   GetAllPlantsController,
@@ -144,6 +157,7 @@ export type ContainerCradle = {
   plantPersistenceMapper: PlantPersistenceMapper;
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
   userBookmarksPersistenceMapper: UserBookmarksPersistenceMapper;
+  plantLikePersistenceMapper: PlantLikePersistenceMapper;
   cropSpatialService: CropSpatialService;
   unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
@@ -172,6 +186,8 @@ export type ContainerCradle = {
   bedRepository: MongoBedRepository;
   plantInstanceRepository: MongoPlantInstanceRepository;
   userBookmarksRepository: MongoUserBookmarksRepository;
+  plantLikeRepository: MongoPlantLikeRepository;
+  plantLikesCounterRepository: MongoPlantLikesCounterRepository;
   plantQueryMapper: PlantQueryMapper;
 
   // Scoped use cases
@@ -211,6 +227,9 @@ export type ContainerCradle = {
   removePlantBookmark: RemovePlantBookmark;
   getUserBookmarks: GetUserBookmarks;
   checkPlantBookmark: CheckPlantBookmark;
+  likePlant: LikePlant;
+  unlikePlant: UnlikePlant;
+  checkPlantLike: CheckPlantLike;
 
   // Scoped controllers
   healthController: HealthController;
@@ -248,6 +267,9 @@ export type ContainerCradle = {
   removePlantBookmarkController: RemovePlantBookmarkController;
   getUserBookmarksController: GetUserBookmarksController;
   checkPlantBookmarkController: CheckPlantBookmarkController;
+  likePlantController: LikePlantController;
+  unlikePlantController: UnlikePlantController;
+  checkPlantLikeController: CheckPlantLikeController;
 };
 
 export type AppContainer = AwilixContainer<ContainerCradle>;
