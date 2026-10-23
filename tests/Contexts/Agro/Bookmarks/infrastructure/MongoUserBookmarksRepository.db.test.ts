@@ -122,7 +122,11 @@ describe('MongoUserBookmarksRepository (integration)', () => {
     await repository.save(aggregate);
     const before = aggregate.toPrimitives();
     const newPlantId = createPlantId('6ba7b810-9dad-11d1-80b4-00c04fd430c3');
-    aggregate.addPlant(newPlantId, new Date('2026-10-22T15:00:00.000Z'));
+    aggregate.addPlant(
+      newPlantId,
+      'bookmarker',
+      new Date('2026-10-22T15:00:00.000Z')
+    );
     const after = aggregate.toPrimitives();
 
     const outcome = await repository.updateWithDiff(before, after);

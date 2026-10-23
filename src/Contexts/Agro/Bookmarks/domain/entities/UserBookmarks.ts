@@ -67,18 +67,14 @@ export class UserBookmarks
     return this.props.plants.find((item) => item.plantId === plantId) ?? null;
   }
 
-  addPlant(plantId: PlantId, at: Date = new Date()): boolean {
+  addPlant(plantId: PlantId, user: string, at: Date = new Date()): boolean {
     if (this.hasPlant(plantId)) {
       return false;
     }
 
     const newItem = new FavoritePlantItem(plantId, at);
     const updatedPlants = Object.freeze([...this.props.plants, newItem]);
-    const updatedMetadata = Metadata.update(
-      this.props.metadata,
-      this.props.userId,
-      at
-    );
+    const updatedMetadata = Metadata.update(this.props.metadata, user, at);
 
     this.props = Object.freeze({
       ...this.props,
@@ -89,7 +85,7 @@ export class UserBookmarks
     return true;
   }
 
-  removePlant(plantId: PlantId, at: Date = new Date()): boolean {
+  removePlant(plantId: PlantId, user: string, at: Date = new Date()): boolean {
     if (!this.hasPlant(plantId)) {
       return false;
     }
@@ -97,11 +93,7 @@ export class UserBookmarks
     const updatedPlants = Object.freeze(
       this.props.plants.filter((item) => item.plantId !== plantId)
     );
-    const updatedMetadata = Metadata.update(
-      this.props.metadata,
-      this.props.userId,
-      at
-    );
+    const updatedMetadata = Metadata.update(this.props.metadata, user, at);
 
     this.props = Object.freeze({
       ...this.props,
@@ -125,14 +117,14 @@ export class UserBookmarks
   static create(
     id: UserBookmarksId,
     userId: UserId,
-    user?: string,
+    user: string,
     at: Date = new Date()
   ): UserBookmarks {
     return new UserBookmarks({
       id,
       userId,
       plants: [],
-      metadata: Metadata.create(user ?? userId, at),
+      metadata: Metadata.create(user, at),
       version: 0
     });
   }

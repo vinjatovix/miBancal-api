@@ -49,7 +49,7 @@ describe('RemovePlantBookmark', () => {
         new FavoritePlantItem(plantId, new Date('2026-10-22T10:00:00.000Z'))
       ],
       metadata: Metadata.create(
-        userIdStr,
+        'previousEditor',
         new Date('2026-10-22T10:00:00.000Z')
       ),
       version: 0
@@ -68,6 +68,8 @@ describe('RemovePlantBookmark', () => {
       })
     );
     expect(existingAggregate.hasPlant(plantId)).toBe(false);
+    expect(existingAggregate.metadata.createdBy).toBe('previousEditor');
+    expect(existingAggregate.metadata.updatedBy).toBe(user.username);
   });
 
   it('completes idempotently when plant is not bookmarked', async () => {

@@ -87,6 +87,8 @@ describe('AddPlantBookmark', () => {
     );
     const savedAggregate = saveMock.mock.calls[0]?.[0];
     expect(savedAggregate?.hasPlant(plantId)).toBe(true);
+    expect(savedAggregate?.metadata.createdBy).toBe(user.username);
+    expect(savedAggregate?.metadata.updatedBy).toBe(user.username);
     expect(updateWithDiffMock).not.toHaveBeenCalled();
   });
 
@@ -105,7 +107,7 @@ describe('AddPlantBookmark', () => {
       userId,
       plants: [],
       metadata: Metadata.create(
-        userIdStr,
+        'previousEditor',
         new Date('2026-10-22T10:00:00.000Z')
       ),
       version: 0
@@ -120,6 +122,8 @@ describe('AddPlantBookmark', () => {
 
     expect(result.status).toBe(201);
     expect(result.item.plantId).toBe(plantIdStr);
+    expect(existingAggregate.metadata.createdBy).toBe('previousEditor');
+    expect(existingAggregate.metadata.updatedBy).toBe(user.username);
     expect(updateWithDiffMock).toHaveBeenCalledWith(
       expect.objectContaining({
         id: bookmarksId,
