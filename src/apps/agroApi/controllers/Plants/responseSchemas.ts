@@ -175,6 +175,7 @@ export const plantImageSchema = z.object({
 export const plantResponseSchema = z.object({
   id: z.string().min(1).max(REQUEST_LIMITS.shortText),
   version: z.number().int().min(0),
+  likesCount: z.number().int().min(0),
   identity: identitySchema,
   traits: traitsSchema,
   phenology: phenologySchema,
