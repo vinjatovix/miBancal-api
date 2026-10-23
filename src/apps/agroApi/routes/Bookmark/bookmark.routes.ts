@@ -5,7 +5,11 @@ import {
   getUserBookmarksRequest,
   removePlantBookmarkRequest
 } from '../../controllers/Bookmarks/requestSchemas.js';
-import { auth, validateRequest } from '../../middlewares/index.js';
+import {
+  auth,
+  userRateLimiter,
+  validateRequest
+} from '../../middlewares/index.js';
 import type { RegisterRoutes } from '../route.types.js';
 import { API_PREFIXES } from '../shared/apiPrefixes.js';
 import { bookmarkApiInvoker } from './bookmarkApiInvoker.js';
@@ -16,6 +20,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(
     `${prefix}`,
     auth,
+    userRateLimiter,
     validateRequest(getUserBookmarksRequest),
     bookmarkApiInvoker('getUserBookmarks')
   );
@@ -23,6 +28,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.post(
     `${prefix}/plants`,
     auth,
+    userRateLimiter,
     validateRequest(addPlantBookmarkRequest),
     bookmarkApiInvoker('addPlantBookmark')
   );
@@ -30,6 +36,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.delete(
     `${prefix}/plants/:plantId`,
     auth,
+    userRateLimiter,
     validateRequest(removePlantBookmarkRequest),
     bookmarkApiInvoker('removePlantBookmark')
   );
@@ -37,6 +44,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(
     `${prefix}/plants/:plantId`,
     auth,
+    userRateLimiter,
     validateRequest(checkPlantBookmarkRequest),
     bookmarkApiInvoker('checkPlantBookmark')
   );

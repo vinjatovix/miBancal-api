@@ -1,10 +1,12 @@
 export { createRequestLoggerMiddleware } from './requestLogger.js';
 export {
   authLimiter,
+  createUserRateLimiter,
   globalLimiter,
   passwordResetLimiter,
   registrationLimiter,
-  strictLimiter
+  strictLimiter,
+  userRateLimiter
 } from './rateLimiters.js';
 export * from './auth.js';
 export * from './isAdmin.js';

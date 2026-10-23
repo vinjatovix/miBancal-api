@@ -12,6 +12,7 @@ import {
   isCatalogMaintainer,
   optionalAuth,
   requireIfMatch,
+  userRateLimiter,
   validateRequest
 } from '../../middlewares/index.js';
 import type { RegisterRoutes } from '../route.types.js';
@@ -32,6 +33,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(
     `${prefix}/`,
     optionalAuth,
+    userRateLimiter,
     validateRequest(listPlantsRequest),
     plantApiInvoker('getAllPlants')
   );
@@ -39,6 +41,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(
     `${prefix}/:id`,
     optionalAuth,
+    userRateLimiter,
     validateRequest(getPlantByIdRequest),
     plantApiInvoker('getPlantById')
   );
