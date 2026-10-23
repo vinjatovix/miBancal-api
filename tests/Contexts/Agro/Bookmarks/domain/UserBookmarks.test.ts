@@ -11,6 +11,7 @@ describe('UserBookmarks', () => {
     '6ba7b810-9dad-11d1-80b4-00c04fd430c0'
   );
   const userId = createUserId('6ba7b810-9dad-11d1-80b4-00c04fd430c1');
+  const username = 'bookmarker';
   const plantId1 = createPlantId('6ba7b810-9dad-11d1-80b4-00c04fd430c2');
   const plantId2 = createPlantId('6ba7b810-9dad-11d1-80b4-00c04fd430c3');
   const initialDate = new Date('2026-10-22T10:00:00.000Z');
@@ -20,15 +21,15 @@ describe('UserBookmarks', () => {
       id: bookmarksId,
       userId,
       plants,
-      metadata: Metadata.create(userId, initialDate),
+      metadata: Metadata.create(username, initialDate),
       version: 0
     });
 
-  it('creates empty aggregate root using create factory', () => {
+  it('creates empty aggregate root recording the username in metadata', () => {
     const aggregate = UserBookmarks.create(
       bookmarksId,
       userId,
-      userId,
+      username,
       initialDate
     );
 
@@ -36,27 +37,34 @@ describe('UserBookmarks', () => {
     expect(aggregate.userId).toBe(userId);
     expect(aggregate.plants).toHaveLength(0);
     expect(aggregate.version).toBe(0);
+    expect(aggregate.metadata.createdBy).toBe(username);
+    expect(aggregate.metadata.updatedBy).toBe(username);
   });
 
-  it('adds a plant item and updates metadata timestamp', () => {
+  it('adds a plant item and records the username and timestamp in metadata', () => {
     const aggregate = buildAggregate();
     const addedAt = new Date('2026-10-22T12:00:00.000Z');
 
-    const added = aggregate.addPlant(plantId1, addedAt);
+    const added = aggregate.addPlant(plantId1, username, addedAt);
 
     expect(added).toBe(true);
     expect(aggregate.hasPlant(plantId1)).toBe(true);
     expect(aggregate.plants).toHaveLength(1);
     expect(aggregate.metadata.updatedAt).toEqual(addedAt);
+    expect(aggregate.metadata.updatedBy).toBe(username);
   });
 
   it('returns false and preserves existing timestamp on duplicate addPlant', () => {
     const aggregate = buildAggregate();
     const firstAddDate = new Date('2026-10-22T12:00:00.000Z');
     const secondAddDate = new Date('2026-10-22T14:00:00.000Z');
-    aggregate.addPlant(plantId1, firstAddDate);
+    aggregate.addPlant(plantId1, username, firstAddDate);
 
-    const duplicateAdded = aggregate.addPlant(plantId1, secondAddDate);
+    const duplicateAdded = aggregate.addPlant(
+      plantId1,
+      username,
+      secondAddDate
+    );
 
     expect(duplicateAdded).toBe(false);
     expect(aggregate.plants).toHaveLength(1);
@@ -67,7 +75,7 @@ describe('UserBookmarks', () => {
 
   it('hasPlant returns true when plant exists in bookmarks', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
     const exists = aggregate.hasPlant(plantId1);
 
@@ -76,7 +84,7 @@ describe('UserBookmarks', () => {
 
   it('hasPlant returns false when plant does not exist in bookmarks', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
     const exists = aggregate.hasPlant(plantId2);
 
@@ -85,7 +93,7 @@ describe('UserBookmarks', () => {
 
   it('getPlantBookmark returns item when plant is present in bookmarks', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
     const item = aggregate.getPlantBookmark(plantId1);
 
@@ -94,31 +102,32 @@ describe('UserBookmarks', () => {
 
   it('getPlantBookmark returns null when plant is missing from bookmarks', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
     const item = aggregate.getPlantBookmark(plantId2);
 
     expect(item).toBeNull();
   });
 
-  it('removes an existing plant item and updates metadata timestamp', () => {
+  it('removes an existing plant item and records the username and timestamp in metadata', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
     const removedAt = new Date('2026-10-22T15:00:00.000Z');
 
-    const removed = aggregate.removePlant(plantId1, removedAt);
+    const removed = aggregate.removePlant(plantId1, username, removedAt);
 
     expect(removed).toBe(true);
     expect(aggregate.hasPlant(plantId1)).toBe(false);
     expect(aggregate.plants).toHaveLength(0);
     expect(aggregate.metadata.updatedAt).toEqual(removedAt);
+    expect(aggregate.metadata.updatedBy).toBe(username);
   });
 
   it('returns false when removePlant is called for unbookmarked plant', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
-    const removed = aggregate.removePlant(plantId2);
+    const removed = aggregate.removePlant(plantId2, username);
 
     expect(removed).toBe(false);
     expect(aggregate.plants).toHaveLength(1);
@@ -126,16 +135,16 @@ describe('UserBookmarks', () => {
 
   it('leaves clean empty array when removing last item', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
-    aggregate.removePlant(plantId1);
+    aggregate.removePlant(plantId1, username);
 
     expect(aggregate.plants).toEqual([]);
   });
 
   it('plantBookmarks returns collection of favorite items', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
     const bookmarks = aggregate.plantBookmarks();
 
@@ -144,7 +153,7 @@ describe('UserBookmarks', () => {
 
   it('serializes to and restores from primitives accurately', () => {
     const aggregate = buildAggregate();
-    aggregate.addPlant(plantId1, initialDate);
+    aggregate.addPlant(plantId1, username, initialDate);
 
     const primitives = aggregate.toPrimitives();
     const restored = UserBookmarks.fromPrimitives(primitives);
@@ -163,7 +172,7 @@ describe('UserBookmarks', () => {
         id: bookmarksId,
         userId,
         plants: duplicatePlants,
-        metadata: Metadata.create(userId, initialDate),
+        metadata: Metadata.create(username, initialDate),
         version: 0
       });
 
@@ -176,7 +185,7 @@ describe('UserBookmarks', () => {
         id: '' as unknown as typeof bookmarksId,
         userId,
         plants: [],
-        metadata: Metadata.create(userId, initialDate),
+        metadata: Metadata.create(username, initialDate),
         version: 0
       });
 
@@ -189,7 +198,7 @@ describe('UserBookmarks', () => {
         id: bookmarksId,
         userId: '' as unknown as typeof userId,
         plants: [],
-        metadata: Metadata.create(userId, initialDate),
+        metadata: Metadata.create(username, initialDate),
         version: 0
       });
 

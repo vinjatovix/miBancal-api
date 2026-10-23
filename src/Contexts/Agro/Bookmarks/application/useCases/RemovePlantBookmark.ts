@@ -23,7 +23,7 @@ export class RemovePlantBookmark {
 
     const plantId = createPlantId(plantIdString);
     const before = existing.toPrimitives();
-    const removed = existing.removePlant(plantId);
+    const removed = existing.removePlant(plantId, user.username);
 
     if (removed) {
       await this.userBookmarksRepository.updateWithDiff(

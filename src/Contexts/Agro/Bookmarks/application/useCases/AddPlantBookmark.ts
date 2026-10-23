@@ -56,9 +56,9 @@ export class AddPlantBookmark {
       const aggregate = UserBookmarks.create(
         randomUserBookmarksId(),
         userId,
-        user.id
+        user.username
       );
-      aggregate.addPlant(plantId);
+      aggregate.addPlant(plantId, user.username);
       await this.userBookmarksRepository.save(aggregate);
       const item = aggregate.getPlantBookmark(plantId);
       if (!item) {
@@ -68,7 +68,7 @@ export class AddPlantBookmark {
     }
 
     const before = existing.toPrimitives();
-    const added = existing.addPlant(plantId);
+    const added = existing.addPlant(plantId, user.username);
 
     if (added) {
       await this.userBookmarksRepository.updateWithDiff(
