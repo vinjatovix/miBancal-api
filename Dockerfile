@@ -1,4 +1,4 @@
-FROM node:22 AS base
+FROM node:24.22.1 AS base
 WORKDIR /app
 COPY package*.json ./
 
@@ -12,7 +12,7 @@ COPY . .
 
 RUN npm run build
 
-FROM node:22 AS production
+FROM node:24.22.1 AS production
 
 WORKDIR /app
 
