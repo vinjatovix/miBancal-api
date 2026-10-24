@@ -1,4 +1,5 @@
 import type { StringFilter } from '../../../../../../../shared/domain/query/interfaces/StringFilter.js';
+import { toMongoId } from '../../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { findTextPatternCondition } from '../../../../../../shared/infrastructure/persistence/mongo/textPatternCondition.js';
 import type { PlantFilter } from '../../../../domain/entities/types/PlantFilter.js';
 
@@ -39,6 +40,16 @@ const setTextCondition = (
 
 export class PlantQueryMapper {
   private static readonly mappers: MapperFn[] = [
+    (filter, { query }) => {
+      if (!filter.id) return;
+      const idQuery: { $in?: unknown[]; $nin?: unknown[] } = {};
+      if (filter.id.in) idQuery.$in = filter.id.in.map(toMongoId);
+      if (filter.id.nin) idQuery.$nin = filter.id.nin.map(toMongoId);
+      if (Object.keys(idQuery).length > 0) {
+        query._id = idQuery;
+      }
+    },
+
     (filter, { orClauses }) => {
       if (filter.identity === undefined) return;
 

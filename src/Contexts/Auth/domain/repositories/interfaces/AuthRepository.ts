@@ -1,11 +1,20 @@
 import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
+import type { WriteOutcome } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import type { UserPrimitives } from '../../entities/types/UserPrimitives.js';
 import type { User } from '../../entities/User.js';
 import type { AuthProvider } from '../../value-objects/types/AuthProvider.js';
 import type { EmailTokenPurpose } from '../../value-objects/types/EmailTokenPrimitives.js';
+import type {
+  ManageableRole,
+  UserRole
+} from '../../value-objects/UserRoles.js';
 
-/** `created`, or `emailTaken` when another account already stores the email. */
-export type CreateUserOutcome = 'created' | 'emailTaken';
+/**
+ * `created`, or which unique value another account already stores:
+ * `emailTaken`, `usernameTaken` or `providerTaken` (a linked provider id).
+ */
+export type CreateUserOutcome =
+  'created' | 'emailTaken' | 'usernameTaken' | 'providerTaken';
 
 /**
  * `written`, `unchanged` (nothing to write) or `stale`: a field the write
@@ -14,12 +23,10 @@ export type CreateUserOutcome = 'created' | 'emailTaken';
 export type UpdateUserOutcome = 'written' | 'unchanged' | 'stale';
 
 export interface AuthRepository {
-  /** Upserts the whole account. Only used to create Google accounts. */
-  save(user: User): Promise<void>;
-
   /**
-   * Inserts a new account. A stored email answers `emailTaken`; a taken
-   * username or id throws `DomainConflictException` without echoing it.
+   * Inserts a new account, never overwriting one. A stored email, username
+   * or provider id answers its outcome; a duplicate id throws
+   * `DomainConflictException`.
    */
   create(user: User): Promise<CreateUserOutcome>;
 
@@ -33,6 +40,33 @@ export interface AuthRepository {
     before: UserPrimitives,
     after: UserPrimitives
   ): Promise<UpdateUserOutcome>;
+
+  /**
+   * Version-guarded role change. Writes the diff of two full states plus
+   * `$inc: { version: 1 }`, matching only while `_id` and the read `version`
+   * still hold. A conditional write that matches nothing throws
+   * `DomainStaleVersionException` (412) or `DomainNotFoundException` (404)
+   * after disambiguation. Returns `written` or `unchanged` (confirmed no-op).
+   */
+  updateRoles(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome>;
+
+  /** Exact-equality lookup served by `users_username_unique`. */
+  searchByUsername(username: string): Promise<Nullable<User>>;
+
+  /** Count of accounts holding `role`; equality filter on `roles`. */
+  countByRole(role: UserRole): Promise<number>;
+
+  /**
+   * Writes the shared guard document for a minimum-holder `role` using the
+   * ambient unit-of-work session, forcing a write–write conflict between
+   * concurrent transactions that mutate the same role. MUST be invoked only
+   * inside a running `UnitOfWork.run`. MUST NOT create business state: the
+   * guard carries only its `_id` (the role) and `updatedAt`.
+   */
+  reserveMinimumHolderGuard(role: ManageableRole): Promise<void>;
 
   /**
    * Deletes the account only if it is still unvalidated and holds no
@@ -51,6 +85,7 @@ export interface AuthRepository {
     tokenHash: string
   ): Promise<Nullable<User>>;
 
+  /** Served by the unique index `users_auth_provider_user_id_unique`. */
   searchByProvider(
     provider: AuthProvider,
     providerUserId: string

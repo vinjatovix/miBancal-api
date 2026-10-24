@@ -407,6 +407,106 @@ Feature: Create a new plant
     And the response should have ETag '"0"'
     And response matches OpenAPI contract
 
+  Scenario: Collaborator creates a plant successfully
+    Given a family exists
+    And a POST collaborator request to "/api/v1/plants" with body
+      """
+      {
+        "id": "e2a2c13d-8692-498f-be21-2e65d2105191",
+        "identity": {
+          "name": {
+            "primary": "Collaborator Basil"
+          },
+          "scientificName": "Ocimum basilicum",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": {
+              "min": 20,
+              "max": 60
+            },
+            "spread": {
+              "min": 20,
+              "max": 40
+            }
+          },
+          "spacingCm": {
+            "min": 20,
+            "max": 30
+          }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [
+              3,
+              4,
+              5
+            ],
+            "seedsPerHole": {
+              "min": 2,
+              "max": 4
+            },
+            "germinationDays": {
+              "min": 5,
+              "max": 10
+            },
+            "methods": {
+              "direct": {
+                "depthCm": {
+                  "min": 1,
+                  "max": 2
+                }
+              }
+            }
+          },
+          "flowering": {
+            "months": [
+              6,
+              7,
+              8
+            ]
+          },
+          "harvest": {
+            "months": [
+              6,
+              7,
+              8,
+              9
+            ]
+          }
+        },
+        "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/basil.jpg" }],
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 15, "max": 25 }, "spreadCm": { "min": 15, "max": 25 } },
+          "soil": {
+            "ph": {
+              "min": 6,
+              "max": 7.5
+            },
+            "availableDepthCm": {
+              "min": 20,
+              "max": 40
+            }
+          },
+          "light": {
+            "hoursMin": 6,
+            "type": "full_sun"
+          },
+          "propagation": {
+            "methods": {
+              "seeds": {}
+            }
+          }
+        }
+      }
+      """
+    Then the response status code should be 201
+    And the response should have ETag '"0"'
+    And the response audit data should show the collaborator as creator
+    And response matches OpenAPI contract
+
   Scenario: Create a plant that never flowers nor is harvested
     Given a family exists
     And a POST admin request to "/api/v1/plants" with body

@@ -57,11 +57,13 @@ const PLANT_PROJECTION: ReadProjection = {
   traits: 1,
   phenology: 1,
   knowledge: 1,
+  anomalies: 1,
   image: PRIMARY_IMAGE,
   metadata: 1,
   status: 1,
   deletedAt: 1,
-  version: 1
+  version: 1,
+  likesCount: 1
 };
 
 // Same value as `PlantStatus.DELETED`; a type-only import keeps the read side

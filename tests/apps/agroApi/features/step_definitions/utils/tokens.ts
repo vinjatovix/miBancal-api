@@ -4,7 +4,7 @@ import { suite, type SuiteRole } from './suite.js';
 import type { AgroWorld } from './world.js';
 
 /** `loggedIn` is the user the scenario's login step authenticated. */
-export type Role = 'user' | 'admin' | 'loggedIn';
+export type Role = 'user' | 'admin' | 'collaborator' | 'loggedIn';
 
 /**
  * Token a step sends: the login step's for `loggedIn`, else the role's

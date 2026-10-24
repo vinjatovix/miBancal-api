@@ -906,6 +906,20 @@ describe('Plant requestSchemas', () => {
       expect(query.filter).toHaveProperty([field, operator]);
     });
 
+    it.each([['true'], ['false']])(
+      'should accept filter[bookmarked][eq]=%s',
+      async (value) => {
+        const query = await listQueryOf({
+          filter: { bookmarked: { eq: value } }
+        });
+
+        expect(query.filter).toHaveProperty(
+          ['bookmarked', 'eq'],
+          value === 'true'
+        );
+      }
+    );
+
     it.each([
       ['family', 'contains'],
       ['spacingCm', 'lte'],

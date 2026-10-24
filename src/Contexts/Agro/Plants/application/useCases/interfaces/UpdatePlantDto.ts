@@ -51,4 +51,7 @@ export interface UpdatePlantDto {
   };
 
   knowledge?: PlantKnowledgeChanges;
+
+  /** Replace the anomaly slug list; `null` clears it, an absent key keeps it. */
+  anomalies?: string[] | null;
 }

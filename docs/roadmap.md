@@ -683,9 +683,18 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
+- **Status**: Completed (2026-10-17, spec `specs/032-google-oauth-login/`)
 - **Value delivered**: Enhances sign-in security and user onboarding with single-sign-on.
 - **Definition of Done**: Google OAuth endpoint receives a Google ID token (`idToken`, obtained by the client through Google Sign-In), verifies its signature and audience, requires a verified email, resolves or creates the user, and issues a stateless JWT.
 - **Implementation notes**: `POST /auth/google` takes `idToken`, not an authorization `code`: the client runs the Google Sign-In flow and the API verifies the token with `google-auth-library`, without storing any state. Since [Iteration 26](#iteration-26-implement-email-account-activation-flow), linking Google to an existing account by email follows the pre-hijacking rules (`User.linkProvider`).
+- **Hardened in this iteration** (details in [auth.md §3.1](spec/modules/auth.md)):
+  - New Google accounts are inserted with `AuthRepository.create` (built by `User.registerWithProvider`); the upsert `save` was removed.
+  - A taken username no longer blocks a first sign-in: the base derived from the email, then 3 random 4-digit variants, then one 8-hex variant; only if all are taken, `409`.
+  - Two simultaneous first sign-ins of the same person both succeed on one account (the losing insert resolves the account again).
+  - Unique sparse index `users_auth_provider_user_id_unique` on `authMethods.providerUserId`: one Google identity per account, and `searchByProvider` no longer scans `users`.
+  - The production verifier lost its `test` mode shortcut (`test-google|…`), receives the client id by injection and checks the single web client id; acceptance tests use a fake verifier registered through the container `overrides` option.
+  - Google's public keys unreachable → `503` (new `DomainServiceUnavailableException`); untrusted tokens keep the uniform `401`.
+  - `GOOGLE_CLIENT_ID` is required in every mode. **The Railway environment must define it before deploying**, or the application will not start.
 - **Dependencies**: None.
 - **Risks**: External provider changes breaking authentication.
 - **Prompt for /speckit.specify**:
@@ -699,12 +708,14 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
+- **Status**: Completed (2026-10-17, spec `specs/033-github-oauth-login/`)
 - **Value delivered**: Expands single-sign-on options for developer-centric users.
 - **Definition of Done**: GitHub OAuth endpoint receives an authorization `code` (with the PKCE `code_verifier` the client generated), exchanges it with GitHub using the `client_secret`, reads the user's id and their **primary, verified** email from `GET /user/emails`, and issues a stateless JWT. No email that is both primary and verified means `401`. Google and GitHub resolve the user through one shared step (find by provider id, then by email, then link or create) that applies the pre-hijacking rules from [Iteration 26](#iteration-26-implement-email-account-activation-flow).
 - **Implementation notes**: GitHub does not issue ID tokens (it is OAuth 2.0, not OpenID Connect), so it cannot follow Google's flow literally: the API must exchange the code server-side, and that call needs the `client_secret`. What stays common is everything after the provider has given a verified email and a stable user id. Extract that step from `AuthenticateWithGoogle` instead of copying it. Accounts are matched by GitHub's numeric user id, never by login name, which users can change.
 - **Dependencies**: Iterations 26 and 27.
 - **Risks**: Users whose GitHub email is private or unverified cannot sign in until they verify one.
-- **Proposal (from the Iteration 26 analysis, not yet decided)**: the "provider linked" notice from Iteration 26 says the account's password still works. That is true while Google is the only provider (an active account without Google always has a password), but linking GitHub to an active Google-only account would send a false statement. Option: say that the account's existing sign-in methods keep working, or name them, without assuming a password.
+- **Resolved (the re-check from Iteration 27)**: the value-only index `users_auth_provider_user_id_unique` (unique, sparse, on `authMethods.providerUserId`) is kept. A per-provider compound index on `{ authMethods.provider, authMethods.providerUserId }` was evaluated and rejected: because `authMethods` is one array holding both provider methods and the `local` method, a compound multikey unique index indexes every account's `local` method as `(local, null)`, colliding across all password accounts, and MongoDB does not serve the `searchByProvider` `$elemMatch` from it (COLLSCAN). The persistence-only `providerKeys` field was also rejected (no new User field). The value-only index already guarantees one identity per account; a GitHub numeric id (short integer) can never equal a Google `sub` (21 digits), so cross-provider collision is not reachable in practice.
+- **Resolved (the Iteration 26 proposal)**: the "provider linked" notice now uses one reusable, method-agnostic wording ("Tus accesos anteriores siguen funcionando como hasta ahora.") that never mentions a password and never names the account's methods, so it is correct for a password, Google-only or any account and leaks nothing about which providers the account holds.
 - **Prompt for /speckit.specify**:
   ```text
   IMPLEMENT STATELESS GITHUB OAUTH
@@ -742,6 +753,34 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHAT: Build a CacheRepository port using Redis, incorporating an immediate, short-lived local memory fallback on connection failure.
   ```
 
+## Iteration 30b: Admin Manages User Roles (with Admin Account Lookup)
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
+
+- **Spec**: `specs/034-manage-user-roles/` (delivered).
+- **Status**: Delivered. `PATCH /api/v1/users/{userId}/roles` (admin-only, `If-Match`, delta over the manageable role `admin`, idempotent, last-administrator safeguard → 409, overlapping add/remove → 422, minimal `{id, roles, metadata}` + `ETag`) and `GET /api/v1/users/lookup` (admin-only exact lookup by email XOR username → `{id, username, email, roles}` + `ETag`). The `User` aggregate gained a persisted `version`; no migration (version is in-code-defaulted and materialised by `$inc`).
+- **Value delivered**: Lets an administrator grant and revoke roles on other accounts so trusted people can perform privileged actions and permissions can be withdrawn, without reaching into the database.
+- **Definition of Done**: An admin-only endpoint adds and/or removes roles on a target account, identified by its stable `UserId`. The change is expressed as a delta over the _manageable_ (elevated) roles only — in this iteration just `admin`; the base role `user` is permanent and never grantable/revocable (sending it in the delta is a 400), so an account always keeps at least `user` by construction (`collaborator` is added later in Iteration 31). The delta is idempotent, guarded by optimistic concurrency (`If-Match`), recorded in audit metadata, never removes the last administrator (409), and returns a minimal payload (id + resulting roles). A separate admin-only exact lookup by email OR username returns a matching account's id plus minimal identifying fields, with no substring search or navigable user listing.
+- **Dependencies**: Iteration 26 (`User` mutation methods and audit metadata). Note: `User` gets a `version` / `If-Match` for this feature, which Iteration 26 had deferred as unnecessary for its own endpoints.
+- **Risks**: Accidentally exposing the user base through the lookup (mitigated by exact-match only, using the existing unique email/username indexes) or locking the platform out of administration (mitigated by the last-administrator safeguard, within the concurrency limit noted below).
+- **Known limitations / follow-ups**:
+  - ~~**Last-administrator safeguard is not concurrency-safe.**~~ Resolved (2026-10-18, spec `specs/035-admin-safeguard-concurrency/`, commit `822c42f`): the administrator count and the role write now run inside one transaction with a re-check after writing, so two simultaneous revocations of the last two administrators can no longer both succeed.
+  - **`countByRole` has no supporting index.** Counting accounts by role is an equality filter on `roles` with no index, so it scans the collection. It runs only when revoking `admin` (a rare operation) over a tiny set of accounts, so it is left unindexed for now. Add an index on `roles` (a migration) if role-based counts or filters become frequent.
+- **Prompt for /speckit.specify**:
+  ```text
+  ADMIN MANAGES USER ROLES WITH ADMIN ACCOUNT LOOKUP
+  WHY: There is no way to create new administrators or withdraw permissions after registration, and no in-API way for an admin to find the id of the account to change.
+  WHAT: Add an admin-only endpoint to grant/revoke the manageable (elevated) roles on an account by its stable id (delta semantics over `admin` only; base role `user` permanent and non-manageable; optimistic concurrency, audit metadata, last-admin safeguard, minimal response), plus an admin-only exact lookup by email or username that returns the account id and minimal identifying fields.
+  ```
+
+## Tooling: Per-User Rate Limiting on Authenticated Routes
+
+**Spec Module(s)**: [api-layer.md](spec/modules/api-layer.md), [auth.md](spec/modules/auth.md)
+
+- **Status**: Partially done (spec `specs/037-client-ip-rate-limit/`, commits `3e6eab1`, `a07c819`; not a numbered iteration — cross-cutting middleware with no product-behaviour change of its own). The per-user rate limiter on authenticated routes and the client-IP resolution are in place (`middlewares/rateLimiters.ts`), on top of the `authLimiter`/`registrationLimiter`/`passwordResetLimiter` introduced in Iterations 26 and 26b.
+- **Still open (`tasks.md`)**: route the request logger through the shared client-IP resolver (T007), run the quickstart validation (T009), and make sure rate limits are bypassed under test so runs stay fast and deterministic (T010).
+- **Dependencies**: Iteration 26 (`authLimiter`).
+
 ---
 
 # Phase 3: Taxonomy & Social
@@ -750,8 +789,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md), [family.md](spec/modules/family.md), [openapi.md](spec/modules/openapi.md), [plant-relation.md](spec/modules/plant-relation.md)
 
+- **Status**: Completed (2026-10-19, spec `specs/036-collaborator-role/`, commit `9025a82`)
 - **Value delivered**: Enables secure community-driven catalog updates.
 - **Definition of Done**: `collaborator` role is recognized in authorization middleware and applied to catalog write endpoints.
+- **Implementation notes**: `collaborator` joins `admin` and the base `user` in `UserRoles` (`USER_ROLES`); it is a manageable role alongside `admin` (`MANAGEABLE_ROLES`), so Iteration 30b's role-management endpoint grants and revokes it too. `EnsureAuthentication` recognizes it, and the five catalog write endpoints (`POST`/`PATCH`/`DELETE` on Plants and Families) now authorize `admin` **or** `collaborator`; the OpenAPI descriptions state it.
 - **Dependencies**: None.
 - **Risks**: Broadening access inadvertently if role hierarchy is flawed.
 - **Prompt for /speckit.specify**:
@@ -781,8 +822,11 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md), [plant.md](spec/modules/plant.md)
 
+- **Status**: Completed (2026-10-23, specs `specs/038-user-bookmarks/` and `specs/039-filter-plants-bookmarked/`, commits `656720a`, `3ce8631`)
 - **Value delivered**: Provides a high-performance productivity tool for users to bookmark favorite plants without causing document size bloat.
 - **Definition of Done**: Bookmarks are stored in a private `user_bookmarks` collection with CRUD endpoints.
+- **Implementation notes**: New `Contexts/Agro/Bookmarks` aggregate (`UserBookmarks`, one document per user) with its own `MongoUserBookmarksRepository` and the `user_bookmarks` collection + indexes created by migration `20261023120000-create-user-bookmarks-collection`. Endpoints under `/api/v1/bookmarks`: list (optional `include=plant` enriches each favorite with a plant summary), add a plant (`POST /bookmarks/plants`, idempotent — a repeat returns the existing reference), remove (`DELETE /bookmarks/plants/{plantId}`) and check presence (`GET /bookmarks/plants/{plantId}`). Each user sees only their own collection (privacy feature). OpenAPI publishes the routes and the `UserBookmarksResponse`/`CheckPlantBookmarkResponse` schemas.
+- **Catalog filter (spec 039)**: `GET /plants` accepts `filter[bookmarked][eq]=true|false`, resolved in `ListPlants.applyBookmarkFilter` against the user's bookmarks (`PlantFilter.bookmarked` → `id.in`/`id.nin`); it requires authentication (`401` otherwise). Known v1 limitation documented in code: two simultaneous first-ever adds for the same user can surface a write conflict instead of transparently retrying.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
@@ -796,8 +840,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [plant.md](spec/modules/plant.md)
 
+- **Status**: Completed (2026-10-24, spec `specs/040-plant-like-counters/`, commit `24f090f`). Functionally complete and shipped; the spec's final verification steps (full `npm test`, format/lint/build, diff review) remain unchecked in `tasks.md`, so run them before the next release cut.
 - **Value delivered**: Enables social popularity ranking without heavy query joins.
-- **Definition of Done**: Likes and dislikes project as read-only counters (`likesCount`, `dislikesCount`) on the `Plant` aggregate.
+- **Definition of Done**: Likes project as a read-only counter (`likesCount`) on the `Plant` aggregate. Dislikes (`dislikesCount`) are deferred to a later iteration — v1 covers likes only (decided 2026-10-23, see `specs/040-plant-like-counters/spec.md`).
+- **Implementation notes**: New `Contexts/Agro/PlantLikes` aggregate with the `plant_likes` collection (migration `20261023130000-create-plant-likes-collection`) recording one like per user per plant. `likesCount` is a read-only projection on the plant: stored on the document (default backfilled by `20261023140000-plants-likes-count-default`), surfaced in `PlantReadView`/`PLANT_FIELDS` and in the write responses, and never writable through any plant create/update path. Endpoints: `POST`/`DELETE /api/v1/plants/{plantId}/likes` (both idempotent, the counter never drops below zero) and `GET /api/v1/plants/{plantId}/likes/me`. OpenAPI and three acceptance features (`like-plant`, `check-plant-like`, `likes-count-projection`) cover it.
 - **Dependencies**: None.
 - **Risks**: Syncing projected counters with individual interaction events.
 - **Prompt for /speckit.specify**:
@@ -879,8 +925,9 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [knowledge.md](spec/modules/knowledge.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
 
+- **Status**: Completed (feature `041-anomaly-domain`: spec module [knowledge.md](spec/modules/knowledge.md) delivered; `Anomaly` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, and a one-directional `Plant.anomalies` slug list validated at write time; collection and endpoints fully implemented).
 - **Value delivered**: Unifies crop diagnosis (pests, diseases, weeds) into a central database.
-- **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented.
+- **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented. Spec module [knowledge.md](spec/modules/knowledge.md) is documented.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:

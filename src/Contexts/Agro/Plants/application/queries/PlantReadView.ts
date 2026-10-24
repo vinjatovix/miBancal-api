@@ -22,6 +22,8 @@ export type PlantImageView = Readonly<PlantImagePrimitives>;
 export type PlantReadView = {
   readonly id: string;
   readonly version: number;
+  /** Read-only likes projection; defaults to `0`, never absent, never `<0`. */
+  readonly likesCount: number;
   /** `family` is the plain id unless the family is included. */
   readonly identity: Omit<IdentityPrimitives, 'family'> & {
     readonly family: PlantFamilyView;
@@ -29,6 +31,8 @@ export type PlantReadView = {
   readonly traits: PlantPrimitives['traits'];
   readonly phenology: PlantPrimitives['phenology'];
   readonly knowledge: PlantKnowledgePrimitives;
+  /** Anomaly slugs this plant is susceptible to; omitted when it has none. */
+  readonly anomalies?: string[];
   /**
    * First `knowledge.resources` image; never stored. Every plant has one, so
    * `null` only comes from stored data that breaks that rule, which the
@@ -48,11 +52,13 @@ export const PLANT_FIELDS = [
   'traits',
   'phenology',
   'knowledge',
+  'anomalies',
   'image',
   'metadata',
   'status',
   'deletedAt',
-  'version'
+  'version',
+  'likesCount'
 ] as const satisfies readonly (keyof PlantReadView)[];
 
 export type PlantField = (typeof PLANT_FIELDS)[number];

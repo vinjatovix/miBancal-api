@@ -1,6 +1,11 @@
 import { Given, When } from '@cucumber/cucumber';
 
-import { prepareRequest, tokenFor, type AgroWorld } from './utils/index.js';
+import {
+  prepareRequest,
+  tokenFor,
+  type AgroWorld,
+  type Role
+} from './utils/index.js';
 
 /** Query string of the `… with query:` steps: the doc string, URL-encoded. */
 const queryParam = (docString: string): string =>
@@ -19,31 +24,19 @@ Given('a GET request to {string}', function (this: AgroWorld, route: string) {
 });
 
 Given(
-  'a GET user request to {string}',
-  function (this: AgroWorld, route: string) {
-    prepareRequest(this, { method: 'GET', route, role: 'user' });
+  'a GET {role} request to {string}',
+  function (this: AgroWorld, role: Role, route: string) {
+    prepareRequest(this, { method: 'GET', route, role });
   }
 );
 
 When(
-  'I send a GET admin request to {string}',
-  function (this: AgroWorld, route: string) {
+  'I send a GET {role} request to {string}',
+  function (this: AgroWorld, role: Role, route: string) {
     prepareRequest(this, {
       method: 'GET',
       route,
-      role: 'admin',
-      conditional: true
-    });
-  }
-);
-
-When(
-  'I send a GET user request to {string}',
-  function (this: AgroWorld, route: string) {
-    prepareRequest(this, {
-      method: 'GET',
-      route,
-      role: 'user',
+      role,
       conditional: true
     });
   }
@@ -53,18 +46,6 @@ When(
   'I send a GET user request to {string} with body:',
   function (this: AgroWorld, route: string, body: string) {
     prepareRequest(this, { method: 'GET', route, role: 'user', body });
-  }
-);
-
-When(
-  'I send a GET collaborator request to {string}',
-  function (this: AgroWorld, route: string) {
-    prepareRequest(this, {
-      method: 'GET',
-      route,
-      role: 'collaborator',
-      conditional: true
-    });
   }
 );
 
@@ -101,24 +82,12 @@ When(
 );
 
 When(
-  'I send a GET user request to {string} with query:',
-  function (this: AgroWorld, route: string, docString: string) {
+  'I send a GET {role} request to {string} with query:',
+  function (this: AgroWorld, role: Role, route: string, docString: string) {
     prepareRequest(this, {
       method: 'GET',
       route,
-      role: 'user',
-      query: queryParam(docString)
-    });
-  }
-);
-
-When(
-  'I send a GET admin request to {string} with query:',
-  function (this: AgroWorld, route: string, docString: string) {
-    prepareRequest(this, {
-      method: 'GET',
-      route,
-      role: 'admin',
+      role,
       query: queryParam(docString)
     });
   }

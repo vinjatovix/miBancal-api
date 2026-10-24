@@ -31,6 +31,37 @@ Feature: Update a plant
       """
     And response matches OpenAPI contract
 
+  Scenario: Collaborator updates a plant with If-Match
+    Given a family exists
+    And a plant exists
+    And the plant was last updated by another user
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH collaborator request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "identity": {
+          "name": {
+            "primary": "Collaborator Updated Plant"
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"1"'
+    And the response body should contain
+      """
+      {
+        "identity": {
+          "name": {
+            "primary": "Collaborator Updated Plant"
+          }
+        }
+      }
+      """
+    And the response audit data should show the collaborator as last editor
+    And response matches OpenAPI contract
+
   Scenario: Update nested range field
     Given a family exists
     And a plant exists

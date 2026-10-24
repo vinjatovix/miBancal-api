@@ -1,6 +1,16 @@
 import type { AwilixContainer } from 'awilix';
 import type { Db, MongoClient } from 'mongodb';
 
+import type { AnomalyReadRepository } from '../../../Contexts/Agro/Anomalies/application/queries/index.js';
+import type {
+  CreateAnomaly,
+  DeleteAnomaly,
+  GetAnomalyBySlug,
+  ListAnomalies,
+  UpdateAnomaly
+} from '../../../Contexts/Agro/Anomalies/application/useCases/index.js';
+import type { MongoAnomalyRepository } from '../../../Contexts/Agro/Anomalies/infrastructure/persistence/MongoAnomalyRepository.js';
+import type { AnomalyPersistenceMapper } from '../../../Contexts/Agro/Anomalies/mappers/interfaces/AnomalyPersistenceMapper.js';
 import type {
   CreateBed,
   DeleteBed,
@@ -10,6 +20,14 @@ import type {
 } from '../../../Contexts/Agro/Beds/application/useCases/index.js';
 import type { MongoBedRepository } from '../../../Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
 import type { BedPersistenceMapper } from '../../../Contexts/Agro/Beds/mappers/interfaces/BedPersistenceMapper.js';
+import type {
+  AddPlantBookmark,
+  CheckPlantBookmark,
+  GetUserBookmarks,
+  RemovePlantBookmark
+} from '../../../Contexts/Agro/Bookmarks/application/useCases/index.js';
+import type { MongoUserBookmarksRepository } from '../../../Contexts/Agro/Bookmarks/infrastructure/persistence/MongoUserBookmarksRepository.js';
+import type { UserBookmarksPersistenceMapper } from '../../../Contexts/Agro/Bookmarks/mappers/interfaces/UserBookmarksPersistenceMapper.js';
 import type { FamilyReadRepository } from '../../../Contexts/Agro/Families/application/queries/index.js';
 import type {
   CreateFamily,
@@ -31,6 +49,13 @@ import type { CropSpatialService } from '../../../Contexts/Agro/PlantInstances/d
 import type { MongoPlantInstanceRepository } from '../../../Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
 import type { PlantInstancePersistenceMapper } from '../../../Contexts/Agro/PlantInstances/mappers/interfaces/PlantInstancePersistenceMapper.js';
 import type {
+  CheckPlantLike,
+  LikePlant,
+  UnlikePlant
+} from '../../../Contexts/Agro/PlantLikes/application/useCases/index.js';
+import type { MongoPlantLikeRepository } from '../../../Contexts/Agro/PlantLikes/infrastructure/persistence/MongoPlantLikeRepository.js';
+import type { PlantLikePersistenceMapper } from '../../../Contexts/Agro/PlantLikes/mappers/interfaces/PlantLikePersistenceMapper.js';
+import type {
   FamilySummaryReader,
   PlantReadRepository
 } from '../../../Contexts/Agro/Plants/application/queries/index.js';
@@ -42,14 +67,22 @@ import type {
   UpdatePlant
 } from '../../../Contexts/Agro/Plants/application/useCases/index.js';
 import type { PlantQueryMapper } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import type { MongoPlantLikesCounterRepository } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantLikesCounterRepository.js';
 import type { MongoPlantRepository } from '../../../Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
 import type { PlantPersistenceMapper } from '../../../Contexts/Agro/Plants/mappers/interfaces/PlantPersistenceMapper.js';
 import type { AccountNotifier } from '../../../Contexts/Auth/application/notifications/index.js';
 import type {
+  ProviderUserResolver,
+  SessionTokenIssuer
+} from '../../../Contexts/Auth/application/services/index.js';
+import type {
   ActivateAccount,
+  AuthenticateWithGithub,
   AuthenticateWithGoogle,
+  ChangeUserRoles,
   ForgotPassword,
   LoginUserLocal,
+  LookupUser,
   RefreshToken,
   RegisterUserLocal,
   ResetPassword,
@@ -63,12 +96,21 @@ import type { Mailer } from '../../../Contexts/shared/application/mailer/index.j
 import type {
   AppLogger,
   EncrypterTool,
-  GoogleIdTokenVerifierAdapter,
+  GithubIdentityProviderTool,
+  GoogleIdTokenVerifierTool,
   OneTimeTokenTool
 } from '../../../Contexts/shared/plugins/index.js';
 import type { DBEnvironmentArranger } from '../../../shared/infrastructure/persistence/index.js';
 import type {
+  CreateAnomalyController,
+  DeleteAnomalyController,
+  GetAllAnomaliesController,
+  GetAnomalyBySlugController,
+  UpdateAnomalyController
+} from '../controllers/Anomalies/index.js';
+import type {
   ActivateAccountController,
+  AuthenticateWithGithubController,
   AuthenticateWithGoogleController,
   ForgotPasswordController,
   LoginUserLocalController,
@@ -85,6 +127,12 @@ import type {
   UpdateBedController
 } from '../controllers/Beds/index.js';
 import type {
+  AddPlantBookmarkController,
+  CheckPlantBookmarkController,
+  GetUserBookmarksController,
+  RemovePlantBookmarkController
+} from '../controllers/Bookmarks/index.js';
+import type {
   CreateFamilyController,
   GetAllFamiliesController,
   GetFamilyBySlugController,
@@ -99,12 +147,21 @@ import type {
   UpdatePlantInstanceController
 } from '../controllers/PlantInstances/index.js';
 import type {
+  CheckPlantLikeController,
+  LikePlantController,
+  UnlikePlantController
+} from '../controllers/PlantLikes/index.js';
+import type {
   CreatePlantController,
   DeletePlantController,
   GetAllPlantsController,
   GetPlantByIdController,
   UpdatePlantController
 } from '../controllers/Plants/index.js';
+import type {
+  ChangeUserRolesController,
+  LookupUserController
+} from '../controllers/Users/index.js';
 
 export type ContainerCradle = {
   // Explicit values
@@ -114,28 +171,43 @@ export type ContainerCradle = {
   logger: AppLogger;
   bedPersistenceMapper: BedPersistenceMapper;
   familyPersistenceMapper: FamilyPersistenceMapper;
+  anomalyPersistenceMapper: AnomalyPersistenceMapper;
   plantPersistenceMapper: PlantPersistenceMapper;
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
+  userBookmarksPersistenceMapper: UserBookmarksPersistenceMapper;
+  plantLikePersistenceMapper: PlantLikePersistenceMapper;
   cropSpatialService: CropSpatialService;
   unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
   mailer: Mailer;
   backgroundTasks: BackgroundTasks;
   accountNotifier: AccountNotifier;
+  providerUserResolver: ProviderUserResolver;
+  sessionTokenIssuer: SessionTokenIssuer;
   frontendBaseUrl: string;
+  googleClientId: string;
+  githubClientId: string;
+  githubClientSecret: string;
+  githubRedirectUri: string;
 
   // Singletons
   environmentArranger: DBEnvironmentArranger;
   encrypter: EncrypterTool;
-  googleIdTokenVerifier: GoogleIdTokenVerifierAdapter;
+  googleIdTokenVerifier: GoogleIdTokenVerifierTool;
+  githubIdentityProvider: GithubIdentityProviderTool;
   oneTimeToken: OneTimeTokenTool;
   authRepository: MongoAuthRepository;
   familyRepository: MongoFamilyRepository;
   familyReadRepository: FamilyReadRepository;
+  anomalyRepository: MongoAnomalyRepository;
+  anomalyReadRepository: AnomalyReadRepository;
   plantRepository: MongoPlantRepository;
   plantReadRepository: PlantReadRepository;
   bedRepository: MongoBedRepository;
   plantInstanceRepository: MongoPlantInstanceRepository;
+  userBookmarksRepository: MongoUserBookmarksRepository;
+  plantLikeRepository: MongoPlantLikeRepository;
+  plantLikesCounterRepository: MongoPlantLikesCounterRepository;
   plantQueryMapper: PlantQueryMapper;
 
   // Scoped use cases
@@ -143,16 +215,24 @@ export type ContainerCradle = {
   registerUserLocal: RegisterUserLocal;
   loginUserLocal: LoginUserLocal;
   authenticateWithGoogle: AuthenticateWithGoogle;
+  authenticateWithGithub: AuthenticateWithGithub;
   activateAccount: ActivateAccount;
   forgotPassword: ForgotPassword;
   resetPassword: ResetPassword;
   refreshToken: RefreshToken;
   updatePasswordLocal: UpdatePasswordLocal;
+  changeUserRoles: ChangeUserRoles;
+  lookupUser: LookupUser;
   createFamily: CreateFamily;
   getFamilyById: GetFamilyById;
   getFamilyBySlug: GetFamilyBySlug;
   listFamilies: ListFamilies;
   updateFamily: UpdateFamily;
+  getAnomalyBySlug: GetAnomalyBySlug;
+  listAnomalies: ListAnomalies;
+  createAnomaly: CreateAnomaly;
+  updateAnomaly: UpdateAnomaly;
+  deleteAnomaly: DeleteAnomaly;
   createPlant: CreatePlant;
   getPlant: GetPlant;
   listPlants: ListPlants;
@@ -168,21 +248,36 @@ export type ContainerCradle = {
   listPlantInstances: ListPlantInstances;
   updatePlantInstance: UpdatePlantInstance;
   removePlantInstance: RemovePlantInstance;
+  addPlantBookmark: AddPlantBookmark;
+  removePlantBookmark: RemovePlantBookmark;
+  getUserBookmarks: GetUserBookmarks;
+  checkPlantBookmark: CheckPlantBookmark;
+  likePlant: LikePlant;
+  unlikePlant: UnlikePlant;
+  checkPlantLike: CheckPlantLike;
 
   // Scoped controllers
   healthController: HealthController;
   registerUserLocalController: RegisterUserLocalController;
   loginUserLocalController: LoginUserLocalController;
   authenticateWithGoogleController: AuthenticateWithGoogleController;
+  authenticateWithGithubController: AuthenticateWithGithubController;
   activateAccountController: ActivateAccountController;
   forgotPasswordController: ForgotPasswordController;
   resetPasswordController: ResetPasswordController;
   refreshTokenController: RefreshTokenController;
   updatePasswordLocalController: UpdatePasswordLocalController;
+  changeUserRolesController: ChangeUserRolesController;
+  lookupUserController: LookupUserController;
   createFamilyController: CreateFamilyController;
   getAllFamiliesController: GetAllFamiliesController;
   getFamilyBySlugController: GetFamilyBySlugController;
   updateFamilyController: UpdateFamilyController;
+  getAnomalyBySlugController: GetAnomalyBySlugController;
+  getAllAnomaliesController: GetAllAnomaliesController;
+  createAnomalyController: CreateAnomalyController;
+  updateAnomalyController: UpdateAnomalyController;
+  deleteAnomalyController: DeleteAnomalyController;
   createPlantController: CreatePlantController;
   getAllPlantsController: GetAllPlantsController;
   getPlantByIdController: GetPlantByIdController;
@@ -198,6 +293,13 @@ export type ContainerCradle = {
   listPlantInstancesController: ListPlantInstancesController;
   updatePlantInstanceController: UpdatePlantInstanceController;
   removePlantInstanceController: RemovePlantInstanceController;
+  addPlantBookmarkController: AddPlantBookmarkController;
+  removePlantBookmarkController: RemovePlantBookmarkController;
+  getUserBookmarksController: GetUserBookmarksController;
+  checkPlantBookmarkController: CheckPlantBookmarkController;
+  likePlantController: LikePlantController;
+  unlikePlantController: UnlikePlantController;
+  checkPlantLikeController: CheckPlantLikeController;
 };
 
 export type AppContainer = AwilixContainer<ContainerCradle>;

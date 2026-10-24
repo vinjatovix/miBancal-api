@@ -51,9 +51,11 @@ const toPlant = (document: MongoPlantDocument): Plant => {
     },
     phenology,
     knowledge: mapKnowledge(document.knowledge),
+    ...(document.anomalies ? { anomalies: document.anomalies } : {}),
     metadata: Metadata.fromPrimitives(document.metadata),
     status: document.status,
-    version: document.version
+    version: document.version,
+    likesCount: document.likesCount ?? 0
   };
 
   if (document.deletedAt) {
@@ -100,6 +102,7 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
       },
       phenology,
       knowledge: plantKnowledgeMapper.toPrimitives(plant.knowledge),
+      ...(plant.anomalies.length ? { anomalies: plant.anomalies } : {}),
       metadata: plant.metadata.toPrimitives(),
       status: plant.status,
       deletedAt: plant.deletedAt ? plant.deletedAt.toISOString() : null,

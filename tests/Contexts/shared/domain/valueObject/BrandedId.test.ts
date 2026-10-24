@@ -34,6 +34,12 @@ describe('BrandedId', () => {
       expect(result).toBe(VALID_V7);
     });
 
+    it('should normalize an uppercase UUID to lowercase', () => {
+      const result = generator.create(VALID_V7.toUpperCase());
+
+      expect(result).toBe(VALID_V7);
+    });
+
     it.each([
       ['empty string', ''],
       ['non-uuid text', 'not-a-valid-uuid'],

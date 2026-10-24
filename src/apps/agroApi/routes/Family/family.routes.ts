@@ -8,7 +8,7 @@ import {
 } from '../../controllers/Families/requestSchemas.js';
 import {
   auth,
-  isAdmin,
+  isCatalogMaintainer,
   requireIfMatch,
   validateRequest
 } from '../../middlewares/index.js';
@@ -22,7 +22,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.post(
     `${prefix}/`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     validateRequest(createFamilyRequest),
     familyApiInvoker('createFamily')
   );
@@ -42,7 +42,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.patch(
     `${prefix}/:idOrSlug`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     requireIfMatch,
     validateRequest(updateFamilyRequest),
     familyApiInvoker('updateFamily')

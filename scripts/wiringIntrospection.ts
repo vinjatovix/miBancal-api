@@ -8,15 +8,24 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'logger',
   'bedPersistenceMapper',
   'familyPersistenceMapper',
+  'anomalyPersistenceMapper',
   'plantPersistenceMapper',
   'plantInstancePersistenceMapper',
+  'plantLikePersistenceMapper',
+  'userBookmarksPersistenceMapper',
   'cropSpatialService',
   'unitOfWork',
   'familySummaryReader',
   'mailer',
   'backgroundTasks',
   'accountNotifier',
-  'frontendBaseUrl'
+  'providerUserResolver',
+  'sessionTokenIssuer',
+  'frontendBaseUrl',
+  'googleClientId',
+  'githubClientId',
+  'githubClientSecret',
+  'githubRedirectUri'
 ]);
 
 export function getCradlePropertyNames(cradleFilePath: string): string[] {
