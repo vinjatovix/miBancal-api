@@ -8,6 +8,7 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'logger',
   'bedPersistenceMapper',
   'familyPersistenceMapper',
+  'anomalyPersistenceMapper',
   'plantPersistenceMapper',
   'plantInstancePersistenceMapper',
   'plantLikePersistenceMapper',

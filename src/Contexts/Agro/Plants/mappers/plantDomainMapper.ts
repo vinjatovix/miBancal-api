@@ -44,6 +44,7 @@ export const plantDomainMapper = {
       },
       phenology,
       knowledge,
+      ...(plant.anomalies.length ? { anomalies: plant.anomalies } : {}),
       metadata: plant.metadata.toPrimitives(),
       status: plant.status,
       deletedAt: plant.deletedAt ? plant.deletedAt.toISOString() : null,
@@ -70,6 +71,7 @@ export const plantDomainMapper = {
       },
       phenology,
       knowledge: this.mapKnowledge(primitives.knowledge),
+      ...(primitives.anomalies ? { anomalies: primitives.anomalies } : {}),
       metadata: Metadata.fromPrimitives(primitives.metadata),
       status: primitives.status,
       version: primitives.version

@@ -3,6 +3,7 @@ import type { UnknownRecord } from '../../../../../shared/domain/types/UnknownRe
 import { deepFreeze } from '../../../../../shared/domain/utils/deepFreeze.js';
 import { patchField } from '../../../../../shared/domain/utils/patchField.js';
 import { requiredText } from '../../../../../shared/domain/utils/requiredText.js';
+import { uniqueTextList } from '../../../../../shared/domain/utils/uniqueTextList.js';
 import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import {
   DomainConflictException,
@@ -38,13 +39,22 @@ export class Plant extends AggregateRoot<PlantId> {
   constructor(props: PlantProps) {
     super(props.id);
     this.validateProps(props);
+    const { anomalies: rawAnomalies, ...rest } = props;
     this.props = deepFreeze({
-      ...props,
+      ...rest,
       traits: Plant.withEcological(props.traits),
+      anomalies: Plant.normaliseAnomalies(rawAnomalies),
       status: props.status ?? PlantStatus.ACTIVE,
       version: props.version ?? 0,
       likesCount: props.likesCount ?? 0
     });
+  }
+
+  /** Trimmed, blank-free, case-insensitively deduplicated anomaly slugs. */
+  private static normaliseAnomalies(anomalies: string[] | undefined): string[] {
+    return anomalies === undefined
+      ? []
+      : uniqueTextList(anomalies, 'Plant.anomalies');
   }
 
   private validateProps(props: PlantProps) {
@@ -88,6 +98,10 @@ export class Plant extends AggregateRoot<PlantId> {
 
   get knowledge() {
     return this.props.knowledge;
+  }
+
+  get anomalies(): string[] {
+    return this.props.anomalies ?? [];
   }
 
   get metadata(): Metadata {
@@ -145,6 +159,25 @@ export class Plant extends AggregateRoot<PlantId> {
       ...changes,
       metadata: Metadata.update(this.props.metadata, user, at)
     });
+  }
+
+  /**
+   * Merge-patch the anomaly slug list: `null` clears it, an array replaces it
+   * (trimmed, blank-free, case-insensitively deduplicated). A no-op is ignored.
+   */
+  updateAnomalies(
+    value: string[] | null,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    this.assertActive();
+
+    const next = value === null ? [] : Plant.normaliseAnomalies(value);
+
+    if (!hasStateChanged({ anomalies: this.anomalies }, { anomalies: next }))
+      return;
+
+    this.commit({ anomalies: next }, user, at);
   }
 
   updateIdentity(

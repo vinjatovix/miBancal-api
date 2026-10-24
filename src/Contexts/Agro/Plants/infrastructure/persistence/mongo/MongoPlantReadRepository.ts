@@ -57,6 +57,7 @@ const PLANT_PROJECTION: ReadProjection = {
   traits: 1,
   phenology: 1,
   knowledge: 1,
+  anomalies: 1,
   image: PRIMARY_IMAGE,
   metadata: 1,
   status: 1,

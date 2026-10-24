@@ -24,6 +24,8 @@ export type MongoPlantDocument = {
 
   knowledge?: PlantKnowledgePrimitives;
 
+  anomalies?: string[];
+
   metadata: PlantPrimitives['metadata'];
   status: PlantPrimitives['status'];
   deletedAt?: string | null;

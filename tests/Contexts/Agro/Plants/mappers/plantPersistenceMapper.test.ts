@@ -86,6 +86,23 @@ describe('PlantPersistenceMapper', () => {
       expect(doc.deletedAt).toBeDefined();
       expect(typeof doc.deletedAt).toBe('string');
     });
+
+    it('should store the anomaly slugs when present', () => {
+      const plant = PlantFactory.create();
+      plant.updateAnomalies(['pulgon', 'oidio'], 'test-user');
+
+      const doc = plantPersistenceMapper.toMongoDocument(plant);
+
+      expect(doc.anomalies).toEqual(['pulgon', 'oidio']);
+    });
+
+    it('should omit anomalies when the list is empty', () => {
+      const plant = PlantFactory.create();
+
+      const doc = plantPersistenceMapper.toMongoDocument(plant);
+
+      expect(doc).not.toHaveProperty('anomalies');
+    });
   });
 
   describe('fromMongoDocument', () => {
@@ -143,6 +160,25 @@ describe('PlantPersistenceMapper', () => {
       expect(restored.deletedAt?.toISOString()).toBe(
         plant.deletedAt?.toISOString()
       );
+    });
+
+    it('should keep the anomaly slugs through the document', () => {
+      const plant = PlantFactory.create();
+      plant.updateAnomalies(['pulgon', 'oidio'], 'test-user');
+
+      const doc = plantPersistenceMapper.toMongoDocument(plant);
+      const restored = plantPersistenceMapper.fromMongoDocument(doc);
+
+      expect(restored.anomalies).toEqual(['pulgon', 'oidio']);
+    });
+
+    it('should restore an empty list when anomalies are absent', () => {
+      const plant = PlantFactory.create();
+
+      const doc = plantPersistenceMapper.toMongoDocument(plant);
+      const restored = plantPersistenceMapper.fromMongoDocument(doc);
+
+      expect(restored.anomalies).toEqual([]);
     });
 
     it('should fallback to empty knowledge', () => {

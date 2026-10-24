@@ -19,6 +19,8 @@ tags:
     description: Endpoints for user authentication and management.
   - name: Families
     description: Endpoints for managing plant families.
+  - name: Anomalies
+    description: Endpoints for managing the plant anomaly diagnosis catalog.
   - name: Plants
     description: Endpoints for managing plant data.
   - name: Beds
@@ -543,6 +545,199 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/anomalies:
+    get:
+      tags: [Anomalies]
+      summary: Get all anomalies
+      description: >
+        Public. The token is optional: anonymous callers and plain users get
+        only ACTIVE anomalies; with an `admin`/`collaborator` token the list
+        also includes DELETED ones (tell them apart by `status`/`deletedAt`).
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: filter
+          description: >
+            Declared fields only, one operator per field. Unknown fields,
+            operators or values of the wrong type → 400.
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/AnomalyListFilter'
+        - in: query
+          name: sort
+          description: Declared sort keys only, `asc` or `desc`.
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/AnomalyListSort'
+        - in: query
+          name: pagination
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/ListPagination'
+        - $ref: '#/components/parameters/AnomalyFields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      anyOf:
+                        - $ref: '#/components/schemas/Anomaly'
+                        - $ref: '#/components/schemas/AnomalyFieldset'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Anomalies]
+      summary: Create anomaly
+      description: >
+        Creates a new anomaly in the shared diagnosis catalog. Requires
+        authentication and either `admin` or `collaborator` role.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAnomaly'
+      responses:
+        '201':
+          description: Anomaly created
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Anomaly'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/anomalies/{idOrSlug}:
+    get:
+      tags: [Anomalies]
+      summary: Get anomaly by id or slug
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnomalyIdOrSlug'
+        - $ref: '#/components/parameters/AnomalyFields'
+      responses:
+        '200':
+          description: OK
+          headers:
+            ETag:
+              $ref: '#/components/headers/ReadETag'
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/Anomaly'
+                  - $ref: '#/components/schemas/AnomalyFieldset'
+        '304':
+          # Only for a read without `fields`.
+          $ref: '#/components/responses/NotModified'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags: [Anomalies]
+      summary: Update anomaly
+      description: >
+        Updates an existing anomaly by UUID or slug. Requires authentication,
+        mandatory `If-Match`, and either `admin` or `collaborator` role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnomalyIdOrSlug'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAnomaly'
+      responses:
+        '200':
+          description: Updated
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Anomaly'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Anomalies]
+      summary: Delete anomaly
+      description: >
+        Soft-deletes an anomaly by UUID or slug (no longer publicly readable).
+        Requires authentication, mandatory `If-Match`, and either `admin` or
+        `collaborator` role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AnomalyIdOrSlug'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204':
+          description: Deleted (no content)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '412':
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
@@ -1506,7 +1701,8 @@ components:
       description: >
         JSON:API sparse fieldset. `fields[plants]` is a comma-separated list
         of top-level fields: `id`, `identity`, `traits`, `phenology`,
-        `knowledge`, `image`, `metadata`, `status`, `deletedAt`, `version`.
+        `knowledge`, `anomalies`, `image`, `metadata`, `status`, `deletedAt`,
+        `version`.
         `image` is the plant's primary picture, so a listing can show it
         without requesting `knowledge`. Entries are
         trimmed, blanks and repeats dropped, and the order does not matter;
@@ -1569,6 +1765,36 @@ components:
         minLength: 1
         maxLength: 200
         pattern: '\S'
+
+    AnomalyIdOrSlug:
+      name: idOrSlug
+      in: path
+      required: true
+      description: A UUID is looked up by id; anything else by slug. Trimmed.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+        pattern: '\S'
+
+    AnomalyFields:
+      in: query
+      name: fields
+      description: >
+        JSON:API sparse fieldset. `fields[anomalies]` is a comma-separated list
+        of top-level fields: `id`, `slug`, `name`, `scientificName`, `category`,
+        `description`, `symptoms`, `damage`, `causes`, `affectedCrops`,
+        `prevention`, `treatment`, `naturalEnemies`, `status`, `deletedAt`,
+        `metadata`, `version`. Same rules as for plants.
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties: false
+        properties:
+          anomalies:
+            type: string
+            example: slug,name
 
     BedId:
       name: id
@@ -1845,6 +2071,256 @@ components:
         name: { $ref: '#/components/schemas/SortDirection' }
         scientificName: { $ref: '#/components/schemas/SortDirection' }
         slug: { $ref: '#/components/schemas/SortDirection' }
+
+    # ---------- Anomalies ----------
+
+    AnomalyCategory:
+      type: string
+      description: Closed set of exactly four categories.
+      enum: [pest, disease, disorder, weed]
+
+    AnomalyStatus:
+      type: string
+      enum: [ACTIVE, DELETED]
+      readOnly: true
+
+    AnomalySlug:
+      type: string
+      description: URL-safe kebab-case identifier.
+      pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+      minLength: 1
+      maxLength: 120
+
+    AnomalyTextList:
+      type: array
+      description: Flat list of guidance text lines (deduplicated, no blanks).
+      items:
+        $ref: '#/components/schemas/RequiredLongText'
+
+    Anomaly:
+      type: object
+      required: [id, slug, name, category, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+        slug:
+          $ref: '#/components/schemas/AnomalySlug'
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        scientificName:
+          $ref: '#/components/schemas/RequiredShortText'
+        category:
+          $ref: '#/components/schemas/AnomalyCategory'
+        description:
+          $ref: '#/components/schemas/RequiredLongText'
+        symptoms:
+          $ref: '#/components/schemas/AnomalyTextList'
+        damage:
+          $ref: '#/components/schemas/AnomalyTextList'
+        causes:
+          $ref: '#/components/schemas/AnomalyTextList'
+        affectedCrops:
+          $ref: '#/components/schemas/AnomalyTextList'
+        prevention:
+          $ref: '#/components/schemas/AnomalyTextList'
+        treatment:
+          $ref: '#/components/schemas/AnomalyTextList'
+        naturalEnemies:
+          $ref: '#/components/schemas/AnomalyTextList'
+        status:
+          $ref: '#/components/schemas/AnomalyStatus'
+        deletedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+
+    AnomalyFieldset:
+      description: >
+        An anomaly read with `fields[anomalies]`: `id` plus the requested
+        fields, each with the same shape as in `Anomaly`.
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+        slug:
+          $ref: '#/components/schemas/AnomalySlug'
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        scientificName:
+          $ref: '#/components/schemas/RequiredShortText'
+        category:
+          $ref: '#/components/schemas/AnomalyCategory'
+        description:
+          $ref: '#/components/schemas/RequiredLongText'
+        symptoms:
+          $ref: '#/components/schemas/AnomalyTextList'
+        damage:
+          $ref: '#/components/schemas/AnomalyTextList'
+        causes:
+          $ref: '#/components/schemas/AnomalyTextList'
+        affectedCrops:
+          $ref: '#/components/schemas/AnomalyTextList'
+        prevention:
+          $ref: '#/components/schemas/AnomalyTextList'
+        treatment:
+          $ref: '#/components/schemas/AnomalyTextList'
+        naturalEnemies:
+          $ref: '#/components/schemas/AnomalyTextList'
+        status:
+          $ref: '#/components/schemas/AnomalyStatus'
+        deletedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+
+    AnomalyListFilter:
+      type: object
+      additionalProperties: false
+      description: Declared filterable fields only.
+      properties:
+        slug:
+          description: Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              $ref: '#/components/schemas/AnomalySlug'
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+        category:
+          description: Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              $ref: '#/components/schemas/AnomalyCategory'
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+
+    AnomalyListSort:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { $ref: '#/components/schemas/SortDirection' }
+        slug: { $ref: '#/components/schemas/SortDirection' }
+
+    CreateAnomaly:
+      type: object
+      additionalProperties: false
+      required: [id, slug, name, category]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          $ref: '#/components/schemas/AnomalySlug'
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        scientificName:
+          $ref: '#/components/schemas/RequiredShortText'
+        category:
+          $ref: '#/components/schemas/AnomalyCategory'
+        description:
+          $ref: '#/components/schemas/RequiredLongText'
+        symptoms:
+          $ref: '#/components/schemas/AnomalyTextList'
+        damage:
+          $ref: '#/components/schemas/AnomalyTextList'
+        causes:
+          $ref: '#/components/schemas/AnomalyTextList'
+        affectedCrops:
+          $ref: '#/components/schemas/AnomalyTextList'
+        prevention:
+          $ref: '#/components/schemas/AnomalyTextList'
+        treatment:
+          $ref: '#/components/schemas/AnomalyTextList'
+        naturalEnemies:
+          $ref: '#/components/schemas/AnomalyTextList'
+
+    UpdateAnomaly:
+      description: >
+        JSON Merge Patch. Every field optional; `{}` is a no-op. `id`, `slug`,
+        `version`, `status` and `metadata` are not accepted (the slug is
+        immutable after creation). Optional fields and guidance lists accept
+        `null` to clear them.
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        scientificName:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 200
+          pattern: '\S'
+        category:
+          $ref: '#/components/schemas/AnomalyCategory'
+        description:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 2000
+          pattern: '\S'
+        symptoms:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredLongText'
+        damage:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredLongText'
+        causes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredLongText'
+        affectedCrops:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredLongText'
+        prevention:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredLongText'
+        treatment:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredLongText'
+        naturalEnemies:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/RequiredLongText'
 
     # ---------- Plants ----------
 
@@ -2282,6 +2758,14 @@ components:
             - $ref: '#/components/schemas/Metadata'
           readOnly: true
 
+    PlantAnomalies:
+      type: array
+      description: >
+        Slugs of catalog anomalies this plant is susceptible to. Deduplicated;
+        every slug must exist in the anomaly catalog at write time (else 400).
+      items:
+        $ref: '#/components/schemas/AnomalySlug'
+
     Plant:
       type: object
       required: [id, identity, traits, phenology, image, likesCount]
@@ -2316,6 +2800,9 @@ components:
 
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
+
+        anomalies:
+          $ref: '#/components/schemas/PlantAnomalies'
 
         image:
           $ref: '#/components/schemas/PlantImage'
@@ -2402,6 +2889,8 @@ components:
           $ref: '#/components/schemas/PlantPhenology'
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
+        anomalies:
+          $ref: '#/components/schemas/PlantAnomalies'
         image:
           $ref: '#/components/schemas/PlantImage'
         metadata:
@@ -2455,6 +2944,8 @@ components:
             - $ref: '#/components/schemas/PlantKnowledge'
             - type: object
               required: [rootSystem, soil, light, propagation, resources]
+        anomalies:
+          $ref: '#/components/schemas/PlantAnomalies'
 
     # Nullable fields declare their own `type` instead of reusing a shared
     # schema: OpenAPI 3.0.3 ignores `nullable` without `type` in the same
@@ -2589,6 +3080,12 @@ components:
 
         knowledge:
           $ref: '#/components/schemas/UpdatePlantKnowledge'
+        anomalies:
+          type: array
+          nullable: true
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/AnomalySlug'
 
     UpdatePlantKnowledge:
       type: object

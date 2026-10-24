@@ -1,6 +1,16 @@
 import type { AwilixContainer } from 'awilix';
 import type { Db, MongoClient } from 'mongodb';
 
+import type { AnomalyReadRepository } from '../../../Contexts/Agro/Anomalies/application/queries/index.js';
+import type {
+  CreateAnomaly,
+  DeleteAnomaly,
+  GetAnomalyBySlug,
+  ListAnomalies,
+  UpdateAnomaly
+} from '../../../Contexts/Agro/Anomalies/application/useCases/index.js';
+import type { MongoAnomalyRepository } from '../../../Contexts/Agro/Anomalies/infrastructure/persistence/MongoAnomalyRepository.js';
+import type { AnomalyPersistenceMapper } from '../../../Contexts/Agro/Anomalies/mappers/interfaces/AnomalyPersistenceMapper.js';
 import type {
   CreateBed,
   DeleteBed,
@@ -92,6 +102,13 @@ import type {
 } from '../../../Contexts/shared/plugins/index.js';
 import type { DBEnvironmentArranger } from '../../../shared/infrastructure/persistence/index.js';
 import type {
+  CreateAnomalyController,
+  DeleteAnomalyController,
+  GetAllAnomaliesController,
+  GetAnomalyBySlugController,
+  UpdateAnomalyController
+} from '../controllers/Anomalies/index.js';
+import type {
   ActivateAccountController,
   AuthenticateWithGithubController,
   AuthenticateWithGoogleController,
@@ -154,6 +171,7 @@ export type ContainerCradle = {
   logger: AppLogger;
   bedPersistenceMapper: BedPersistenceMapper;
   familyPersistenceMapper: FamilyPersistenceMapper;
+  anomalyPersistenceMapper: AnomalyPersistenceMapper;
   plantPersistenceMapper: PlantPersistenceMapper;
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
   userBookmarksPersistenceMapper: UserBookmarksPersistenceMapper;
@@ -181,6 +199,8 @@ export type ContainerCradle = {
   authRepository: MongoAuthRepository;
   familyRepository: MongoFamilyRepository;
   familyReadRepository: FamilyReadRepository;
+  anomalyRepository: MongoAnomalyRepository;
+  anomalyReadRepository: AnomalyReadRepository;
   plantRepository: MongoPlantRepository;
   plantReadRepository: PlantReadRepository;
   bedRepository: MongoBedRepository;
@@ -208,6 +228,11 @@ export type ContainerCradle = {
   getFamilyBySlug: GetFamilyBySlug;
   listFamilies: ListFamilies;
   updateFamily: UpdateFamily;
+  getAnomalyBySlug: GetAnomalyBySlug;
+  listAnomalies: ListAnomalies;
+  createAnomaly: CreateAnomaly;
+  updateAnomaly: UpdateAnomaly;
+  deleteAnomaly: DeleteAnomaly;
   createPlant: CreatePlant;
   getPlant: GetPlant;
   listPlants: ListPlants;
@@ -248,6 +273,11 @@ export type ContainerCradle = {
   getAllFamiliesController: GetAllFamiliesController;
   getFamilyBySlugController: GetFamilyBySlugController;
   updateFamilyController: UpdateFamilyController;
+  getAnomalyBySlugController: GetAnomalyBySlugController;
+  getAllAnomaliesController: GetAllAnomaliesController;
+  createAnomalyController: CreateAnomalyController;
+  updateAnomalyController: UpdateAnomalyController;
+  deleteAnomalyController: DeleteAnomalyController;
   createPlantController: CreatePlantController;
   getAllPlantsController: GetAllPlantsController;
   getPlantByIdController: GetPlantByIdController;

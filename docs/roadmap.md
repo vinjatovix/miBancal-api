@@ -764,7 +764,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Dependencies**: Iteration 26 (`User` mutation methods and audit metadata). Note: `User` gets a `version` / `If-Match` for this feature, which Iteration 26 had deferred as unnecessary for its own endpoints.
 - **Risks**: Accidentally exposing the user base through the lookup (mitigated by exact-match only, using the existing unique email/username indexes) or locking the platform out of administration (mitigated by the last-administrator safeguard, within the concurrency limit noted below).
 - **Known limitations / follow-ups**:
-  - **Last-administrator safeguard is not concurrency-safe.** The check counts administrators and the role write happen outside a shared transaction, each guarded only against its own target's version. Two simultaneous requests that each revoke `admin` from a different one of the last two administrators can both pass the count check and both succeed, leaving the platform with zero administrators. Acceptable at current scale (no production data, administration changes are rare and manual). To close it: wrap the count and the write in one transaction and re-check after writing, or enforce a minimum-administrator invariant in storage.
+  - ~~**Last-administrator safeguard is not concurrency-safe.**~~ Resolved (2026-10-18, spec `specs/035-admin-safeguard-concurrency/`, commit `822c42f`): the administrator count and the role write now run inside one transaction with a re-check after writing, so two simultaneous revocations of the last two administrators can no longer both succeed.
   - **`countByRole` has no supporting index.** Counting accounts by role is an equality filter on `roles` with no index, so it scans the collection. It runs only when revoking `admin` (a rare operation) over a tiny set of accounts, so it is left unindexed for now. Add an index on `roles` (a migration) if role-based counts or filters become frequent.
 - **Prompt for /speckit.specify**:
   ```text
@@ -772,6 +772,14 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHY: There is no way to create new administrators or withdraw permissions after registration, and no in-API way for an admin to find the id of the account to change.
   WHAT: Add an admin-only endpoint to grant/revoke the manageable (elevated) roles on an account by its stable id (delta semantics over `admin` only; base role `user` permanent and non-manageable; optimistic concurrency, audit metadata, last-admin safeguard, minimal response), plus an admin-only exact lookup by email or username that returns the account id and minimal identifying fields.
   ```
+
+## Tooling: Per-User Rate Limiting on Authenticated Routes
+
+**Spec Module(s)**: [api-layer.md](spec/modules/api-layer.md), [auth.md](spec/modules/auth.md)
+
+- **Status**: Partially done (spec `specs/037-client-ip-rate-limit/`, commits `3e6eab1`, `a07c819`; not a numbered iteration — cross-cutting middleware with no product-behaviour change of its own). The per-user rate limiter on authenticated routes and the client-IP resolution are in place (`middlewares/rateLimiters.ts`), on top of the `authLimiter`/`registrationLimiter`/`passwordResetLimiter` introduced in Iterations 26 and 26b.
+- **Still open (`tasks.md`)**: route the request logger through the shared client-IP resolver (T007), run the quickstart validation (T009), and make sure rate limits are bypassed under test so runs stay fast and deterministic (T010).
+- **Dependencies**: Iteration 26 (`authLimiter`).
 
 ---
 
@@ -781,8 +789,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md), [family.md](spec/modules/family.md), [openapi.md](spec/modules/openapi.md), [plant-relation.md](spec/modules/plant-relation.md)
 
+- **Status**: Completed (2026-10-19, spec `specs/036-collaborator-role/`, commit `9025a82`)
 - **Value delivered**: Enables secure community-driven catalog updates.
 - **Definition of Done**: `collaborator` role is recognized in authorization middleware and applied to catalog write endpoints.
+- **Implementation notes**: `collaborator` joins `admin` and the base `user` in `UserRoles` (`USER_ROLES`); it is a manageable role alongside `admin` (`MANAGEABLE_ROLES`), so Iteration 30b's role-management endpoint grants and revokes it too. `EnsureAuthentication` recognizes it, and the five catalog write endpoints (`POST`/`PATCH`/`DELETE` on Plants and Families) now authorize `admin` **or** `collaborator`; the OpenAPI descriptions state it.
 - **Dependencies**: None.
 - **Risks**: Broadening access inadvertently if role hierarchy is flawed.
 - **Prompt for /speckit.specify**:
@@ -812,8 +822,11 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md), [plant.md](spec/modules/plant.md)
 
+- **Status**: Completed (2026-10-23, specs `specs/038-user-bookmarks/` and `specs/039-filter-plants-bookmarked/`, commits `656720a`, `3ce8631`)
 - **Value delivered**: Provides a high-performance productivity tool for users to bookmark favorite plants without causing document size bloat.
 - **Definition of Done**: Bookmarks are stored in a private `user_bookmarks` collection with CRUD endpoints.
+- **Implementation notes**: New `Contexts/Agro/Bookmarks` aggregate (`UserBookmarks`, one document per user) with its own `MongoUserBookmarksRepository` and the `user_bookmarks` collection + indexes created by migration `20261023120000-create-user-bookmarks-collection`. Endpoints under `/api/v1/bookmarks`: list (optional `include=plant` enriches each favorite with a plant summary), add a plant (`POST /bookmarks/plants`, idempotent — a repeat returns the existing reference), remove (`DELETE /bookmarks/plants/{plantId}`) and check presence (`GET /bookmarks/plants/{plantId}`). Each user sees only their own collection (privacy feature). OpenAPI publishes the routes and the `UserBookmarksResponse`/`CheckPlantBookmarkResponse` schemas.
+- **Catalog filter (spec 039)**: `GET /plants` accepts `filter[bookmarked][eq]=true|false`, resolved in `ListPlants.applyBookmarkFilter` against the user's bookmarks (`PlantFilter.bookmarked` → `id.in`/`id.nin`); it requires authentication (`401` otherwise). Known v1 limitation documented in code: two simultaneous first-ever adds for the same user can surface a write conflict instead of transparently retrying.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
@@ -827,8 +840,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [plant.md](spec/modules/plant.md)
 
+- **Status**: Completed (2026-10-24, spec `specs/040-plant-like-counters/`, commit `24f090f`). Functionally complete and shipped; the spec's final verification steps (full `npm test`, format/lint/build, diff review) remain unchecked in `tasks.md`, so run them before the next release cut.
 - **Value delivered**: Enables social popularity ranking without heavy query joins.
-- **Definition of Done**: Likes and dislikes project as read-only counters (`likesCount`, `dislikesCount`) on the `Plant` aggregate.
+- **Definition of Done**: Likes project as a read-only counter (`likesCount`) on the `Plant` aggregate. Dislikes (`dislikesCount`) are deferred to a later iteration — v1 covers likes only (decided 2026-10-23, see `specs/040-plant-like-counters/spec.md`).
+- **Implementation notes**: New `Contexts/Agro/PlantLikes` aggregate with the `plant_likes` collection (migration `20261023130000-create-plant-likes-collection`) recording one like per user per plant. `likesCount` is a read-only projection on the plant: stored on the document (default backfilled by `20261023140000-plants-likes-count-default`), surfaced in `PlantReadView`/`PLANT_FIELDS` and in the write responses, and never writable through any plant create/update path. Endpoints: `POST`/`DELETE /api/v1/plants/{plantId}/likes` (both idempotent, the counter never drops below zero) and `GET /api/v1/plants/{plantId}/likes/me`. OpenAPI and three acceptance features (`like-plant`, `check-plant-like`, `likes-count-projection`) cover it.
 - **Dependencies**: None.
 - **Risks**: Syncing projected counters with individual interaction events.
 - **Prompt for /speckit.specify**:
@@ -910,8 +925,9 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [knowledge.md](spec/modules/knowledge.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
 
+- **Status**: Completed (feature `041-anomaly-domain`: spec module [knowledge.md](spec/modules/knowledge.md) delivered; `Anomaly` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, and a one-directional `Plant.anomalies` slug list validated at write time; collection and endpoints fully implemented).
 - **Value delivered**: Unifies crop diagnosis (pests, diseases, weeds) into a central database.
-- **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented.
+- **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented. Spec module [knowledge.md](spec/modules/knowledge.md) is documented.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:

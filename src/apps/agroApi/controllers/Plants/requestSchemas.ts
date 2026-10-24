@@ -76,6 +76,18 @@ const camelCaseKeySchema = z
 // Empty aliases are dropped by the domain, not rejected.
 const aliasesSchema = listSchema(trimmedShortTextSchema);
 
+// Anomaly slugs: kebab-case, `1..120`. Blanks/dups dropped by the domain.
+const anomalySlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'Expected a kebab-case slug'
+  });
+
+const anomaliesSchema = listSchema(anomalySlugSchema);
+
 // Optional, but never blank when sent.
 const harvestDescriptionSchema = z
   .string()
@@ -218,7 +230,8 @@ const createPlantBody = z.object({
     // Required: every plant has an image resource (checked by `Plant`).
     resources: listSchema(resourceItemSchema),
     notes: textListSchema.exactOptional()
-  })
+  }),
+  anomalies: anomaliesSchema.exactOptional()
 });
 
 export const createPlantRequest = {
@@ -342,7 +355,8 @@ const updatePlantBody = z.object({
       resources: clearable(listSchema(resourceItemSchema)),
       notes: clearable(textListSchema)
     })
-    .exactOptional()
+    .exactOptional(),
+  anomalies: clearable(anomaliesSchema)
 });
 
 export const updatePlantRequest = {

@@ -6,7 +6,7 @@ Contract-driven REST API for agricultural asset management.
 
 ## Stack
 
-- Node.js v22.x (asdf) & npm >= v10.1.0
+- Node.js v24.x (asdf) & npm >= v10.1.0
 - TypeScript v6.x (Strict typing, no `any`)
 - MongoDB (native driver, `migrate-mongo` migrations)
 - Awilix (Dependency injection)
