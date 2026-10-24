@@ -1,8 +1,7 @@
 openapi: 3.0.3
-
 info:
   title: MiBancal API
-  version: 1.0.1
+  version: 1.1.0
   description: API for managing plants and user authentication in the MiBancal application.
   termsOfService: http://example.com/terms/
   contact:
@@ -11,7 +10,6 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-
 tags:
   - name: Health
     description: Endpoint for health checks.
@@ -31,11 +29,11 @@ tags:
     description: Administrator endpoints for managing accounts and their roles.
   - name: Bookmarks
     description: Personal user bookmarks collection for favorite catalog items.
-
 paths:
   /api/v1/health:
     get:
-      tags: [Health]
+      tags:
+        - Health
       summary: Health check
       responses:
         '200':
@@ -44,25 +42,26 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [status]
+                required:
+                  - status
                 properties:
                   status:
                     type: string
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/register:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Register a local account
       description: >
         Every well-formed registration gets the same `202` with an empty body,
         whether or not the email already has an account. If the registration can
-        proceed, an activation email is on its way (Spanish only). The owner of an
-        existing account gets a "registration attempt" notice instead. The id and
-        the username are checked before the email: a taken id or username is a
-        `409` that does not depend on the email. Every attempt counts towards the
-        rate limit (5 per IP every 15 minutes).
+        proceed, an activation email is on its way (Spanish only). The owner of
+        an existing account gets a "registration attempt" notice instead. The id
+        and the username are checked before the email: a taken id or username is
+        a `409` that does not depend on the email. Every attempt counts towards
+        the rate limit (5 per IP every 15 minutes).
       requestBody:
         required: true
         content:
@@ -74,26 +73,23 @@ paths:
           description: >
             Accepted. No body. Activate the account from the emailed link, then
             call `/auth/login`.
-        # Request shape or password rules only; never says that the email
-        # already has an account.
         '400':
           $ref: '#/components/responses/ValidationError'
-        # "User with id <id> already exists" or "Username already in use".
         '409':
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/activate:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Activate an account with the emailed token
       description: >
-        Called by the frontend page the activation email links to; the page reads
-        the token from the link's fragment (`#token=…`) and posts it here. The
-        token is single-use and expires 24 hours after it was issued. Success only
-        confirms the email; it returns no session token. Failed attempts count
-        towards the authentication rate limit.
+        Called by the frontend page the activation email links to; the page
+        reads the token from the link's fragment (`#token=…`) and posts it here.
+        The token is single-use and expires 24 hours after it was issued.
+        Success only confirms the email; it returns no session token. Failed
+        attempts count towards the authentication rate limit.
       requestBody:
         required: true
         content:
@@ -103,26 +99,23 @@ paths:
       responses:
         '204':
           description: Email validated. Log in with `/auth/login`.
-        # A schema error (`errors.token`, `errors.<unknown field>`), or the
-        # uniform `{ "message": "Invalid or expired token" }` for any token that
-        # cannot activate an account (unknown, expired, used, replaced,
-        # malformed or of another purpose).
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/password/forgot:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Request password reset email
       description: >
-        Requests a password reset link for the given email address.
-        Answers with 202 Accepted and an empty body whether or not an account exists,
-        preventing account enumeration. When an account exists, a single-use 30-minute
-        token is generated and sent in the background. If a reset token was already issued
-        within the last 2 minutes, no new email or token is generated.
-        Every request counts toward the password reset rate limit (5 requests per 15 minutes per IP).
+        Requests a password reset link for the given email address. Answers with
+        202 Accepted and an empty body whether or not an account exists,
+        preventing account enumeration. When an account exists, a single-use
+        30-minute token is generated and sent in the background. If a reset
+        token was already issued within the last 2 minutes, no new email or
+        token is generated. Every request counts toward the password reset rate
+        limit (5 requests per 15 minutes per IP).
       requestBody:
         required: true
         content:
@@ -131,23 +124,27 @@ paths:
               $ref: '#/components/schemas/ForgotPasswordRequest'
       responses:
         '202':
-          description: Accepted. If the email belongs to an account, a reset email is on its way.
+          description: >-
+            Accepted. If the email belongs to an account, a reset email is on
+            its way.
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/password/reset:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Reset account password with one-time token
       description: >
-        Resets the password of the account matching the provided one-time reset token.
-        Validates password rules and confirmation match before checking the token.
-        On success, sets or creates the local password, marks the email as validated,
-        removes the reset token, discards any pending activation token, and notifies the owner.
-        Does not issue a session token; user must log in explicitly with the new password.
-        Failed attempts count towards the authentication rate limit (5 failed attempts per 15 minutes per IP).
+        Resets the password of the account matching the provided one-time reset
+        token. Validates password rules and confirmation match before checking
+        the token. On success, sets or creates the local password, marks the
+        email as validated, removes the reset token, discards any pending
+        activation token, and notifies the owner. Does not issue a session
+        token; user must log in explicitly with the new password. Failed
+        attempts count towards the authentication rate limit (5 failed attempts
+        per 15 minutes per IP).
       requestBody:
         required: true
         content:
@@ -158,16 +155,13 @@ paths:
         '204':
           description: Password reset completed successfully. No body.
         '400':
-          # Validation error (password rules, missing fields) OR uniform
-          # { "message": "Invalid or expired token" } for unknown, expired, used,
-          # replaced, or mismatched tokens.
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/login:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Login user
       description: >
         An account whose email is not validated is refused with the same `401`
@@ -185,7 +179,8 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [token]
+                required:
+                  - token
                 properties:
                   token:
                     type: string
@@ -195,31 +190,31 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/google:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Authenticate with Google
       description: >
         Takes the Google ID token (`idToken`) that the client obtained with
-        Google Sign-In for this application's web client id. The API checks
-        it with Google's public keys (signature, issuer, audience, expiry),
+        Google Sign-In for this application's web client id. The API checks it
+        with Google's public keys (signature, issuer, audience, expiry),
         requires an email that Google marks as verified, and stores no state
         between requests: no authorization code, session or nonce.
 
-        The account is matched by Google identity first, then by email. A
-        first sign-in creates an account with a validated email, no password,
-        the `user` role and a username derived from the email (made unique
-        with a short suffix when it is taken). Signing in with Google for the
-        email of an existing account links Google to it: if that account's
-        email was not validated, its local password is removed and the email
-        becomes validated; if it was validated, the password stays and the
-        owner is emailed that Google was linked. Two simultaneous first
-        sign-ins of the same person both succeed on the same account.
+        The account is matched by Google identity first, then by email. A first
+        sign-in creates an account with a validated email, no password, the
+        `user` role and a username derived from the email (made unique with a
+        short suffix when it is taken). Signing in with Google for the email of
+        an existing account links Google to it: if that account's email was not
+        validated, its local password is removed and the email becomes
+        validated; if it was validated, the password stays and the owner is
+        emailed that Google was linked. Two simultaneous first sign-ins of the
+        same person both succeed on the same account.
 
         Always answers the usual `{ token }`, identical to a password login.
-        Every untrusted token gets the same `401`. Failed attempts count
-        toward the authentication rate limit.
+        Every untrusted token gets the same `401`. Failed attempts count toward
+        the authentication rate limit.
       requestBody:
         required: true
         content:
@@ -233,7 +228,8 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [token]
+                required:
+                  - token
                 properties:
                   token:
                     type: string
@@ -249,7 +245,8 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [message]
+                required:
+                  - message
                 properties:
                   message:
                     type: string
@@ -260,10 +257,10 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
-
   /api/v1/auth/github:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Authenticate with GitHub
       description: >
         Takes a GitHub authorization `code` and the PKCE `codeVerifier` the
@@ -278,14 +275,14 @@ paths:
         The account is matched by GitHub identity first (the numeric user id,
         never the login name), then by email, through the same resolution step
         Google uses. A first sign-in creates an account with a validated email,
-        no password, the `user` role and a username derived from the email
-        (made unique with a short suffix when it is taken). Signing in with
-        GitHub for the email of an existing account links GitHub to it: if that
-        account's email was not validated, its local password is removed and the
-        email becomes validated; if it was validated, the existing sign-in
-        methods keep working and the owner is emailed that GitHub was linked.
-        Two simultaneous first sign-ins of the same person both succeed on the
-        same account.
+        no password, the `user` role and a username derived from the email (made
+        unique with a short suffix when it is taken). Signing in with GitHub for
+        the email of an existing account links GitHub to it: if that account's
+        email was not validated, its local password is removed and the email
+        becomes validated; if it was validated, the existing sign-in methods
+        keep working and the owner is emailed that GitHub was linked. Two
+        simultaneous first sign-ins of the same person both succeed on the same
+        account.
 
         Always answers the usual `{ token }`, identical to a password or Google
         login. Every untrusted sign-in gets the same `401`. Failed attempts
@@ -303,7 +300,8 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [token]
+                required:
+                  - token
                 properties:
                   token:
                     type: string
@@ -311,16 +309,18 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           description: >-
-            GitHub rejected the authorization code or the PKCE verifier (invalid,
-            expired, already used, or issued for another application), or the
-            resolved GitHub account has no email that is both primary and
+            GitHub rejected the authorization code or the PKCE verifier
+            (invalid, expired, already used, or issued for another application),
+            or the resolved GitHub account has no email that is both primary and
             verified, or the email belongs to an account linked to another
-            GitHub identity. Always `{ "message": "Invalid GitHub authorization" }`.
+            GitHub identity. Always `{ "message": "Invalid GitHub authorization"
+            }`.
           content:
             application/json:
               schema:
                 type: object
-                required: [message]
+                required:
+                  - message
                 properties:
                   message:
                     type: string
@@ -331,10 +331,10 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailableError'
-
   /api/v1/auth/refresh:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Refresh token
       description: >
         Refused with the same `401` as an invalid token when the account no
@@ -348,7 +348,8 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [token]
+                required:
+                  - token
                 properties:
                   token:
                     type: string
@@ -356,10 +357,10 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/auth/update:
     post:
-      tags: [Auth]
+      tags:
+        - Auth
       summary: Update password
       security:
         - bearerAuth: []
@@ -387,12 +388,11 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/families:
     get:
-      tags: [Families]
+      tags:
+        - Families
       summary: Get all families
-
       parameters:
         - in: query
           name: filter
@@ -417,7 +417,6 @@ paths:
           schema:
             $ref: '#/components/schemas/ListPagination'
         - $ref: '#/components/parameters/FamilyFields'
-
       responses:
         '200':
           description: OK
@@ -438,23 +437,21 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     post:
-      tags: [Families]
+      tags:
+        - Families
       summary: Create family
       description: >
         Creates a new family entry in the shared botanical taxonomy catalog.
         Requires authentication and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
-
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateFamily'
-
       responses:
         '201':
           description: Family created
@@ -465,24 +462,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Family'
-
         '400':
           $ref: '#/components/responses/ValidationError'
-
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-
         '403':
           $ref: '#/components/responses/ForbiddenError'
-
         '409':
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/families/{idOrSlug}:
     get:
-      tags: [Families]
+      tags:
+        - Families
       summary: Get family by id or slug
       parameters:
         - $ref: '#/components/parameters/FamilyIdOrSlug'
@@ -500,7 +493,6 @@ paths:
                   - $ref: '#/components/schemas/Family'
                   - $ref: '#/components/schemas/FamilyFieldset'
         '304':
-          # Only for a read without `fields`.
           $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
@@ -509,11 +501,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
     patch:
-      tags: [Families]
+      tags:
+        - Families
       summary: Update family
       description: >
-        Updates an existing family entry by UUID or slug.
-        Requires authentication, mandatory `If-Match`, and either `admin` or `collaborator` role.
+        Updates an existing family entry by UUID or slug. Requires
+        authentication, mandatory `If-Match`, and either `admin` or
+        `collaborator` role.
       security:
         - bearerAuth: []
       parameters:
@@ -551,10 +545,10 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/anomalies:
     get:
-      tags: [Anomalies]
+      tags:
+        - Anomalies
       summary: Get all anomalies
       description: >
         Public. The token is optional: anonymous callers and plain users get
@@ -607,9 +601,9 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     post:
-      tags: [Anomalies]
+      tags:
+        - Anomalies
       summary: Create anomaly
       description: >
         Creates a new anomaly in the shared diagnosis catalog. Requires
@@ -642,10 +636,10 @@ paths:
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/anomalies/{idOrSlug}:
     get:
-      tags: [Anomalies]
+      tags:
+        - Anomalies
       summary: Get anomaly by id or slug
       security:
         - {}
@@ -666,7 +660,6 @@ paths:
                   - $ref: '#/components/schemas/Anomaly'
                   - $ref: '#/components/schemas/AnomalyFieldset'
         '304':
-          # Only for a read without `fields`.
           $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
@@ -674,9 +667,9 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     patch:
-      tags: [Anomalies]
+      tags:
+        - Anomalies
       summary: Update anomaly
       description: >
         Updates an existing anomaly by UUID or slug. Requires authentication,
@@ -716,9 +709,9 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     delete:
-      tags: [Anomalies]
+      tags:
+        - Anomalies
       summary: Delete anomaly
       description: >
         Soft-deletes an anomaly by UUID or slug (no longer publicly readable).
@@ -744,21 +737,20 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/plants:
     get:
-      tags: [Plants]
+      tags:
+        - Plants
       summary: Get all plants
       description: >
         Public. The token is optional: anonymous callers and plain users get
-        only ACTIVE plants; with an `admin` token the list also includes
-        DELETED ones (tell them apart by `status` and `deletedAt`). There is
-        no filter by status. When `filter[bookmarked]` is provided, authentication
-        is required; anonymous requests or invalid tokens return 401 Unauthorized.
+        only ACTIVE plants; with an `admin` token the list also includes DELETED
+        ones (tell them apart by `status` and `deletedAt`). There is no filter
+        by status. When `filter[bookmarked]` is provided, authentication is
+        required; anonymous requests or invalid tokens return 401 Unauthorized.
       security:
         - {}
         - bearerAuth: []
-
       parameters:
         - in: query
           name: filter
@@ -784,7 +776,6 @@ paths:
             $ref: '#/components/schemas/ListPagination'
         - $ref: '#/components/parameters/PlantFields'
         - $ref: '#/components/parameters/PlantInclude'
-
       responses:
         '200':
           description: OK
@@ -801,20 +792,19 @@ paths:
                         - $ref: '#/components/schemas/PlantFieldset'
                   pagination:
                     $ref: '#/components/schemas/PaginationResponse'
-
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     post:
-      tags: [Plants]
+      tags:
+        - Plants
       summary: Create plant
       description: >
-        Creates a new plant in the shared botanical catalog.
-        Requires authentication and either `admin` or `collaborator` role.
+        Creates a new plant in the shared botanical catalog. Requires
+        authentication and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
       requestBody:
@@ -843,10 +833,10 @@ paths:
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/plants/{id}:
     get:
-      tags: [Plants]
+      tags:
+        - Plants
       summary: Get plant by id
       description: >
         Public. The token is optional: a DELETED plant answers 404 unless the
@@ -875,7 +865,6 @@ paths:
                   - $ref: '#/components/schemas/Plant'
                   - $ref: '#/components/schemas/PlantFieldset'
         '304':
-          # Only for a read without `fields` or `include`.
           $ref: '#/components/responses/NotModified'
         '400':
           $ref: '#/components/responses/ValidationError'
@@ -885,13 +874,14 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     patch:
-      tags: [Plants]
+      tags:
+        - Plants
       summary: Update plant
       description: >
-        Updates botanical details of a plant in the shared catalog.
-        Requires authentication, mandatory `If-Match`, and either `admin` or `collaborator` role.
+        Updates botanical details of a plant in the shared catalog. Requires
+        authentication, mandatory `If-Match`, and either `admin` or
+        `collaborator` role.
       security:
         - bearerAuth: []
       parameters:
@@ -933,13 +923,13 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     delete:
-      tags: [Plants]
+      tags:
+        - Plants
       summary: Delete plant
       description: >
-        Marks a plant as deleted in the shared catalog.
-        Requires authentication, mandatory `If-Match`, and either `admin` or `collaborator` role.
+        Marks a plant as deleted in the shared catalog. Requires authentication,
+        mandatory `If-Match`, and either `admin` or `collaborator` role.
       security:
         - bearerAuth: []
       parameters:
@@ -952,14 +942,14 @@ paths:
       responses:
         '204':
           description: No content
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
-        '400':
-          $ref: '#/components/responses/ValidationError'
         '409':
           $ref: '#/components/responses/ConflictError'
         '412':
@@ -968,14 +958,15 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/beds:
     get:
-      tags: [Beds]
+      tags:
+        - Beds
       summary: Get user beds
       description: >
-        List of beds. Unknown query parameters are rejected (400).
-        With `include=plantInstances`, full crops are embedded; otherwise a UUID array.
+        List of beds. Unknown query parameters are rejected (400). With
+        `include=plantInstances`, full crops are embedded; otherwise a UUID
+        array.
       security:
         - bearerAuth: []
       parameters:
@@ -995,9 +986,9 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     post:
-      tags: [Beds]
+      tags:
+        - Beds
       summary: Create bed
       description: >
         No query parameters are accepted. Unknown body fields (`userId`,
@@ -1028,10 +1019,10 @@ paths:
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/beds/{id}:
     get:
-      tags: [Beds]
+      tags:
+        - Beds
       summary: Get bed by id
       security:
         - bearerAuth: []
@@ -1059,9 +1050,9 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     patch:
-      tags: [Beds]
+      tags:
+        - Beds
       summary: Update bed
       description: Check order — authentication, If-Match, then request validation.
       security:
@@ -1099,9 +1090,9 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     delete:
-      tags: [Beds]
+      tags:
+        - Beds
       summary: Delete bed
       description: >
         Check order — authentication, If-Match, then request validation. No
@@ -1128,15 +1119,16 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/plant-instances:
     post:
-      tags: [PlantInstances]
+      tags:
+        - PlantInstances
       summary: Place a crop in a bed
       description: >
-        Places a crop of an existing catalog plant at coordinates inside an active bed
-        owned by the authenticated user. Checks spatial rules (boundaries and neighbor spacing)
-        and conditionally increments the bed's version before storing the crop.
+        Places a crop of an existing catalog plant at coordinates inside an
+        active bed owned by the authenticated user. Checks spatial rules
+        (boundaries and neighbor spacing) and conditionally increments the bed's
+        version before storing the crop.
       security:
         - bearerAuth: []
       requestBody:
@@ -1165,13 +1157,14 @@ paths:
           $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     get:
-      tags: [PlantInstances]
+      tags:
+        - PlantInstances
       summary: List user crops
       description: >
-        Returns a paginated list of active crops owned by the user. Supports filtering by bed
-        (`filter[bedId][eq]`) and/or plant (`filter[plantId][eq]`), and sorting by `sort[plantedAt]`.
+        Returns a paginated list of active crops owned by the user. Supports
+        filtering by bed (`filter[bedId][eq]`) and/or plant
+        (`filter[plantId][eq]`), and sorting by `sort[plantedAt]`.
       security:
         - bearerAuth: []
       parameters:
@@ -1192,7 +1185,9 @@ paths:
           required: false
           schema:
             type: string
-            enum: [asc, desc]
+            enum:
+              - asc
+              - desc
             default: desc
         - name: pagination[page]
           in: query
@@ -1222,10 +1217,10 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/plant-instances/{id}:
     get:
-      tags: [PlantInstances]
+      tags:
+        - PlantInstances
       summary: Get crop by id
       description: Returns one active crop owned by the user.
       security:
@@ -1258,15 +1253,15 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     patch:
-      tags: [PlantInstances]
+      tags:
+        - PlantInstances
       summary: Update a crop
       description: >
         Partial update for crop growth status, variety, notes, or position.
-        Moving the crop triggers a spatial boundary & neighbor spacing check and raises
-        the bed version. Modifying only growth status, variety, or notes leaves the bed
-        version unchanged. Requires `If-Match`.
+        Moving the crop triggers a spatial boundary & neighbor spacing check and
+        raises the bed version. Modifying only growth status, variety, or notes
+        leaves the bed version unchanged. Requires `If-Match`.
       security:
         - bearerAuth: []
       parameters:
@@ -1307,13 +1302,13 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     delete:
-      tags: [PlantInstances]
+      tags:
+        - PlantInstances
       summary: Remove a crop
       description: >
-        Soft-deletes a crop by marking its status as removed. Raises the parent bed's version.
-        Requires `If-Match`.
+        Soft-deletes a crop by marking its status as removed. Raises the parent
+        bed's version. Requires `If-Match`.
       security:
         - bearerAuth: []
       parameters:
@@ -1341,10 +1336,10 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/users/lookup:
     get:
-      tags: [Users]
+      tags:
+        - Users
       summary: Admin exact lookup of an account by email OR username
       description: >
         Returns the account's stable id and minimal identifying fields. Exactly
@@ -1384,10 +1379,10 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/users/{userId}/roles:
     patch:
-      tags: [Users]
+      tags:
+        - Users
       summary: Admin grants and/or revokes roles on another account
       description: >
         Applies a role delta (`add` and/or `remove`) over the manageable roles
@@ -1436,17 +1431,17 @@ paths:
           $ref: '#/components/responses/PreconditionRequiredError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/bookmarks:
     get:
       tags:
         - Bookmarks
       summary: Get user's personal bookmarks collection
       description: >
-        Retrieves the authenticated user's private collection of bookmarked favorites.
-        By default returns lightweight plant references. If `?include=plant` is specified,
-        returns embedded catalog summaries sorted alphabetically (A-Z) by plant name.
-        Inactive or deleted catalog plants are automatically excluded from the enriched list.
+        Retrieves the authenticated user's private collection of bookmarked
+        favorites. By default returns lightweight plant references. If
+        `?include=plant` is specified, returns embedded catalog summaries sorted
+        alphabetically (A-Z) by plant name. Inactive or deleted catalog plants
+        are automatically excluded from the enriched list.
       security:
         - bearerAuth: []
       parameters:
@@ -1455,7 +1450,8 @@ paths:
           required: false
           schema:
             type: string
-            enum: [plant]
+            enum:
+              - plant
           description: Related catalog entities to embed in the response.
       responses:
         '200':
@@ -1468,7 +1464,6 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/bookmarks/plants:
     post:
       tags:
@@ -1476,7 +1471,8 @@ paths:
       summary: Add plant to personal favorites
       description: >
         Adds a catalog plant to the authenticated user's favorites collection.
-        Operation is idempotent; duplicate calls do not alter timestamps or create duplicates.
+        Operation is idempotent; duplicate calls do not alter timestamps or
+        create duplicates.
       security:
         - bearerAuth: []
       requestBody:
@@ -1486,14 +1482,16 @@ paths:
             schema:
               $ref: '#/components/schemas/AddPlantBookmarkRequest'
       responses:
-        '201':
-          description: Plant successfully added to favorites.
+        '200':
+          description: >-
+            Plant was already bookmarked; returned existing reference
+            idempotently.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/FavoritePlantItem'
-        '200':
-          description: Plant was already bookmarked; returned existing reference idempotently.
+        '201':
+          description: Plant successfully added to favorites.
           content:
             application/json:
               schema:
@@ -1506,7 +1504,6 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/bookmarks/plants/{plantId}:
     delete:
       tags:
@@ -1514,7 +1511,8 @@ paths:
       summary: Remove plant from personal favorites
       description: >
         Removes a plant from the authenticated user's favorites collection.
-        Operation is idempotent; removing an item not present returns 204 No Content safely.
+        Operation is idempotent; removing an item not present returns 204 No
+        Content safely.
       security:
         - bearerAuth: []
       parameters:
@@ -1534,14 +1532,13 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     get:
       tags:
         - Bookmarks
       summary: Check if plant is in personal favorites
       description: >
-        Queries whether the specified catalog plant is currently bookmarked in the authenticated
-        user's personal collection.
+        Queries whether the specified catalog plant is currently bookmarked in
+        the authenticated user's personal collection.
       security:
         - bearerAuth: []
       parameters:
@@ -1565,7 +1562,6 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/plants/{plantId}/likes:
     post:
       tags:
@@ -1586,14 +1582,16 @@ paths:
             format: uuid
           description: Unique identifier of the plant to like.
       responses:
-        '201':
-          description: Like registered; the counter increased by one.
+        '200':
+          description: >-
+            Plant was already liked; returned the existing like idempotently (no
+            increment).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlantLikeItem'
-        '200':
-          description: Plant was already liked; returned the existing like idempotently (no increment).
+        '201':
+          description: Like registered; the counter increased by one.
           content:
             application/json:
               schema:
@@ -1606,7 +1604,6 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
     delete:
       tags:
         - Plant Likes
@@ -1636,7 +1633,6 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
   /api/v1/plants/{plantId}/likes/me:
     get:
       tags:
@@ -1668,7 +1664,6 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
 components:
   headers:
     ETag:
@@ -1678,9 +1673,8 @@ components:
       required: true
       schema:
         type: string
-        pattern: '^"(0|[1-9][0-9]*)"$'
+        pattern: ^"(0|[1-9][0-9]*)"$
         example: '"4"'
-
     ReadETag:
       description: >
         Entity tag of the full resource. Equal to the resource version,
@@ -1691,24 +1685,22 @@ components:
       required: false
       schema:
         type: string
-        pattern: '^"(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?"$'
+        pattern: ^"(0|[1-9][0-9]*)(?:-(0|[1-9][0-9]*))?"$
         example: '"4"'
-
   parameters:
     PlantFields:
       in: query
       name: fields
       description: >
-        JSON:API sparse fieldset. `fields[plants]` is a comma-separated list
-        of top-level fields: `id`, `identity`, `traits`, `phenology`,
-        `knowledge`, `anomalies`, `image`, `metadata`, `status`, `deletedAt`,
-        `version`.
-        `image` is the plant's primary picture, so a listing can show it
-        without requesting `knowledge`. Entries are
-        trimmed, blanks and repeats dropped, and the order does not matter;
-        `id` is always sent. Any other resource type, an unknown or nested
-        name (names are case-sensitive), or an empty list → 400. The response
-        then holds `id` and the requested fields only, and carries no `ETag`.
+        JSON:API sparse fieldset. `fields[plants]` is a comma-separated list of
+        top-level fields: `id`, `identity`, `traits`, `phenology`, `knowledge`,
+        `anomalies`, `image`, `metadata`, `status`, `deletedAt`, `version`.
+        `image` is the plant's primary picture, so a listing can show it without
+        requesting `knowledge`. Entries are trimmed, blanks and repeats dropped,
+        and the order does not matter; `id` is always sent. Any other resource
+        type, an unknown or nested name (names are case-sensitive), or an empty
+        list → 400. The response then holds `id` and the requested fields only,
+        and carries no `ETag`.
       style: deepObject
       explode: true
       schema:
@@ -1718,7 +1710,6 @@ components:
           plants:
             type: string
             example: identity,traits
-
     FamilyFields:
       in: query
       name: fields
@@ -1736,16 +1727,15 @@ components:
           families:
             type: string
             example: name,slug
-
     PlantInclude:
       in: query
       name: include
       description: >
-        JSON:API include, comma-separated. `family` sends `identity.family`
-        as a `FamilySummary`, reading every family of the page at once; a
-        plant whose family is not found keeps the plain id. Skipped when
-        `fields[plants]` leaves out `identity`. Any other relation or an empty
-        list → 400. The response carries no `ETag`.
+        JSON:API include, comma-separated. `family` sends `identity.family` as a
+        `FamilySummary`, reading every family of the page at once; a plant whose
+        family is not found keeps the plain id. Skipped when `fields[plants]`
+        leaves out `identity`. Any other relation or an empty list → 400. The
+        response carries no `ETag`.
       style: form
       explode: false
       schema:
@@ -1753,8 +1743,8 @@ components:
         minItems: 1
         items:
           type: string
-          enum: [family]
-
+          enum:
+            - family
     FamilyIdOrSlug:
       name: idOrSlug
       in: path
@@ -1764,8 +1754,7 @@ components:
         type: string
         minLength: 1
         maxLength: 200
-        pattern: '\S'
-
+        pattern: \S
     AnomalyIdOrSlug:
       name: idOrSlug
       in: path
@@ -1775,8 +1764,7 @@ components:
         type: string
         minLength: 1
         maxLength: 200
-        pattern: '\S'
-
+        pattern: \S
     AnomalyFields:
       in: query
       name: fields
@@ -1795,7 +1783,6 @@ components:
           anomalies:
             type: string
             example: slug,name
-
     BedId:
       name: id
       in: path
@@ -1804,87 +1791,84 @@ components:
       schema:
         type: string
         format: uuid
-
     BedInclude:
       in: query
       name: include
       description: >
-        JSON:API include, comma-separated. `plantInstances` embeds active crops in full
-        instead of UUIDs. Any other relation or empty string answers 400.
-        When present, the response carries no ETag and never answers 304.
+        JSON:API include, comma-separated. `plantInstances` embeds active crops
+        in full instead of UUIDs. Any other relation or empty string answers
+        400. When present, the response carries no ETag and never answers 304.
       required: false
       schema:
         type: string
-        enum: [plantInstances]
-
+        enum:
+          - plantInstances
     IfMatch:
       name: If-Match
       in: header
       required: true
       description: >
-        One or more entity tags, comma-separated (RFC 9110 §13.1.1), as
-        returned in `ETag`. The write proceeds when a strong tag equals the
-        current version. Missing, empty or `*` → 428. Not an entity-tag list
-        (e.g. `3`, `"3`, `"3" "4"`) or more than 50 tags → 400 with the error
-        at `if-match`. Well-formed tags that cannot match (weak `W/"3"`, tags
-        the API never emits such as `"abc"`, outdated versions) → 412, after
-        the existence check (a missing resource still answers 404).
+        One or more entity tags, comma-separated (RFC 9110 §13.1.1), as returned
+        in `ETag`. The write proceeds when a strong tag equals the current
+        version. Missing, empty or `*` → 428. Not an entity-tag list (e.g. `3`,
+        `"3`, `"3" "4"`) or more than 50 tags → 400 with the error at
+        `if-match`. Well-formed tags that cannot match (weak `W/"3"`, tags the
+        API never emits such as `"abc"`, outdated versions) → 412, after the
+        existence check (a missing resource still answers 404).
       schema:
         type: string
-        # Documentation pattern: a list of [W/]"etagc*" with optional spaces.
-        pattern: '^[ \t]*(,[ \t]*)*(W/)?"[^"\x00-\x20\x7F]*"([ \t]*,([ \t]*(W/)?"[^"\x00-\x20\x7F]*")?)*[ \t]*$'
+        pattern: >-
+          ^[ \t]*(,[ \t]*)*(W/)?"[^"\x00-\x20\x7F]*"([ \t]*,([
+          \t]*(W/)?"[^"\x00-\x20\x7F]*")?)*[ \t]*$
         example: '"3"'
       examples:
         single:
           value: '"3"'
         list:
           value: '"2", "3"'
-
     IfNoneMatch:
       name: If-None-Match
       in: header
       required: false
       description: >
-        One or more entity tags, comma-separated (RFC 9110 §13.1.2), as
-        returned in `ETag` on read. If the current version tag matches,
-        returns 304 Not Modified.
+        One or more entity tags, comma-separated (RFC 9110 §13.1.2), as returned
+        in `ETag` on read. If the current version tag matches, returns 304 Not
+        Modified.
       schema:
         type: string
-
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
       description: >
-        HS256 JWT returned as `{ token }` by `/auth/login`, `/auth/google`
-        and `/auth/refresh`. Payload: `id` (UUID), `email`, `username`,
-        `roles` (array of `admin` | `user` | `collaborator`), plus the standard `iat` and
-        `exp` claims. Lifetime comes from `JWT_DEFAULT_DURATION` (2h by
-        default); read `exp` instead of assuming it. `/auth/refresh` only
-        renews a token that has not expired yet.
-
+        HS256 JWT returned as `{ token }` by `/auth/login`, `/auth/google` and
+        `/auth/refresh`. Payload: `id` (UUID), `email`, `username`, `roles`
+        (array of `admin` | `user` | `collaborator`), plus the standard `iat`
+        and `exp` claims. Lifetime comes from `JWT_DEFAULT_DURATION` (2h by
+        default); read `exp` instead of assuming it. `/auth/refresh` only renews
+        a token that has not expired yet.
   schemas:
-    # Roles an account can HOLD and that responses expose.
     Role:
       type: string
-      enum: [admin, user, collaborator]
-
-    # Roles the delta can grant/revoke: the manageable (elevated) roles only.
-    # The base role `user` is permanent and NOT manageable, so it is excluded.
+      enum:
+        - admin
+        - user
+        - collaborator
     ManageableRole:
       type: string
-      enum: [admin, collaborator]
-
+      enum:
+        - admin
+        - collaborator
     ChangeUserRolesRequest:
       type: object
       additionalProperties: false
       minProperties: 0
       description: >
         Role delta over the manageable (elevated) roles only. Omitting both
-        `add` and `remove` (or sending `{}`) is a no-op. `add` and `remove`
-        MUST be disjoint (else 422). The base role `user` is not a
-        `ManageableRole`, so sending it in either array is a 400.
+        `add` and `remove` (or sending `{}`) is a no-op. `add` and `remove` MUST
+        be disjoint (else 422). The base role `user` is not a `ManageableRole`,
+        so sending it in either array is a 400.
       properties:
         add:
           type: array
@@ -1896,11 +1880,13 @@ components:
           uniqueItems: true
           items:
             $ref: '#/components/schemas/ManageableRole'
-
     UserRolesView:
       type: object
       description: Minimal role-change result; exposes no other account data.
-      required: [id, roles, metadata]
+      required:
+        - id
+        - roles
+        - metadata
       properties:
         id:
           type: string
@@ -1911,11 +1897,14 @@ components:
             $ref: '#/components/schemas/Role'
         metadata:
           $ref: '#/components/schemas/Metadata'
-
     UserLookupView:
       type: object
       description: Minimal identifying fields returned by the admin lookup.
-      required: [id, username, email, roles]
+      required:
+        - id
+        - username
+        - email
+        - roles
       properties:
         id:
           type: string
@@ -1929,7 +1918,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Role'
-
     Metadata:
       type: object
       required:
@@ -1948,7 +1936,6 @@ components:
           format: date-time
         updatedBy:
           type: string
-
     PaginationResponse:
       type: object
       properties:
@@ -1969,16 +1956,12 @@ components:
         - limit
         - totalPages
         - totalItems
-
-    # ---------- shared operator shapes (one operator per field) ----------
-
     FilterText:
       description: Trimmed text, 1–200 characters. Blank → 400.
       type: string
       minLength: 1
       maxLength: 200
-      pattern: '\S'
-
+      pattern: \S
     FilterTextList:
       description: >
         Comma-separated values or a repeated key. Entries are trimmed and blank
@@ -1989,7 +1972,6 @@ components:
           maxItems: 200
           items:
             type: string
-
     TextFieldFilter:
       description: >
         Text field. Exactly one operator. `eq` with a comma → 400 (use `in`);
@@ -2000,12 +1982,16 @@ components:
       minProperties: 1
       maxProperties: 1
       properties:
-        eq: { $ref: '#/components/schemas/FilterText' }
-        in: { $ref: '#/components/schemas/FilterTextList' }
-        contains: { $ref: '#/components/schemas/FilterText' }
-        startsWith: { $ref: '#/components/schemas/FilterText' }
-        endsWith: { $ref: '#/components/schemas/FilterText' }
-
+        eq:
+          $ref: '#/components/schemas/FilterText'
+        in:
+          $ref: '#/components/schemas/FilterTextList'
+        contains:
+          $ref: '#/components/schemas/FilterText'
+        startsWith:
+          $ref: '#/components/schemas/FilterText'
+        endsWith:
+          $ref: '#/components/schemas/FilterText'
     TextListFieldFilter:
       description: >
         List-of-text field. Exactly one operator. `has` takes one value (a comma
@@ -2015,35 +2001,36 @@ components:
       minProperties: 1
       maxProperties: 1
       properties:
-        has: { $ref: '#/components/schemas/FilterText' }
-        hasAny: { $ref: '#/components/schemas/FilterTextList' }
-
+        has:
+          $ref: '#/components/schemas/FilterText'
+        hasAny:
+          $ref: '#/components/schemas/FilterTextList'
     RangeFieldFilter:
       description: >
         Range field. `eq` is the available value; the plant matches when its
         range covers it. Decimal number.
       type: object
       additionalProperties: false
-      required: [eq]
+      required:
+        - eq
       properties:
         eq:
           type: string
-          pattern: '^-?\d+(\.\d+)?$'
-
+          pattern: ^-?\d+(\.\d+)?$
     BooleanFieldFilter:
       description: >
         Boolean flag. `eq` matches only the plants with that exact value; a
         plant without data for the flag never matches.
       type: object
       additionalProperties: false
-      required: [eq]
+      required:
+        - eq
       properties:
         eq:
           type: string
-          enum: ['true', 'false']
-
-    # ---------- Families ----------
-
+          enum:
+            - 'true'
+            - 'false'
     FamilyListFilter:
       type: object
       additionalProperties: false
@@ -2054,52 +2041,65 @@ components:
           minProperties: 1
           maxProperties: 1
           properties:
-            eq: { type: string, format: uuid }
-            in: { $ref: '#/components/schemas/FilterTextList' }
-        slug: { $ref: '#/components/schemas/TextFieldFilter' }
-        name: { $ref: '#/components/schemas/TextFieldFilter' }
-        scientificName: { $ref: '#/components/schemas/TextFieldFilter' }
-        aliases: { $ref: '#/components/schemas/TextListFieldFilter' }
+            eq:
+              type: string
+              format: uuid
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+        slug:
+          $ref: '#/components/schemas/TextFieldFilter'
+        name:
+          $ref: '#/components/schemas/TextFieldFilter'
+        scientificName:
+          $ref: '#/components/schemas/TextFieldFilter'
+        aliases:
+          $ref: '#/components/schemas/TextListFieldFilter'
       example:
         name:
           startsWith: Aster
-
     FamilyListSort:
       type: object
       additionalProperties: false
       properties:
-        name: { $ref: '#/components/schemas/SortDirection' }
-        scientificName: { $ref: '#/components/schemas/SortDirection' }
-        slug: { $ref: '#/components/schemas/SortDirection' }
-
-    # ---------- Anomalies ----------
-
+        name:
+          $ref: '#/components/schemas/SortDirection'
+        scientificName:
+          $ref: '#/components/schemas/SortDirection'
+        slug:
+          $ref: '#/components/schemas/SortDirection'
     AnomalyCategory:
       type: string
       description: Closed set of exactly four categories.
-      enum: [pest, disease, disorder, weed]
-
+      enum:
+        - pest
+        - disease
+        - disorder
+        - weed
     AnomalyStatus:
       type: string
-      enum: [ACTIVE, DELETED]
+      enum:
+        - ACTIVE
+        - DELETED
       readOnly: true
-
     AnomalySlug:
       type: string
       description: URL-safe kebab-case identifier.
-      pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+      pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
       minLength: 1
       maxLength: 120
-
     AnomalyTextList:
       type: array
       description: Flat list of guidance text lines (deduplicated, no blanks).
       items:
         $ref: '#/components/schemas/RequiredLongText'
-
     Anomaly:
       type: object
-      required: [id, slug, name, category, status]
+      required:
+        - id
+        - slug
+        - name
+        - category
+        - status
       properties:
         id:
           type: string
@@ -2142,14 +2142,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           readOnly: true
-
     AnomalyFieldset:
       description: >
         An anomaly read with `fields[anomalies]`: `id` plus the requested
         fields, each with the same shape as in `Anomaly`.
       type: object
       additionalProperties: false
-      required: [id]
+      required:
+        - id
       properties:
         id:
           type: string
@@ -2192,7 +2192,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           readOnly: true
-
     AnomalyListFilter:
       type: object
       additionalProperties: false
@@ -2220,18 +2219,22 @@ components:
               $ref: '#/components/schemas/AnomalyCategory'
             in:
               $ref: '#/components/schemas/FilterTextList'
-
     AnomalyListSort:
       type: object
       additionalProperties: false
       properties:
-        name: { $ref: '#/components/schemas/SortDirection' }
-        slug: { $ref: '#/components/schemas/SortDirection' }
-
+        name:
+          $ref: '#/components/schemas/SortDirection'
+        slug:
+          $ref: '#/components/schemas/SortDirection'
     CreateAnomaly:
       type: object
       additionalProperties: false
-      required: [id, slug, name, category]
+      required:
+        - id
+        - slug
+        - name
+        - category
       properties:
         id:
           type: string
@@ -2260,7 +2263,6 @@ components:
           $ref: '#/components/schemas/AnomalyTextList'
         naturalEnemies:
           $ref: '#/components/schemas/AnomalyTextList'
-
     UpdateAnomaly:
       description: >
         JSON Merge Patch. Every field optional; `{}` is a no-op. `id`, `slug`,
@@ -2277,7 +2279,7 @@ components:
           nullable: true
           minLength: 1
           maxLength: 200
-          pattern: '\S'
+          pattern: \S
         category:
           $ref: '#/components/schemas/AnomalyCategory'
         description:
@@ -2285,7 +2287,7 @@ components:
           nullable: true
           minLength: 1
           maxLength: 2000
-          pattern: '\S'
+          pattern: \S
         symptoms:
           type: array
           nullable: true
@@ -2321,17 +2323,14 @@ components:
           nullable: true
           items:
             $ref: '#/components/schemas/RequiredLongText'
-
-    # ---------- Plants ----------
-
     PlantListFilter:
-      description: >
+      description: |
         Every field accepts its type's full operator set.
       type: object
       additionalProperties: false
       properties:
         identity:
-          description: >
+          description: |
             Matches name, aliases or scientific name (any of them).
           allOf:
             - $ref: '#/components/schemas/TextFieldFilter'
@@ -2342,10 +2341,15 @@ components:
           minProperties: 1
           maxProperties: 1
           properties:
-            eq: { type: string, format: uuid }
-            in: { $ref: '#/components/schemas/FilterTextList' }
-        lightType: { $ref: '#/components/schemas/TextFieldFilter' }
-        rootSystem: { $ref: '#/components/schemas/TextFieldFilter' }
+            eq:
+              type: string
+              format: uuid
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+        lightType:
+          $ref: '#/components/schemas/TextFieldFilter'
+        rootSystem:
+          $ref: '#/components/schemas/TextFieldFilter'
         lifeCycle:
           description: Values annual, biennial, perennial. Exactly one operator.
           type: object
@@ -2355,8 +2359,12 @@ components:
           properties:
             eq:
               type: string
-              enum: [annual, biennial, perennial]
-            in: { $ref: '#/components/schemas/FilterTextList' }
+              enum:
+                - annual
+                - biennial
+                - perennial
+            in:
+              $ref: '#/components/schemas/FilterTextList'
         sowingMethod:
           description: Values direct, starter. Exactly one operator.
           type: object
@@ -2366,12 +2374,19 @@ components:
           properties:
             eq:
               type: string
-              enum: [direct, starter]
-            in: { $ref: '#/components/schemas/FilterTextList' }
-        spacingCm: { $ref: '#/components/schemas/RangeFieldFilter' }
-        soilPh: { $ref: '#/components/schemas/RangeFieldFilter' }
-        soilAvailableDepthCm: { $ref: '#/components/schemas/RangeFieldFilter' }
-        lightHoursMin: { $ref: '#/components/schemas/RangeFieldFilter' }
+              enum:
+                - direct
+                - starter
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+        spacingCm:
+          $ref: '#/components/schemas/RangeFieldFilter'
+        soilPh:
+          $ref: '#/components/schemas/RangeFieldFilter'
+        soilAvailableDepthCm:
+          $ref: '#/components/schemas/RangeFieldFilter'
+        lightHoursMin:
+          $ref: '#/components/schemas/RangeFieldFilter'
         sowingMonths:
           description: Months 1–12. Exactly one operator.
           type: object
@@ -2381,12 +2396,17 @@ components:
           properties:
             has:
               type: string
-              pattern: '^(1[0-2]|[1-9])$'
-            hasAny: { $ref: '#/components/schemas/FilterTextList' }
-        edible: { $ref: '#/components/schemas/BooleanFieldFilter' }
-        toxic: { $ref: '#/components/schemas/BooleanFieldFilter' }
+              pattern: ^(1[0-2]|[1-9])$
+            hasAny:
+              $ref: '#/components/schemas/FilterTextList'
+        edible:
+          $ref: '#/components/schemas/BooleanFieldFilter'
+        toxic:
+          $ref: '#/components/schemas/BooleanFieldFilter'
         bookmarked:
-          description: Filters by whether the plant is bookmarked in the authenticated user's collection. Requires Bearer token.
+          description: >-
+            Filters by whether the plant is bookmarked in the authenticated
+            user's collection. Requires Bearer token.
           type: object
           additionalProperties: false
           minProperties: 1
@@ -2394,24 +2414,25 @@ components:
           properties:
             eq:
               type: string
-              enum: ['true', 'false']
+              enum:
+                - 'true'
+                - 'false'
       example:
         sowingMonths:
-          hasAny: '3,4,5'
-
+          hasAny: 3,4,5
     PlantListSort:
       type: object
       additionalProperties: false
       properties:
-        name: { $ref: '#/components/schemas/SortDirection' }
-        scientificName: { $ref: '#/components/schemas/SortDirection' }
-
-    # ---------- shared sort and pagination ----------
-
+        name:
+          $ref: '#/components/schemas/SortDirection'
+        scientificName:
+          $ref: '#/components/schemas/SortDirection'
     SortDirection:
       type: string
-      enum: [asc, desc]
-
+      enum:
+        - asc
+        - desc
     ListPagination:
       description: Defaults page 1, limit 25. Unknown keys → 400.
       type: object
@@ -2426,24 +2447,27 @@ components:
           minimum: 1
           maximum: 100
           default: 25
-
-    # ================= AUTH =================
-
     LoginUserRequest:
       type: object
       additionalProperties: false
-      required: [email, password]
+      required:
+        - email
+        - password
       properties:
         email:
           type: string
           format: email
         password:
           type: string
-
     RegisterUserRequest:
       type: object
       additionalProperties: false
-      required: [id, email, username, password, repeatPassword]
+      required:
+        - id
+        - email
+        - username
+        - password
+        - repeatPassword
       properties:
         id:
           type: string
@@ -2457,38 +2481,45 @@ components:
           type: string
           minLength: 8
           maxLength: 64
-          description: 8 to 64 characters and at most 72 bytes in UTF-8, including a lowercase letter, an uppercase letter, a digit and a non-alphanumeric character.
+          description: >-
+            8 to 64 characters and at most 72 bytes in UTF-8, including a
+            lowercase letter, an uppercase letter, a digit and a
+            non-alphanumeric character.
         repeatPassword:
           type: string
           minLength: 8
           maxLength: 64
           description: Must equal `password`.
-
     ActivateAccountRequest:
       type: object
       additionalProperties: false
-      required: [token]
+      required:
+        - token
       properties:
         token:
           type: string
           minLength: 1
           maxLength: 512
-          description: Opaque token from the activation link (43 base64url characters today).
-
+          description: >-
+            Opaque token from the activation link (43 base64url characters
+            today).
     ForgotPasswordRequest:
       type: object
       additionalProperties: false
-      required: [email]
+      required:
+        - email
       properties:
         email:
           type: string
           format: email
           description: The email address associated with the account.
-
     ResetPasswordRequest:
       type: object
       additionalProperties: false
-      required: [token, password, repeatPassword]
+      required:
+        - token
+        - password
+        - repeatPassword
       properties:
         token:
           type: string
@@ -2505,37 +2536,45 @@ components:
           minLength: 8
           maxLength: 64
           description: Matching password confirmation.
-
     AuthenticateWithGoogleRequest:
       type: object
       additionalProperties: false
-      required: [idToken]
+      required:
+        - idToken
       properties:
         idToken:
           type: string
-
     AuthenticateWithGithubRequest:
       type: object
       additionalProperties: false
-      required: [code, codeVerifier]
+      required:
+        - code
+        - codeVerifier
       properties:
         code:
           type: string
-          description: The GitHub authorization code obtained through the authorization redirect.
+          description: >-
+            The GitHub authorization code obtained through the authorization
+            redirect.
         codeVerifier:
           type: string
           description: The PKCE code verifier the client generated for this authorization.
-
     UpdatePasswordRequest:
       type: object
       additionalProperties: false
-      required: [password, repeatPassword, oldPassword]
+      required:
+        - password
+        - repeatPassword
+        - oldPassword
       properties:
         password:
           type: string
           minLength: 8
           maxLength: 64
-          description: 8 to 64 characters and at most 72 bytes in UTF-8, including a lowercase letter, an uppercase letter, a digit and a non-alphanumeric character.
+          description: >-
+            8 to 64 characters and at most 72 bytes in UTF-8, including a
+            lowercase letter, an uppercase letter, a digit and a
+            non-alphanumeric character.
         repeatPassword:
           type: string
           minLength: 8
@@ -2543,34 +2582,26 @@ components:
           description: Must equal `password`.
         oldPassword:
           type: string
-
-    # ================= RANGE =================
-
     Range:
       type: object
-      required: [min, max]
+      required:
+        - min
+        - max
       properties:
         min:
           type: number
         max:
           type: number
-
-    # ================= FAMILY =================
-
-    # Required texts are trimmed and never blank; text lists drop blank and
-    # repeated entries. Limits mirror the request validation.
-
     FamilyTextList:
       description: >
-        Entries are trimmed; blank entries and repeated entries (compared
-        after trimming, ignoring letter case) are dropped, keeping the first
+        Entries are trimmed; blank entries and repeated entries (compared after
+        trimming, ignoring letter case) are dropped, keeping the first
         occurrence. Non-string entries are rejected.
       type: array
       maxItems: 200
       items:
         type: string
         maxLength: 200
-
     FamilyHighlights:
       description: Same rule as FamilyTextList, with long-text entries.
       type: array
@@ -2578,7 +2609,6 @@ components:
       items:
         type: string
         maxLength: 2000
-
     FamilyExtra:
       description: >
         Optional taxonomy details. An empty object is never stored: it is
@@ -2595,7 +2625,6 @@ components:
           minimum: 1
         subfamilies:
           $ref: '#/components/schemas/FamilyTextList'
-
     UpdateFamilyExtra:
       description: >
         Merged key by key. `null` on a key removes that key; `{}` changes
@@ -2609,13 +2638,13 @@ components:
           nullable: true
           minLength: 1
           maxLength: 200
-          pattern: '\S'
+          pattern: \S
         distribution:
           type: string
           nullable: true
           minLength: 1
           maxLength: 2000
-          pattern: '\S'
+          pattern: \S
         speciesCount:
           type: integer
           nullable: true
@@ -2627,11 +2656,16 @@ components:
           items:
             type: string
             maxLength: 200
-
     Family:
       type: object
       required:
-        [id, slug, name, scientificName, shortDescription, aliases, highlights]
+        - id
+        - slug
+        - name
+        - scientificName
+        - shortDescription
+        - aliases
+        - highlights
       properties:
         id:
           type: string
@@ -2658,14 +2692,16 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           readOnly: true
-
     FamilySummary:
       description: >
         Embedded family relation: only id, name and slug. Sent in place of the
         family id with `include=family`.
       type: object
       additionalProperties: false
-      required: [id, name, slug]
+      required:
+        - id
+        - name
+        - slug
       properties:
         id:
           type: string
@@ -2673,11 +2709,16 @@ components:
           $ref: '#/components/schemas/RequiredShortText'
         slug:
           $ref: '#/components/schemas/RequiredShortText'
-
     CreateFamily:
       type: object
       additionalProperties: false
-      required: [id, slug, name, scientificName, shortDescription, highlights]
+      required:
+        - id
+        - slug
+        - name
+        - scientificName
+        - shortDescription
+        - highlights
       properties:
         id:
           type: string
@@ -2696,7 +2737,6 @@ components:
           $ref: '#/components/schemas/FamilyHighlights'
         extra:
           $ref: '#/components/schemas/FamilyExtra'
-
     UpdateFamily:
       description: >
         JSON Merge Patch. Every field optional; `{}` is a no-op. `id` and
@@ -2718,11 +2758,6 @@ components:
           $ref: '#/components/schemas/FamilyHighlights'
         extra:
           $ref: '#/components/schemas/UpdateFamilyExtra'
-
-    # ================= PLANT =================
-    # Shared pieces are published once and reused by the response, create and
-    # update schemas. Size limits mirror the request validation.
-
     FamilyFieldset:
       description: >
         A family read with `fields[families]`: `id` plus the requested fields,
@@ -2730,7 +2765,8 @@ components:
         missing.
       type: object
       additionalProperties: false
-      required: [id]
+      required:
+        - id
       properties:
         id:
           type: string
@@ -2757,7 +2793,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           readOnly: true
-
     PlantAnomalies:
       type: array
       description: >
@@ -2765,19 +2800,22 @@ components:
         every slug must exist in the anomaly catalog at write time (else 400).
       items:
         $ref: '#/components/schemas/AnomalySlug'
-
     Plant:
       type: object
-      required: [id, identity, traits, phenology, image, likesCount]
+      required:
+        - id
+        - identity
+        - traits
+        - phenology
+        - image
+        - likesCount
       properties:
         id:
           type: string
-
         version:
           type: integer
           minimum: 0
           readOnly: true
-
         likesCount:
           type: integer
           format: int32
@@ -2788,45 +2826,37 @@ components:
             Read-only projected count of distinct active likes for this plant.
             Defaults to 0, is never absent and never negative. Cannot be set or
             modified through any plant write operation.
-
         identity:
           $ref: '#/components/schemas/PlantIdentityView'
-
         traits:
           $ref: '#/components/schemas/PlantTraits'
-
         phenology:
           $ref: '#/components/schemas/PlantPhenology'
-
         knowledge:
           $ref: '#/components/schemas/PlantKnowledge'
-
         anomalies:
           $ref: '#/components/schemas/PlantAnomalies'
-
         image:
           $ref: '#/components/schemas/PlantImage'
-
         metadata:
           allOf:
             - $ref: '#/components/schemas/Metadata'
           readOnly: true
-
         status:
           allOf:
             - $ref: '#/components/schemas/PlantStatus'
           readOnly: true
-
         deletedAt:
           type: string
           format: date-time
           nullable: true
           readOnly: true
           description: Set when the plant is deleted; `null` otherwise.
-
     PlantLikeItem:
       type: object
-      required: [plantId, likedAt]
+      required:
+        - plantId
+        - likedAt
       properties:
         plantId:
           type: string
@@ -2836,10 +2866,10 @@ components:
           type: string
           format: date-time
           description: ISO timestamp indicating when the like was registered.
-
     CheckPlantLikeResponse:
       type: object
-      required: [liked]
+      required:
+        - liked
       properties:
         liked:
           type: boolean
@@ -2848,10 +2878,12 @@ components:
           type: string
           format: date-time
           description: ISO timestamp of the like, present only when `liked` is true.
-
     PlantPhenology:
       type: object
-      required: [sowing, flowering, harvest]
+      required:
+        - sowing
+        - flowering
+        - harvest
       properties:
         sowing:
           $ref: '#/components/schemas/PlantSowing'
@@ -2859,15 +2891,14 @@ components:
           $ref: '#/components/schemas/PlantFlowering'
         harvest:
           $ref: '#/components/schemas/PlantHarvest'
-
     PlantFieldset:
       description: >
-        A plant read with `fields[plants]`: `id` plus the requested fields,
-        each with the same shape as in `Plant`. Any field but `id` may be
-        missing.
+        A plant read with `fields[plants]`: `id` plus the requested fields, each
+        with the same shape as in `Plant`. Any field but `id` may be missing.
       type: object
       additionalProperties: false
-      required: [id]
+      required:
+        - id
       properties:
         id:
           type: string
@@ -2906,14 +2937,19 @@ components:
           format: date-time
           nullable: true
           readOnly: true
-
     PlantStatus:
       type: string
-      enum: [ACTIVE, DELETED]
-
+      enum:
+        - ACTIVE
+        - DELETED
     CreatePlant:
       type: object
-      required: [id, identity, traits, phenology, knowledge]
+      required:
+        - id
+        - identity
+        - traits
+        - phenology
+        - knowledge
       properties:
         id:
           type: string
@@ -2927,7 +2963,8 @@ components:
           description: >-
             Every plant is sown. `flowering` and `harvest` may be left out for
             plants that never flower or are not harvested.
-          required: [sowing]
+          required:
+            - sowing
           properties:
             sowing:
               $ref: '#/components/schemas/PlantSowing'
@@ -2937,26 +2974,26 @@ components:
               $ref: '#/components/schemas/PlantHarvest'
         knowledge:
           description: >
-            `resources` must include at least one entry of type `image`
-            (every plant has a picture); otherwise → 400 at
-            `knowledge.resources`.
+            `resources` must include at least one entry of type `image` (every
+            plant has a picture); otherwise → 400 at `knowledge.resources`.
           allOf:
             - $ref: '#/components/schemas/PlantKnowledge'
             - type: object
-              required: [rootSystem, soil, light, propagation, resources]
+              required:
+                - rootSystem
+                - soil
+                - light
+                - propagation
+                - resources
         anomalies:
           $ref: '#/components/schemas/PlantAnomalies'
-
-    # Nullable fields declare their own `type` instead of reusing a shared
-    # schema: OpenAPI 3.0.3 ignores `nullable` without `type` in the same
-    # object, so `allOf` + `nullable` would not accept `null`.
     UpdatePlant:
       type: object
       description: >-
         Partial update. An absent field is kept; `null` removes an optional
         field (JSON Merge Patch, RFC 7396). Required fields reject `null`.
-        Ranges may carry a single bound, merged into the stored one. An
-        empty body `{}` changes nothing; `If-Match` is still checked.
+        Ranges may carry a single bound, merged into the stored one. An empty
+        body `{}` changes nothing; `If-Match` is still checked.
         `knowledge.resources` must keep at least one entry of type `image`:
         `null` or a list without one → 400 at `knowledge.resources`.
       properties:
@@ -2978,7 +3015,6 @@ components:
               $ref: '#/components/schemas/RequiredShortText'
             family:
               $ref: '#/components/schemas/RequiredShortText'
-
         traits:
           type: object
           properties:
@@ -3008,8 +3044,7 @@ components:
                   nullable: true
                   minLength: 1
                   maxLength: 2000
-                  pattern: '\S'
-
+                  pattern: \S
         phenology:
           type: object
           properties:
@@ -3038,7 +3073,6 @@ components:
                       properties:
                         depthCm:
                           $ref: '#/components/schemas/PartialRange'
-
             flowering:
               type: object
               properties:
@@ -3049,12 +3083,12 @@ components:
                   nullable: true
                   description: >-
                     Merged into the stored pollination: `types` replaces the
-                    list, and a new pollination without `types` is rejected.
-                    The agents are kept while an insect, bird or bat type
-                    remains: `types` without any of them drops the stored
-                    agents, and sending `agents` with it is rejected.
-                    `pollination: null` removes the whole pollination;
-                    `agents: null` removes only the agents.
+                    list, and a new pollination without `types` is rejected. The
+                    agents are kept while an insect, bird or bat type remains:
+                    `types` without any of them drops the stored agents, and
+                    sending `agents` with it is rejected. `pollination: null`
+                    removes the whole pollination; `agents: null` removes only
+                    the agents.
                   properties:
                     types:
                       $ref: '#/components/schemas/PollinationTypes'
@@ -3064,7 +3098,6 @@ components:
                       maxItems: 200
                       items:
                         $ref: '#/components/schemas/ShortText'
-
             harvest:
               type: object
               properties:
@@ -3076,8 +3109,7 @@ components:
                   description: Optional, but never blank when given.
                   minLength: 1
                   maxLength: 2000
-                  pattern: '\S'
-
+                  pattern: \S
         knowledge:
           $ref: '#/components/schemas/UpdatePlantKnowledge'
         anomalies:
@@ -3086,7 +3118,6 @@ components:
           maxItems: 200
           items:
             $ref: '#/components/schemas/AnomalySlug'
-
     UpdatePlantKnowledge:
       type: object
       properties:
@@ -3144,8 +3175,7 @@ components:
           properties:
             methods:
               type: object
-              description: >-
-                Methods keyed by camelCase name; `null` removes that method.
+              description: Methods keyed by camelCase name; `null` removes that method.
               maxProperties: 20
               additionalProperties:
                 type: object
@@ -3198,14 +3228,17 @@ components:
           items:
             type: string
             maxLength: 2000
-
     PlantIdentity:
       type: object
-      required: [name, scientificName, family]
+      required:
+        - name
+        - scientificName
+        - family
       properties:
         name:
           type: object
-          required: [primary]
+          required:
+            - primary
           properties:
             primary:
               $ref: '#/components/schemas/RequiredShortText'
@@ -3215,17 +3248,20 @@ components:
           $ref: '#/components/schemas/RequiredShortText'
         family:
           $ref: '#/components/schemas/RequiredShortText'
-
     PlantIdentityView:
       description: >
-        Plant identity as returned by the API. `family` is the family id, or
-        the family summary with `include=family`.
+        Plant identity as returned by the API. `family` is the family id, or the
+        family summary with `include=family`.
       type: object
-      required: [name, scientificName, family]
+      required:
+        - name
+        - scientificName
+        - family
       properties:
         name:
           type: object
-          required: [primary]
+          required:
+            - primary
           properties:
             primary:
               $ref: '#/components/schemas/RequiredShortText'
@@ -3235,25 +3271,31 @@ components:
           $ref: '#/components/schemas/RequiredShortText'
         family:
           description: >
-            The family id; with `include=family`, the family summary (or the
-            id when the family is not found).
+            The family id; with `include=family`, the family summary (or the id
+            when the family is not found).
           oneOf:
             - $ref: '#/components/schemas/RequiredShortText'
             - $ref: '#/components/schemas/FamilySummary'
-
     PlantLifecycle:
       type: string
-      enum: [annual, biennial, perennial]
-
+      enum:
+        - annual
+        - biennial
+        - perennial
     PlantTraits:
       type: object
-      required: [lifecycle, size, spacingCm]
+      required:
+        - lifecycle
+        - size
+        - spacingCm
       properties:
         lifecycle:
           $ref: '#/components/schemas/PlantLifecycle'
         size:
           type: object
-          required: [height, spread]
+          required:
+            - height
+            - spread
           properties:
             height:
               $ref: '#/components/schemas/Range'
@@ -3263,13 +3305,12 @@ components:
           $ref: '#/components/schemas/Range'
         ecological:
           $ref: '#/components/schemas/PlantEcologicalTraits'
-
     PlantEcologicalTraits:
       type: object
       description: >-
-        Safety facts about the plant. An absent key means there is no data,
-        not `false`. Both may be `true`: an edible plant can have toxic
-        parts. Catalog values come from Plants For A Future (pfaf.org).
+        Safety facts about the plant. An absent key means there is no data, not
+        `false`. Both may be `true`: an edible plant can have toxic parts.
+        Catalog values come from Plants For A Future (pfaf.org).
       properties:
         edible:
           type: boolean
@@ -3279,15 +3320,18 @@ components:
           description: Some part of the plant is known to be toxic or harmful.
         toxicityNotes:
           description: >-
-            What the hazard is: toxic parts, doses, whether cooking reduces
-            it. Catalog notes are written in Spanish. May come without
-            `toxic` when the hazard is too vague to flag.
+            What the hazard is: toxic parts, doses, whether cooking reduces it.
+            Catalog notes are written in Spanish. May come without `toxic` when
+            the hazard is too vague to flag.
           allOf:
             - $ref: '#/components/schemas/RequiredLongText'
-
     PlantSowing:
       type: object
-      required: [months, seedsPerHole, germinationDays, methods]
+      required:
+        - months
+        - seedsPerHole
+        - germinationDays
+        - methods
       properties:
         months:
           allOf:
@@ -3299,24 +3343,25 @@ components:
           $ref: '#/components/schemas/Range'
         methods:
           type: object
-          required: [direct]
+          required:
+            - direct
           properties:
             direct:
               $ref: '#/components/schemas/SowingMethod'
             starter:
               $ref: '#/components/schemas/SowingMethod'
-
     SowingMethod:
       type: object
-      required: [depthCm]
+      required:
+        - depthCm
       properties:
         depthCm:
           $ref: '#/components/schemas/Range'
-
     PlantFlowering:
       type: object
       description: No months for a plant that never flowers.
-      required: [months]
+      required:
+        - months
       properties:
         months:
           $ref: '#/components/schemas/Months'
@@ -3326,48 +3371,49 @@ components:
             Types do not repeat. Agents need an insect, bird or bat type; an
             empty list is no agents. A plant that is not pollinated (spores,
             sterile…) has no pollination.
-          required: [types]
+          required:
+            - types
           properties:
             types:
               $ref: '#/components/schemas/PollinationTypes'
             agents:
               $ref: '#/components/schemas/ShortTextList'
-
     PlantHarvest:
       type: object
       description: No months for a plant that is not harvested.
-      required: [months]
+      required:
+        - months
       properties:
         months:
           $ref: '#/components/schemas/Months'
         description:
           $ref: '#/components/schemas/HarvestDescription'
-
     HarvestDescription:
       type: string
       description: Optional, but never blank when given.
       minLength: 1
       maxLength: 2000
-      pattern: '\S'
-
-    # ================= KNOWLEDGE =================
-
+      pattern: \S
     PlantKnowledge:
       type: object
       nullable: true
       properties:
         soil:
           type: object
-          required: [ph, availableDepthCm]
+          required:
+            - ph
+            - availableDepthCm
           properties:
             ph:
               $ref: '#/components/schemas/Range'
             availableDepthCm:
               $ref: '#/components/schemas/Range'
-
         rootSystem:
           type: object
-          required: [type, depthCm, spreadCm]
+          required:
+            - type
+            - depthCm
+            - spreadCm
           properties:
             type:
               $ref: '#/components/schemas/RequiredShortText'
@@ -3375,19 +3421,20 @@ components:
               $ref: '#/components/schemas/Range'
             spreadCm:
               $ref: '#/components/schemas/Range'
-
         watering:
           type: object
-          required: [frequency]
+          required:
+            - frequency
           properties:
             frequency:
               $ref: '#/components/schemas/RequiredShortText'
             conditions:
               $ref: '#/components/schemas/LongTextList'
-
         light:
           type: object
-          required: [hoursMin, type]
+          required:
+            - hoursMin
+            - type
           properties:
             hoursMin:
               type: number
@@ -3398,31 +3445,25 @@ components:
               $ref: '#/components/schemas/RequiredShortText'
             preference:
               $ref: '#/components/schemas/ShortText'
-
         pruning:
           type: array
           maxItems: 200
           items:
             $ref: '#/components/schemas/PruningEntry'
-
         propagation:
           $ref: '#/components/schemas/PlantPropagation'
-
         ecology:
           type: object
           properties:
             strategicBenefits:
               $ref: '#/components/schemas/LongTextList'
-
         resources:
           type: array
           maxItems: 200
           items:
             $ref: '#/components/schemas/PlantResource'
-
         notes:
           $ref: '#/components/schemas/LongTextList'
-
     PartialRange:
       type: object
       description: Either bound may be sent alone; it is merged by the domain.
@@ -3431,22 +3472,24 @@ components:
           type: number
         max:
           type: number
-
     Month:
       type: integer
       minimum: 1
       maximum: 12
-
     Months:
       type: array
       maxItems: 12
       items:
         $ref: '#/components/schemas/Month'
-
     PollinationType:
       type: string
-      enum: [insect, wind, self, water, bird, bat]
-
+      enum:
+        - insect
+        - wind
+        - self
+        - water
+        - bird
+        - bat
     PollinationTypes:
       type: array
       minItems: 1
@@ -3454,11 +3497,13 @@ components:
       uniqueItems: true
       items:
         $ref: '#/components/schemas/PollinationType'
-
     Season:
       type: string
-      enum: [spring, summer, autumn, winter]
-
+      enum:
+        - spring
+        - summer
+        - autumn
+        - winter
     Seasons:
       type: array
       minItems: 1
@@ -3466,39 +3511,37 @@ components:
       uniqueItems: true
       items:
         $ref: '#/components/schemas/Season'
-
     ShortText:
       type: string
       maxLength: 200
-
     RequiredShortText:
       type: string
       minLength: 1
       maxLength: 200
-      pattern: '\S'
-
+      pattern: \S
     RequiredLongText:
       type: string
       minLength: 1
       maxLength: 2000
-      pattern: '\S'
-
+      pattern: \S
     ShortTextList:
       type: array
       maxItems: 200
       items:
         $ref: '#/components/schemas/ShortText'
-
     LongTextList:
       type: array
       maxItems: 200
       items:
         type: string
         maxLength: 2000
-
     PruningEntry:
       type: object
-      required: [type, intensity, seasons, frequencyPerYear]
+      required:
+        - type
+        - intensity
+        - seasons
+        - frequencyPerYear
       properties:
         type:
           $ref: '#/components/schemas/RequiredShortText'
@@ -3513,10 +3556,10 @@ components:
           description: Prunings per year; 0.5 is once every two years.
         bestPractices:
           $ref: '#/components/schemas/LongTextList'
-
     PlantPropagation:
       type: object
-      required: [methods]
+      required:
+        - methods
       properties:
         methods:
           type: object
@@ -3531,10 +3574,11 @@ components:
                 $ref: '#/components/schemas/Range'
               bestPractices:
                 $ref: '#/components/schemas/LongTextList'
-
     PlantResource:
       type: object
-      required: [type, url]
+      required:
+        - type
+        - url
       properties:
         type:
           $ref: '#/components/schemas/PlantResourceType'
@@ -3542,7 +3586,7 @@ components:
           type: string
           format: uri
           description: Absolute `http` or `https` URL.
-          pattern: '^https?://'
+          pattern: ^https?://
           maxLength: 2048
         title:
           $ref: '#/components/schemas/ShortText'
@@ -3550,14 +3594,15 @@ components:
           $ref: '#/components/schemas/ShortText'
         tags:
           $ref: '#/components/schemas/ShortTextList'
-
     PlantResourceType:
       description: >
         Kind of resource; exact lowercase values (`Image` → 400). Every plant
         keeps at least one `image`.
       type: string
-      enum: [image, article, video]
-
+      enum:
+        - image
+        - article
+        - video
     PlantImage:
       description: >
         The plant's primary picture: the first `knowledge.resources` entry of
@@ -3566,37 +3611,32 @@ components:
         reject an `image` key.
       type: object
       additionalProperties: false
-      required: [url]
+      required:
+        - url
       properties:
         url:
           type: string
           format: uri
           description: Absolute `http` or `https` URL.
-          pattern: '^https?://'
+          pattern: ^https?://
           maxLength: 2048
         title:
           $ref: '#/components/schemas/ShortText'
         source:
           $ref: '#/components/schemas/ShortText'
-
-    # ================= BEDS =================
-
     Bed:
       type: object
-      # `name` and `depth` are always returned: now required in the response.
       required:
-        [
-          id,
-          userId,
-          name,
-          width,
-          height,
-          depth,
-          plantInstances,
-          metadata,
-          deleted,
-          version
-        ]
+        - id
+        - userId
+        - name
+        - width
+        - height
+        - depth
+        - plantInstances
+        - metadata
+        - deleted
+        - version
       properties:
         id:
           type: string
@@ -3613,8 +3653,8 @@ components:
           $ref: '#/components/schemas/BedDimension'
         plantInstances:
           description: >
-            Flat array of active crop UUIDs by default; full PlantInstance objects
-            when requested via `include=plantInstances`.
+            Flat array of active crop UUIDs by default; full PlantInstance
+            objects when requested via `include=plantInstances`.
           type: array
           items:
             oneOf:
@@ -3633,16 +3673,19 @@ components:
           type: integer
           minimum: 0
           readOnly: true
-
     BedDimension:
       description: A positive finite JSON number (numeric strings are rejected).
       type: number
       exclusiveMinimum: 0
-
     CreateBed:
       type: object
       additionalProperties: false
-      required: [id, name, width, height, depth]
+      required:
+        - id
+        - name
+        - width
+        - height
+        - depth
       properties:
         id:
           type: string
@@ -3655,12 +3698,11 @@ components:
           $ref: '#/components/schemas/BedDimension'
         depth:
           $ref: '#/components/schemas/BedDimension'
-
     UpdateBed:
       description: >
-        Partial update. Every field is optional and none can be cleared
-        (`null` → 400). `{}` is a no-op: 200, version unchanged. Plants are
-        never placed by patching the bed.
+        Partial update. Every field is optional and none can be cleared (`null`
+        → 400). `{}` is a no-op: 200, version unchanged. Plants are never placed
+        by patching the bed.
       type: object
       additionalProperties: false
       properties:
@@ -3672,13 +3714,13 @@ components:
           $ref: '#/components/schemas/BedDimension'
         depth:
           $ref: '#/components/schemas/BedDimension'
-
-    #  ================= PLANT INSTANCES =================
-
     PlacePlantInstance:
       type: object
       additionalProperties: false
-      required: [id, bedId, plantId]
+      required:
+        - id
+        - bedId
+        - plantId
       properties:
         id:
           type: string
@@ -3709,7 +3751,6 @@ components:
         notes:
           type: string
           maxLength: 1000
-
     UpdatePlantInstance:
       type: object
       additionalProperties: false
@@ -3727,27 +3768,31 @@ components:
           type: string
           nullable: true
           maxLength: 1000
-
     Coordinates:
       type: object
       additionalProperties: false
-      required: [x, y]
+      required:
+        - x
+        - 'y'
       properties:
         x:
           type: number
           minimum: 0
-        y:
+        'y':
           type: number
           minimum: 0
-
     CropGrowthStatus:
       type: string
-      enum: [seeded, planted, growing, harvested]
-
+      enum:
+        - seeded
+        - planted
+        - growing
+        - harvested
     PlantInstanceLifecycleStatus:
       type: string
-      enum: [active, removed]
-
+      enum:
+        - active
+        - removed
     PlantInstanceResponse:
       type: object
       additionalProperties: false
@@ -3795,11 +3840,12 @@ components:
         version:
           type: integer
           minimum: 0
-
     PaginatedPlantInstances:
       type: object
       additionalProperties: false
-      required: [data, pagination]
+      required:
+        - data
+        - pagination
       properties:
         data:
           type: array
@@ -3807,7 +3853,6 @@ components:
             $ref: '#/components/schemas/PlantInstanceResponse'
         pagination:
           $ref: '#/components/schemas/PaginationResponse'
-
     FavoritePlantItem:
       type: object
       required:
@@ -3824,7 +3869,6 @@ components:
           format: date-time
           description: ISO timestamp indicating when the plant was added to favorites.
           example: '2026-10-22T14:30:00.000Z'
-
     EnrichedPlantSummary:
       type: object
       required:
@@ -3861,7 +3905,6 @@ components:
               example: Wikimedia Commons
         family:
           $ref: '#/components/schemas/FamilySummary'
-
     EnrichedFavoritePlantItem:
       allOf:
         - $ref: '#/components/schemas/FavoritePlantItem'
@@ -3871,7 +3914,6 @@ components:
           properties:
             plant:
               $ref: '#/components/schemas/EnrichedPlantSummary'
-
     UserBookmarksResponse:
       type: object
       required:
@@ -3883,7 +3925,6 @@ components:
             anyOf:
               - $ref: '#/components/schemas/FavoritePlantItem'
               - $ref: '#/components/schemas/EnrichedFavoritePlantItem'
-
     AddPlantBookmarkRequest:
       type: object
       required:
@@ -3894,7 +3935,6 @@ components:
           format: uuid
           description: Identifier of the catalog plant to bookmark.
           example: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
-
     CheckPlantBookmarkResponse:
       type: object
       required:
@@ -3902,14 +3942,15 @@ components:
       properties:
         bookmarked:
           type: boolean
-          description: True if the specified plant is in the user's favorites, false otherwise.
+          description: >-
+            True if the specified plant is in the user's favorites, false
+            otherwise.
           example: true
         bookmarkedAt:
           type: string
           format: date-time
           description: ISO timestamp of when the item was bookmarked (if present).
           example: '2026-10-22T14:30:00.000Z'
-
   responses:
     UnprocessableEntityError:
       description: >
@@ -3919,7 +3960,8 @@ components:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
@@ -3927,29 +3969,28 @@ components:
                 type: object
                 additionalProperties:
                   type: string
-
     UnauthorizedError:
       description: Unauthorized
       content:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
-
     ForbiddenError:
       description: Forbidden
       content:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
-
     ConflictError:
       description: >-
         Conflict with a business rule (e.g. duplicate resource, bed that still
@@ -3958,18 +3999,19 @@ components:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
-
     ValidationError:
       description: Validation error
       content:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
@@ -3983,61 +4025,60 @@ components:
                   problems, the first one wins. Unknown fields get the message
                   "Unknown field"; a failed pattern check whose message would
                   reveal the pattern gets "Invalid format". At most 20 field
-                  entries are returned; if there are more, an extra
-                  `_truncated` entry is added. Keys longer than 64 characters
-                  are cut to 64 ending in `…`; two keys equal after cutting
-                  share one entry. Messages never contain submitted values.
+                  entries are returned; if there are more, an extra `_truncated`
+                  entry is added. Keys longer than 64 characters are cut to 64
+                  ending in `…`; two keys equal after cutting share one entry.
+                  Messages never contain submitted values.
                 additionalProperties:
                   type: string
-
     NotFoundError:
       description: Not found
       content:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
-
     PreconditionFailedError:
       description: The stated version is not the current one. Reload with GET and retry.
       content:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
-
     PreconditionRequiredError:
       description: The `If-Match` header is required (missing or `*`).
       content:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
-
     InternalServerError:
       description: >-
-        Unexpected server failure, or stored data that breaks this contract:
-        the body is never sent then (fail closed) and the failure is logged.
-        The message is always generic.
+        Unexpected server failure, or stored data that breaks this contract: the
+        body is never sent then (fail closed) and the failure is logged. The
+        message is always generic.
       content:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
                 example: Internal server error
-
     ServiceUnavailableError:
       description: >-
         A provider the request depends on could not be reached, errored, or
@@ -4049,12 +4090,12 @@ components:
         application/json:
           schema:
             type: object
-            required: [message]
+            required:
+              - message
             properties:
               message:
                 type: string
                 example: GitHub sign-in is temporarily unavailable
-
     NotModified:
       description: >-
         The request's `If-None-Match` matches the current `ETag`; no body.

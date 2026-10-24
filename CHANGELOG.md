@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.1.0](https://github.com/vinjatovix/miBancal-api/compare/v1.0.1...v1.1.0) (2026-10-24)
+
+
+### Features
+
+* **anomalies:** implement anomaly bounded context with CRUD ([3de9829](https://github.com/vinjatovix/miBancal-api/commit/3de9829f6eedf45d92a9de6200524df19a786017))
+* **auth:** add admin role management concurrency safeguard ([822c42f](https://github.com/vinjatovix/miBancal-api/commit/822c42fe14c091fcefd2cf7af69d147855ce1160))
+* **auth:** add admin role management with user discovery ([0354531](https://github.com/vinjatovix/miBancal-api/commit/03545312ce443d1932971141568f946d44d70f4e))
+* **auth:** add collaborator role ([9025a82](https://github.com/vinjatovix/miBancal-api/commit/9025a8233c82c3af8ea24142163bc5d98a79f43d))
+* **auth:** add GitHub OAuth login ([d284698](https://github.com/vinjatovix/miBancal-api/commit/d284698bd7fa473c259ca34b4ce6109f68ee121a))
+* **auth:** add Google OAuth login ([0c93f32](https://github.com/vinjatovix/miBancal-api/commit/0c93f3207cb91633f7f30d73fa13f66d7c4ec27a))
+* **bookmarks:** add user plant bookmarks collection ([656720a](https://github.com/vinjatovix/miBancal-api/commit/656720ad85538b1f8f5143737201bd736b576f1f))
+* **bookmarks:** enhance plant bookmark functionality with user metadata tracking ([3ce8631](https://github.com/vinjatovix/miBancal-api/commit/3ce863115e1ee069250ed4882cad2a4b5eee599a))
+* **plant:** add likes functionality with ([24f090f](https://github.com/vinjatovix/miBancal-api/commit/24f090fea5c40903cf65a769cf58087ce928aa99))
+* **rate-limit:** implement per-user rate limiter for authenticated routes ([3e6eab1](https://github.com/vinjatovix/miBancal-api/commit/3e6eab1cfa00d6b2634ddfe5caf4ffa4af4cbb94))
+
+
+### Bug Fixes
+
+* **env:** add placeholders for Google and GitHub OAuth credentials ([42227d4](https://github.com/vinjatovix/miBancal-api/commit/42227d44df8db65a0e6917c4a13a9d3ce1cefbf4))
+* **release:** add manifest file and update release-please configuration ([2067b97](https://github.com/vinjatovix/miBancal-api/commit/2067b9781e919d333143cd2e987f2db863247d02))
+* **release:** configure packages mapping and openapi extra-files path ([b08c68b](https://github.com/vinjatovix/miBancal-api/commit/b08c68b89c1a2b154849c2351199e89b9fb5f982))
+* **security:** fix client ip rate limit ([a07c819](https://github.com/vinjatovix/miBancal-api/commit/a07c819c2bb2a9bbb18c90a38124df944fe01115))
+
 ## [1.0.1](https://github.com/vinjatovix/agro-back/compare/v1.0.0...v1.0.1) (2026-10-16)
 
 
