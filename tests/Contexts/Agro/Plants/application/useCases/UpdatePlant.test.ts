@@ -8,6 +8,8 @@ import {
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/index.js';
+import { AnomalyReadRepositoryMock } from '../../../Anomalies/__mocks__/AnomalyReadRepositoryMock.js';
+import { AnomalyReadViewMother } from '../../../Anomalies/application/queries/AnomalyReadViewMother.js';
 import { FamilyRepositoryMock } from '../../../Families/__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../../Families/domain/mothers/FamilyScenarios.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
@@ -17,6 +19,7 @@ describe('UpdatePlant use case', () => {
   const CURRENT_VERSION = 0;
   let repository: PlantRepositoryMock;
   let familyRepository: FamilyRepositoryMock;
+  let anomalyReadRepository: AnomalyReadRepositoryMock;
   let useCase: UpdatePlant;
 
   const findExisting = async (id: string): Promise<Plant> =>
@@ -25,9 +28,11 @@ describe('UpdatePlant use case', () => {
   beforeEach(() => {
     repository = new PlantRepositoryMock();
     familyRepository = new FamilyRepositoryMock();
+    anomalyReadRepository = new AnomalyReadRepositoryMock();
     useCase = new UpdatePlant({
       plantRepository: repository,
-      familyRepository
+      familyRepository,
+      anomalyReadRepository
     });
   });
 
@@ -501,6 +506,33 @@ describe('UpdatePlant use case', () => {
       const update = useCase.execute(rename(random.uuid()), 'user-1', []);
 
       await expect(update).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
+  });
+
+  describe('anomalies', () => {
+    it('should reject an unknown anomaly slug and not write', async () => {
+      const plant = PlantFactory.random();
+      repository.addToStorage(plant);
+
+      await expect(
+        useCase.execute({ id: plant.id, anomalies: ['ghost-slug'] }, 'user-1', [
+          CURRENT_VERSION
+        ])
+      ).rejects.toBeInstanceOf(InvalidArgumentException);
+      repository.assertUpdateNotCalled();
+    });
+
+    it('should set validated anomaly slugs', async () => {
+      anomalyReadRepository.addToStorage(AnomalyReadViewMother.base());
+      const plant = PlantFactory.random();
+      repository.addToStorage(plant);
+
+      await useCase.execute({ id: plant.id, anomalies: ['pulgon'] }, 'user-1', [
+        CURRENT_VERSION
+      ]);
+
+      const updated = await findExisting(plant.id);
+      expect(updated.anomalies).toEqual(['pulgon']);
     });
   });
 });

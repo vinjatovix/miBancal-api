@@ -31,6 +31,8 @@ export type PlantReadView = {
   readonly traits: PlantPrimitives['traits'];
   readonly phenology: PlantPrimitives['phenology'];
   readonly knowledge: PlantKnowledgePrimitives;
+  /** Anomaly slugs this plant is susceptible to; omitted when it has none. */
+  readonly anomalies?: string[];
   /**
    * First `knowledge.resources` image; never stored. Every plant has one, so
    * `null` only comes from stored data that breaks that rule, which the
@@ -50,6 +52,7 @@ export const PLANT_FIELDS = [
   'traits',
   'phenology',
   'knowledge',
+  'anomalies',
   'image',
   'metadata',
   'status',

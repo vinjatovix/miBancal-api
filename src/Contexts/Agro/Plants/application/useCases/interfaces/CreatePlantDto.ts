@@ -60,4 +60,7 @@ export interface CreatePlantDto {
   };
 
   knowledge: CreatePlantKnowledgeDto;
+
+  /** Slugs of catalog anomalies this plant is susceptible to. */
+  anomalies?: string[];
 }

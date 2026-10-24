@@ -1,12 +1,14 @@
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
+import type { AnomalyReadRepository } from '../../../Anomalies/application/queries/index.js';
 import type { FamilyRepository } from '../../../Families/domain/repositories/interfaces/FamilyRepository.js';
 import type { Plant } from '../../domain/entities/Plant.js';
 import type { PlantChanges } from '../../domain/entities/types/PlantChanges.js';
 import type { PlantRepository } from '../../domain/repositories/interfaces/PlantRepository.js';
 import { plantDomainMapper } from '../../mappers/plantDomainMapper.js';
 import { plantInputMapper } from '../../mappers/plantInputMapper.js';
+import { ensureAnomaliesExist } from './ensureAnomaliesExist.js';
 import type { UpdatePlantDto } from './interfaces/UpdatePlantDto.js';
 
 export type UpdatePlantInput = UpdatePlantDto & { id: string };
@@ -14,15 +16,22 @@ export type UpdatePlantInput = UpdatePlantDto & { id: string };
 export type UpdatePlantDependencies = {
   plantRepository: PlantRepository;
   familyRepository: FamilyRepository;
+  anomalyReadRepository: AnomalyReadRepository;
 };
 
 export class UpdatePlant {
   private readonly plantRepository: PlantRepository;
   private readonly familyRepository: FamilyRepository;
+  private readonly anomalyReadRepository: AnomalyReadRepository;
 
-  constructor({ plantRepository, familyRepository }: UpdatePlantDependencies) {
+  constructor({
+    plantRepository,
+    familyRepository,
+    anomalyReadRepository
+  }: UpdatePlantDependencies) {
     this.plantRepository = plantRepository;
     this.familyRepository = familyRepository;
+    this.anomalyReadRepository = anomalyReadRepository;
   }
 
   async execute(
@@ -40,6 +49,7 @@ export class UpdatePlant {
     const changes = plantInputMapper.toChanges(input);
 
     await this.ensureFamilyExists(plant, changes);
+    await ensureAnomaliesExist(this.anomalyReadRepository, changes.anomalies);
 
     const before = plantDomainMapper.toPrimitives(plant);
     // One timestamp for the whole request, whatever sections it touches.
@@ -49,6 +59,8 @@ export class UpdatePlant {
     if (changes.traits) plant.updateTraits(changes.traits, user, at);
     if (changes.phenology) plant.updatePhenology(changes.phenology, user, at);
     if (changes.knowledge) plant.updateKnowledge(changes.knowledge, user, at);
+    if (changes.anomalies !== undefined)
+      plant.updateAnomalies(changes.anomalies, user, at);
 
     const after = plantDomainMapper.toPrimitives(plant);
 

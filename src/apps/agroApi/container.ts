@@ -10,6 +10,7 @@ import {
 } from 'awilix';
 import type { Db, MongoClient } from 'mongodb';
 
+import { anomalyPersistenceMapper } from '../../Contexts/Agro/Anomalies/mappers/anomalyPersistenceMapper.js';
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
 import { userBookmarksPersistenceMapper } from '../../Contexts/Agro/Bookmarks/mappers/userBookmarksPersistenceMapper.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
@@ -68,6 +69,7 @@ export function buildExplicitRegistrations({
     logger: asValue<AppLogger>(logger), // Contextual root logger instance
     bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
     familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
+    anomalyPersistenceMapper: asValue(anomalyPersistenceMapper), // Plain persistence mapper without class state
     plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
     plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
     userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper), // Plain persistence mapper without class state

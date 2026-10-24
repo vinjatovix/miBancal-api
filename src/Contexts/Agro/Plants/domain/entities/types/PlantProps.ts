@@ -27,6 +27,9 @@ export type PlantProps = {
 
   knowledge: PlantKnowledge;
 
+  /** Slugs of catalog anomalies this plant is susceptible to (deduplicated). */
+  anomalies?: string[];
+
   metadata: Metadata;
 
   status?: PlantStatus;

@@ -76,6 +76,7 @@ const PLANT_VIEW_FIELDS: ReadViewFieldMappers<
   traits: (document) => document.traits,
   phenology: (document) => document.phenology,
   knowledge: (document) => document.knowledge ?? {},
+  anomalies: (document) => document.anomalies,
   image: (document) => toPlantImage(document.image),
   metadata: (document) => toMetadata(document.metadata),
   status: (document) => document.status ?? DEFAULT_STATUS,
@@ -95,6 +96,9 @@ export const toPlantReadView = (
   traits: PLANT_VIEW_FIELDS.traits(document),
   phenology: PLANT_VIEW_FIELDS.phenology(document),
   knowledge: PLANT_VIEW_FIELDS.knowledge(document),
+  ...(PLANT_VIEW_FIELDS.anomalies(document)
+    ? { anomalies: PLANT_VIEW_FIELDS.anomalies(document) }
+    : {}),
   image: PLANT_VIEW_FIELDS.image(document),
   metadata: PLANT_VIEW_FIELDS.metadata(document),
   status: PLANT_VIEW_FIELDS.status(document),

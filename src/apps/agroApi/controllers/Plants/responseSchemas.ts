@@ -180,6 +180,7 @@ export const plantResponseSchema = z.object({
   traits: traitsSchema,
   phenology: phenologySchema,
   knowledge: knowledgeSchema,
+  anomalies: labelListSchema.exactOptional(),
   image: plantImageSchema,
   metadata: metadataResponseSchema,
   status: z.enum(['ACTIVE', 'DELETED']),
