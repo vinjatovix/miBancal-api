@@ -926,7 +926,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [knowledge.md](spec/modules/knowledge.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
 
 - **Status**: Completed (feature `041-anomaly-domain`: spec module [knowledge.md](spec/modules/knowledge.md) delivered; `Anomaly` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, and a one-directional `Plant.anomalies` slug list validated at write time; collection and endpoints fully implemented).
-- **Value delivered**: Unifies crop diagnosis (pests, diseases, weeds) into a central database.
+- **Value delivered**: Unifies crop diagnosis (pests, diseases, disorders) into a central database.
 - **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented. Spec module [knowledge.md](spec/modules/knowledge.md) is documented.
 - **Dependencies**: None.
 - **Risks**: None.
