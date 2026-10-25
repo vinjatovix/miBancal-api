@@ -60,7 +60,7 @@ Rules:
 /modules/knowledge.md
 ```
 
-- anomalies (unifying pests, pathogens, disorders, weeds)
+- anomalies (unifying pests, pathogens, disorders)
 - garden-inputs (organic remedies, nutrition)
 
 Rules:

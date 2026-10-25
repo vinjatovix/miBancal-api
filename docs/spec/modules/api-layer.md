@@ -211,7 +211,7 @@ _Exposed endpoints contract can be referenced in Section 3.1 of this document._
 
 ### 5.6 Anomalies `[TARGET STATE (Pending [Iteration 39](../../roadmap.md#iteration-39-implement-anomaly-domain-and-crud-endpoints))]`
 
-Unifies pests, diseases (pathogens), physiological disorders, and weeds into a single domain concept under Phase 5 ([Iteration 39](../../roadmap.md#iteration-39-implement-anomaly-domain-and-crud-endpoints)).
+Unifies pests, diseases (pathogens), and physiological disorders into a single domain concept under Phase 5 ([Iteration 39](../../roadmap.md#iteration-39-implement-anomaly-domain-and-crud-endpoints)).
 
 > **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 

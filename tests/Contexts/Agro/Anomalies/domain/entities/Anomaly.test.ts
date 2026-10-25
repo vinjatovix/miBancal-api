@@ -37,18 +37,29 @@ describe('Anomaly aggregate', () => {
       expect(anomaly.naturalEnemies).toBeUndefined();
     });
 
-    it('rejects a category outside the closed set', () => {
-      expect(() =>
-        Anomaly.create({
-          id: createAnomalyId(random.uuid()),
-          slug: 'pulgon',
-          name: 'Pulgón',
-          // @ts-expect-error invalid category on purpose
-          category: 'fungus',
-          metadata: Metadata.create(USER)
-        })
-      ).toThrow(InvalidArgumentException);
-    });
+    it.each(['fungus', 'weed'])(
+      'rejects a category outside the closed set (%s)',
+      (category) => {
+        expect(() =>
+          Anomaly.create({
+            id: createAnomalyId(random.uuid()),
+            slug: 'pulgon',
+            name: 'Pulgón',
+            category: category as never,
+            metadata: Metadata.create(USER)
+          })
+        ).toThrow(InvalidArgumentException);
+      }
+    );
+
+    it.each(['pest', 'disease', 'disorder'] as const)(
+      'accepts a valid category (%s)',
+      (category) => {
+        const anomaly = AnomalyScenarios.domainBase({ category });
+
+        expect(anomaly.category).toBe(category);
+      }
+    );
 
     it('rejects a blank required name', () => {
       expect(() => AnomalyScenarios.domainBase({ name: '   ' })).toThrow(

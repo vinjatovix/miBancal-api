@@ -52,6 +52,27 @@ describe('Anomaly requestSchemas', () => {
       expect(errors).toHaveProperty('slug');
     });
 
+    it('should reject a category outside the allowed set', async () => {
+      const body = AnomalyScenarios.createDtoBase({
+        category: 'weed' as never
+      });
+
+      const errors = await errorsOf(createAnomalyRequest, { body });
+
+      expect(errors).toHaveProperty('category');
+    });
+
+    it.each(['pest', 'disease', 'disorder'] as const)(
+      'should accept a valid category (%s)',
+      async (category) => {
+        const body = AnomalyScenarios.createDtoBase({ category });
+
+        const error = await validate(createAnomalyRequest, { body });
+
+        expect(error).toBeUndefined();
+      }
+    );
+
     it('should accept optional resources and confusedWith', async () => {
       const body = AnomalyScenarios.createDtoBase({
         resources: [

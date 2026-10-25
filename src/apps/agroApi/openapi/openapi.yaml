@@ -2076,8 +2076,8 @@ components:
 
     AnomalyCategory:
       type: string
-      description: Closed set of exactly four categories.
-      enum: [pest, disease, disorder, weed]
+      description: Closed set of exactly three categories.
+      enum: [pest, disease, disorder]
 
     AnomalyStatus:
       type: string

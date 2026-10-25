@@ -34,13 +34,13 @@ Rules:
 
 ### 3.1 Anomaly
 
-Unifies pests, diseases (pathogens), physiological disorders, and weeds into a single diagnostic concept.
+Unifies pests, diseases (pathogens), and physiological disorders into a single diagnostic concept.
 
 #### Fields
 
 - id (UUID)
 - name
-- classification: pest | pathogen | disorder | weed
+- classification: pest | pathogen | disorder
 - description
 - symptoms: string[]
 - causes: string[]
