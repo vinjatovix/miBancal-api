@@ -1,3 +1,5 @@
+import type { SupportResourcePrimitives } from '../../shared/domain/supportResource/index.js';
+
 /** The optional guidance fields shared by every anomaly representation. */
 export type GuidanceFields = {
   scientificName?: string;
@@ -9,6 +11,8 @@ export type GuidanceFields = {
   prevention?: string[];
   treatment?: string[];
   naturalEnemies?: string[];
+  resources?: SupportResourcePrimitives[];
+  confusedWith?: string[];
 };
 
 /**
@@ -26,6 +30,8 @@ export type GuidanceSource = {
   prevention?: string[] | undefined;
   treatment?: string[] | undefined;
   naturalEnemies?: string[] | undefined;
+  resources?: SupportResourcePrimitives[] | undefined;
+  confusedWith?: string[] | undefined;
 };
 
 const OPTIONAL_GUIDANCE_KEYS = [
@@ -37,7 +43,9 @@ const OPTIONAL_GUIDANCE_KEYS = [
   'affectedCrops',
   'prevention',
   'treatment',
-  'naturalEnemies'
+  'naturalEnemies',
+  'resources',
+  'confusedWith'
 ] as const satisfies ReadonlyArray<keyof GuidanceFields>;
 
 /**

@@ -7,6 +7,7 @@ import {
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { SupportResourceBuilder } from '../../../shared/domain/supportResource/SupportResourceBuilder.js';
 import { AnomalyScenarios } from '../mothers/AnomalyScenarios.js';
 
 const USER = 'curator';
@@ -120,6 +121,99 @@ describe('Anomaly aggregate', () => {
       anomaly.markAsDeleted(USER);
 
       expect(anomaly.deletedAt).toEqual(previous);
+    });
+  });
+
+  describe('resources', () => {
+    it('round-trips a mixed list that carries no image', () => {
+      const resources = [
+        SupportResourceBuilder.article(),
+        SupportResourceBuilder.video()
+      ];
+      const anomaly = AnomalyScenarios.domainBase({ resources });
+
+      expect(anomaly.resources).toHaveLength(2);
+      expect(anomaly.resources?.map((r) => r.type)).toEqual([
+        'article',
+        'video'
+      ]);
+    });
+
+    it('round-trips a bare resource with only type and url', () => {
+      const bare = SupportResourceBuilder.bare('image');
+      const anomaly = AnomalyScenarios.domainBase({ resources: [bare] });
+
+      expect(anomaly.resources).toStrictEqual([bare]);
+    });
+
+    it('stores an empty resources list as absent', () => {
+      const anomaly = AnomalyScenarios.domainBase({ resources: [] });
+
+      expect(anomaly.resources).toBeUndefined();
+    });
+
+    it('rejects a resource with an unrecognised type', () => {
+      expect(() =>
+        AnomalyScenarios.domainBase({
+          // @ts-expect-error invalid resource type on purpose
+          resources: [{ type: 'audio', url: 'https://example.org/x' }]
+        })
+      ).toThrow(InvalidArgumentException);
+    });
+
+    it('clears resources with null while keeping confusedWith', () => {
+      const anomaly = AnomalyScenarios.domainBase({
+        resources: [SupportResourceBuilder.image()],
+        confusedWith: ['mildiu']
+      });
+
+      anomaly.updateGuidance({ resources: null }, USER);
+
+      expect(anomaly.resources).toBeUndefined();
+      expect(anomaly.confusedWith).toStrictEqual(['mildiu']);
+    });
+  });
+
+  describe('confusedWith', () => {
+    it('deduplicates slugs case-insensitively, keeping the first', () => {
+      const anomaly = AnomalyScenarios.domainBase({
+        confusedWith: ['mildiu', 'Mildiu', 'oidio']
+      });
+
+      expect(anomaly.confusedWith).toEqual(['mildiu', 'oidio']);
+    });
+
+    it('silently removes the entry own slug without raising', () => {
+      const anomaly = AnomalyScenarios.domainBase({
+        slug: 'pulgon',
+        confusedWith: ['pulgon', 'mildiu']
+      });
+
+      expect(anomaly.confusedWith).toEqual(['mildiu']);
+    });
+
+    it('stores an all-self confusedWith as absent', () => {
+      const anomaly = AnomalyScenarios.domainBase({
+        slug: 'pulgon',
+        confusedWith: ['Pulgon']
+      });
+
+      expect(anomaly.confusedWith).toBeUndefined();
+    });
+
+    it('clears resources and confusedWith independently in one update', () => {
+      const anomaly = AnomalyScenarios.domainBase({
+        resources: [SupportResourceBuilder.image()],
+        confusedWith: ['mildiu']
+      });
+
+      anomaly.updateGuidance(
+        { resources: null, confusedWith: ['oidio'] },
+        USER
+      );
+
+      expect(anomaly.resources).toBeUndefined();
+      expect(anomaly.confusedWith).toStrictEqual(['oidio']);
     });
   });
 });

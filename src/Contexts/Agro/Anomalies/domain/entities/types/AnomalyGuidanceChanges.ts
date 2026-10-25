@@ -1,9 +1,11 @@
+import type { SupportResourcePrimitives } from '../../../../shared/domain/supportResource/index.js';
 import type { AnomalyCategory } from './AnomalyCategory.js';
 
 /**
  * Merge-patch change set. `undefined` keeps a field, any other value replaces
- * it; optional single texts and guidance lists additionally accept `null` to
- * clear them. `slug` is immutable after creation and is not part of the set.
+ * it; optional single texts, guidance lists, `resources` and `confusedWith`
+ * additionally accept `null` to clear them. `slug` is immutable after creation
+ * and is not part of the set.
  */
 export type AnomalyGuidanceChanges = {
   name?: string;
@@ -17,4 +19,6 @@ export type AnomalyGuidanceChanges = {
   prevention?: string[] | null;
   treatment?: string[] | null;
   naturalEnemies?: string[] | null;
+  resources?: SupportResourcePrimitives[] | null;
+  confusedWith?: string[] | null;
 };

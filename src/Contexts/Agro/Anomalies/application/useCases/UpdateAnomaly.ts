@@ -5,17 +5,25 @@ import type { Anomaly } from '../../domain/entities/Anomaly.js';
 import type { AnomalyRepository } from '../../domain/repositories/interfaces/AnomalyRepository.js';
 import { anomalyDomainMapper } from '../../mappers/anomalyDomainMapper.js';
 import { anomalyInputMapper } from '../../mappers/anomalyInputMapper.js';
+import type { AnomalyReadRepository } from '../queries/index.js';
+import { ensureConfusedWithExist } from './ensureConfusedWithExist.js';
 import type { UpdateAnomalyInput } from './interfaces/UpdateAnomalyInput.js';
 
 export type UpdateAnomalyDependencies = {
   anomalyRepository: AnomalyRepository;
+  anomalyReadRepository: AnomalyReadRepository;
 };
 
 export class UpdateAnomaly {
   private readonly anomalyRepository: AnomalyRepository;
+  private readonly anomalyReadRepository: AnomalyReadRepository;
 
-  constructor({ anomalyRepository }: UpdateAnomalyDependencies) {
+  constructor({
+    anomalyRepository,
+    anomalyReadRepository
+  }: UpdateAnomalyDependencies) {
     this.anomalyRepository = anomalyRepository;
+    this.anomalyReadRepository = anomalyReadRepository;
   }
 
   async execute(
@@ -33,6 +41,15 @@ export class UpdateAnomaly {
     );
 
     const changes = anomalyInputMapper.toChanges(input);
+
+    // Non-transactional pre-check before any persistence: every confusedWith
+    // slug must already exist (ACTIVE); an unknown slug rejects the write.
+    await ensureConfusedWithExist(
+      this.anomalyReadRepository,
+      changes.confusedWith,
+      anomaly.slug
+    );
+
     const before = anomalyDomainMapper.toPrimitives(anomaly);
 
     anomaly.updateGuidance(changes, user);

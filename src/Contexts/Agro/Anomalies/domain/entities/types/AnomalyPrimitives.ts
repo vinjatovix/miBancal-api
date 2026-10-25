@@ -1,4 +1,5 @@
 import type { MetadataPrimitives } from '../../../../../shared/domain/MetadataPrimitives.js';
+import type { SupportResourcePrimitives } from '../../../../shared/domain/supportResource/index.js';
 import type { AnomalyCategory } from './AnomalyCategory.js';
 import type { AnomalyStatus } from './AnomalyStatus.js';
 
@@ -16,6 +17,8 @@ export type AnomalyPrimitives = {
   prevention?: string[];
   treatment?: string[];
   naturalEnemies?: string[];
+  resources?: SupportResourcePrimitives[];
+  confusedWith?: string[];
   status: AnomalyStatus;
   /** ISO string; present only while `DELETED`, never persisted/returned as `null`. */
   deletedAt?: string;

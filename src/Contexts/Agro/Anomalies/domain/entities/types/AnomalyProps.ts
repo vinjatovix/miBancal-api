@@ -1,4 +1,5 @@
 import type { Metadata } from '../../../../../shared/domain/valueObject/Metadata.js';
+import type { SupportResourcePrimitives } from '../../../../shared/domain/supportResource/index.js';
 import type { AnomalyId } from '../../AnomalyId.js';
 import type { AnomalyCategory } from './AnomalyCategory.js';
 import type { AnomalyStatus } from './AnomalyStatus.js';
@@ -17,6 +18,8 @@ export type AnomalyProps = {
   prevention?: string[];
   treatment?: string[];
   naturalEnemies?: string[];
+  resources?: SupportResourcePrimitives[];
+  confusedWith?: string[];
   status?: AnomalyStatus;
   deletedAt?: Date;
   metadata: Metadata;

@@ -35,6 +35,8 @@ const ANOMALY_PROJECTION = {
   prevention: 1,
   treatment: 1,
   naturalEnemies: 1,
+  resources: 1,
+  confusedWith: 1,
   status: 1,
   deletedAt: 1,
   metadata: 1,

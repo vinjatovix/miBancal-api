@@ -16,7 +16,11 @@ export type PlaceholderKey =
   | 'cropId'
   | 'userId'
   | 'targetEmail'
-  | 'targetUsername';
+  | 'targetUsername'
+  | 'anomalyId'
+  | 'anomalySlug'
+  | 'otherAnomalyId'
+  | 'otherAnomalySlug';
 
 const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'bedId',
@@ -28,7 +32,11 @@ const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'cropId',
   'userId',
   'targetEmail',
-  'targetUsername'
+  'targetUsername',
+  'anomalyId',
+  'anomalySlug',
+  'otherAnomalyId',
+  'otherAnomalySlug'
 ];
 
 /** Scenario context: built fresh by Cucumber for every scenario. */
@@ -43,6 +51,10 @@ export class AgroWorld extends World {
   userId?: string;
   targetEmail?: string;
   targetUsername?: string;
+  anomalyId?: string;
+  anomalySlug?: string;
+  otherAnomalyId?: string;
+  otherAnomalySlug?: string;
 
   loggedInToken?: string;
   loggedInEmail?: string;

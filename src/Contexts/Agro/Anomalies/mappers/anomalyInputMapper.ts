@@ -18,7 +18,9 @@ const CHANGE_KEYS = [
   'affectedCrops',
   'prevention',
   'treatment',
-  'naturalEnemies'
+  'naturalEnemies',
+  'resources',
+  'confusedWith'
 ] as const satisfies ReadonlyArray<keyof AnomalyGuidanceChanges>;
 
 export const anomalyInputMapper: AnomalyInputMapper = {
