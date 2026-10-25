@@ -2097,6 +2097,53 @@ components:
       items:
         $ref: '#/components/schemas/RequiredLongText'
 
+    SupportResourceType:
+      description: >
+        Kind of supporting material; exact lowercase values (`Image` → 400).
+      type: string
+      enum: [image, article, video]
+
+    SupportResource:
+      type: object
+      description: >
+        A piece of supporting material for a catalog entry (plant, anomaly, or a
+        future inputs catalog). Shared, single definition. An image is NOT
+        required at this level; the mandatory-image rule is plant-specific.
+      required: [type, url]
+      properties:
+        type:
+          $ref: '#/components/schemas/SupportResourceType'
+        url:
+          type: string
+          format: uri
+          description: Absolute `http` or `https` URL.
+          pattern: '^https?://'
+          maxLength: 2048
+        title:
+          $ref: '#/components/schemas/ShortText'
+        source:
+          $ref: '#/components/schemas/ShortText'
+        tags:
+          $ref: '#/components/schemas/ShortTextList'
+
+    AnomalyResourceList:
+      type: array
+      description: Support materials for the anomaly (image not required).
+      maxItems: 200
+      items:
+        $ref: '#/components/schemas/SupportResource'
+
+    AnomalyConfusedWith:
+      type: array
+      description: >
+        Slugs of other anomalies this one is commonly mistaken for (differential
+        diagnosis). Declarative and one-directional; deduplicated; never includes
+        the entry's own slug. A pointer MAY resolve to no entry if its target was
+        retired after linking.
+      maxItems: 200
+      items:
+        $ref: '#/components/schemas/AnomalySlug'
+
     Anomaly:
       type: object
       required: [id, slug, name, category, status]
@@ -2132,6 +2179,10 @@ components:
           $ref: '#/components/schemas/AnomalyTextList'
         naturalEnemies:
           $ref: '#/components/schemas/AnomalyTextList'
+        resources:
+          $ref: '#/components/schemas/AnomalyResourceList'
+        confusedWith:
+          $ref: '#/components/schemas/AnomalyConfusedWith'
         status:
           $ref: '#/components/schemas/AnomalyStatus'
         deletedAt:
@@ -2182,6 +2233,10 @@ components:
           $ref: '#/components/schemas/AnomalyTextList'
         naturalEnemies:
           $ref: '#/components/schemas/AnomalyTextList'
+        resources:
+          $ref: '#/components/schemas/AnomalyResourceList'
+        confusedWith:
+          $ref: '#/components/schemas/AnomalyConfusedWith'
         status:
           $ref: '#/components/schemas/AnomalyStatus'
         deletedAt:
@@ -2260,6 +2315,10 @@ components:
           $ref: '#/components/schemas/AnomalyTextList'
         naturalEnemies:
           $ref: '#/components/schemas/AnomalyTextList'
+        resources:
+          $ref: '#/components/schemas/AnomalyResourceList'
+        confusedWith:
+          $ref: '#/components/schemas/AnomalyConfusedWith'
 
     UpdateAnomaly:
       description: >
@@ -2321,6 +2380,18 @@ components:
           nullable: true
           items:
             $ref: '#/components/schemas/RequiredLongText'
+        resources:
+          type: array
+          nullable: true
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/SupportResource'
+        confusedWith:
+          type: array
+          nullable: true
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/AnomalySlug'
 
     # ---------- Plants ----------
 
@@ -3190,7 +3261,7 @@ components:
           nullable: true
           maxItems: 200
           items:
-            $ref: '#/components/schemas/PlantResource'
+            $ref: '#/components/schemas/SupportResource'
         notes:
           type: array
           nullable: true
@@ -3418,7 +3489,7 @@ components:
           type: array
           maxItems: 200
           items:
-            $ref: '#/components/schemas/PlantResource'
+            $ref: '#/components/schemas/SupportResource'
 
         notes:
           $ref: '#/components/schemas/LongTextList'
@@ -3531,32 +3602,6 @@ components:
                 $ref: '#/components/schemas/Range'
               bestPractices:
                 $ref: '#/components/schemas/LongTextList'
-
-    PlantResource:
-      type: object
-      required: [type, url]
-      properties:
-        type:
-          $ref: '#/components/schemas/PlantResourceType'
-        url:
-          type: string
-          format: uri
-          description: Absolute `http` or `https` URL.
-          pattern: '^https?://'
-          maxLength: 2048
-        title:
-          $ref: '#/components/schemas/ShortText'
-        source:
-          $ref: '#/components/schemas/ShortText'
-        tags:
-          $ref: '#/components/schemas/ShortTextList'
-
-    PlantResourceType:
-      description: >
-        Kind of resource; exact lowercase values (`Image` → 400). Every plant
-        keeps at least one `image`.
-      type: string
-      enum: [image, article, video]
 
     PlantImage:
       description: >

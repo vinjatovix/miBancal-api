@@ -46,12 +46,17 @@ Unifies pests, diseases (pathogens), physiological disorders, and weeds into a s
 - causes: string[]
 - affectedPlants: Plant IDs (UUIDs)
 - treatments: GardenInput IDs (UUIDs) `[TARGET STATE (Pending [Iteration 41](../../roadmap.md#iteration-41-map-therapeutic-links-in-anomaly-documents))]` (models the therapeutic relationship directly at the document level)
+- resources: SupportResource[] `[DELIVERED (spec `specs/042-anomaly-encyclopedic-content/`)]` — optional support materials (image, article, video), each with an absolute `http(s)` url and optional title/source/tags. Stored absent when empty; **no mandatory image** (that rule stays plant-specific)
+- confusedWith: Anomaly slugs `[DELIVERED (spec `specs/042-anomaly-encyclopedic-content/`)]` — optional differential-diagnosis pointers to look-alike anomalies; case-insensitively deduplicated, the entry's own slug stripped, stored absent when empty
 
 #### Rules
 
 - can affect multiple plants
 - symptoms are descriptive only
 - no behavioral domain logic
+- `SupportResource` is a single shared Agro concept (`src/Contexts/Agro/shared/domain/supportResource/`), reused by Plants and Anomalies so the shape is defined once
+- `confusedWith` is **declarative and one-directional**: recording `A.confusedWith = [B]` writes nothing on `B`; no symmetry is enforced and no back-reference is kept
+- every `confusedWith` slug must name an existing (ACTIVE) anomaly at write time (non-transactional pre-check); a pointer that dangles later (target retired) never breaks the read of the referring entry
 
 ---
 

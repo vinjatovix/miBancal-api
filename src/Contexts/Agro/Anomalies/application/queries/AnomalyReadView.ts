@@ -1,4 +1,5 @@
 import type { MetadataPrimitives } from '../../../../shared/domain/MetadataPrimitives.js';
+import type { SupportResourcePrimitives } from '../../../shared/domain/supportResource/index.js';
 import type {
   AnomalyCategory,
   AnomalyStatus
@@ -26,6 +27,10 @@ export type AnomalyReadView = {
   readonly prevention?: string[];
   readonly treatment?: string[];
   readonly naturalEnemies?: string[];
+  /** Support materials (image, article, video); omitted when the anomaly has none. */
+  readonly resources?: SupportResourcePrimitives[];
+  /** Slugs of look-alike anomalies (differential diagnosis); omitted when none. */
+  readonly confusedWith?: string[];
   /** `ACTIVE` or `DELETED`. */
   readonly status: `${AnomalyStatus}`;
   /** Present only while `DELETED`; omitted for an active anomaly. */
@@ -48,6 +53,8 @@ export const ANOMALY_FIELDS = [
   'prevention',
   'treatment',
   'naturalEnemies',
+  'resources',
+  'confusedWith',
   'status',
   'deletedAt',
   'metadata',

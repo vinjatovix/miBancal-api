@@ -22,6 +22,7 @@ import {
   listSchema,
   requiredLongTextSchema,
   requiredShortTextSchema,
+  supportResourceSchema,
   trimmedLongTextSchema
 } from '../../shared/requestSchemas.js';
 
@@ -73,7 +74,9 @@ const createAnomalyBody = z.object({
   affectedCrops: textListSchema.exactOptional(),
   prevention: textListSchema.exactOptional(),
   treatment: textListSchema.exactOptional(),
-  naturalEnemies: textListSchema.exactOptional()
+  naturalEnemies: textListSchema.exactOptional(),
+  resources: listSchema(supportResourceSchema).exactOptional(),
+  confusedWith: listSchema(anomalySlugSchema).exactOptional()
 });
 
 export const createAnomalyRequest = {
@@ -95,7 +98,9 @@ const updateAnomalyBody = z.object({
   affectedCrops: clearable(textListSchema),
   prevention: clearable(textListSchema),
   treatment: clearable(textListSchema),
-  naturalEnemies: clearable(textListSchema)
+  naturalEnemies: clearable(textListSchema),
+  resources: clearable(listSchema(supportResourceSchema)),
+  confusedWith: clearable(listSchema(anomalySlugSchema))
 });
 
 export const updateAnomalyRequest = {

@@ -24,6 +24,7 @@ import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
 import { FakeGithubIdentityProvider } from '../../shared/fakes/FakeGithubIdentityProvider.js';
 import { FakeGoogleIdTokenVerifier } from '../../shared/fakes/FakeGoogleIdTokenVerifier.js';
 import {
+  AnomalySeeder,
   FamilySeeder,
   PlantSeeder,
   UserSeeder
@@ -45,6 +46,7 @@ export interface SuiteResources {
   readonly seeders: Readonly<{
     plant: ReturnType<typeof PlantSeeder>;
     family: ReturnType<typeof FamilySeeder>;
+    anomaly: ReturnType<typeof AnomalySeeder>;
     user: ReturnType<typeof UserSeeder>;
   }>;
 }
@@ -149,6 +151,7 @@ const buildSuite = async (): Promise<SuiteResources> => {
     seeders: {
       family: FamilySeeder(httpServer, tokens.admin),
       plant: PlantSeeder(httpServer, tokens.admin),
+      anomaly: AnomalySeeder(httpServer, tokens.admin),
       user: UserSeeder({
         authRepository: container.resolve<AuthRepository>('authRepository'),
         encrypter,

@@ -1,3 +1,4 @@
+import type { SupportResourcePrimitives } from '../../../../shared/domain/supportResource/index.js';
 import type { AnomalyCategory } from '../../../domain/entities/types/AnomalyCategory.js';
 
 export interface CreateAnomalyDto {
@@ -14,4 +15,6 @@ export interface CreateAnomalyDto {
   prevention?: string[];
   treatment?: string[];
   naturalEnemies?: string[];
+  resources?: SupportResourcePrimitives[];
+  confusedWith?: string[];
 }

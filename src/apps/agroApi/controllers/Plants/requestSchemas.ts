@@ -7,7 +7,6 @@ import {
   type PlantRelation
 } from '../../../../Contexts/Agro/Plants/application/queries/index.js';
 import {
-  PLANT_RESOURCE_TYPES,
   PollinationType,
   SEASONS
 } from '../../../../Contexts/Agro/Plants/domain/entities/types/index.js';
@@ -31,7 +30,6 @@ import {
   boundedRecordSchema,
   emptyBody,
   emptyQuery,
-  httpUrlSchema,
   listSchema,
   longTextSchema,
   partialRangeSchema,
@@ -39,6 +37,7 @@ import {
   REQUEST_LIMITS,
   requiredShortTextSchema,
   shortTextSchema,
+  supportResourceSchema,
   trimmedShortTextSchema
 } from '../../shared/requestSchemas.js';
 
@@ -103,13 +102,9 @@ const pruningItemSchema = z.object({
   bestPractices: textListSchema.exactOptional()
 });
 
-const resourceItemSchema = z.object({
-  type: z.enum(PLANT_RESOURCE_TYPES),
-  url: httpUrlSchema,
-  title: shortTextSchema.exactOptional(),
-  source: shortTextSchema.exactOptional(),
-  tags: labelListSchema.exactOptional()
-});
+// The single shared support-resource shape; the plant's mandatory-image rule is
+// enforced by the domain (`Plant.requireImage`), not by this schema.
+const resourceItemSchema = supportResourceSchema;
 
 // Optional, but never blank when sent.
 const toxicityNotesSchema = z

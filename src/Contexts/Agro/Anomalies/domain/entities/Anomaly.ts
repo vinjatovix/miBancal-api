@@ -12,6 +12,10 @@ import {
   versionAfter
 } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
+import {
+  normaliseSupportResources,
+  type SupportResourcePrimitives
+} from '../../../shared/domain/supportResource/index.js';
 import type { AnomalyId } from '../AnomalyId.js';
 import {
   ANOMALY_CATEGORIES,
@@ -40,8 +44,15 @@ const LIST_KEYS = [
 type SingleTextKey = (typeof SINGLE_TEXT_KEYS)[number];
 type ListKey = (typeof LIST_KEYS)[number];
 
+/**
+ * Every merge-patch key the aggregate owns: optional single texts, guidance
+ * lists, and the two structured fields (`resources` is an object array, not a
+ * text list; `confusedWith` is a slug list with its own dedup/self-strip rule).
+ */
+type NullableKey = SingleTextKey | ListKey | 'resources' | 'confusedWith';
+
 /** `undefined` keeps the key, `null` removes it, any other value replaces it. */
-function applyNullable<K extends SingleTextKey | ListKey>(
+function applyNullable<K extends NullableKey>(
   target: AnomalyProps,
   key: K,
   value: AnomalyProps[K] | null | undefined
@@ -50,6 +61,22 @@ function applyNullable<K extends SingleTextKey | ListKey>(
   if (value === null) delete target[key];
   else target[key] = value;
 }
+
+/**
+ * `confusedWith` normalisation: dedup case-insensitively keeping the first
+ * occurrence (as `Plant.anomalies`), then silently drop the anomaly's own slug
+ * (never raising). Existence of each remaining slug is checked in the
+ * application layer, not here.
+ */
+const normaliseConfusedWith = (
+  values: readonly unknown[],
+  ownSlug: string
+): string[] => {
+  const unique = uniqueTextList(values, 'Anomaly.confusedWith');
+  const own = ownSlug.trim().toLowerCase();
+
+  return unique.filter((slug) => slug.toLowerCase() !== own);
+};
 
 const anomalyText = (value: unknown, field: string): string => {
   if (typeof value !== 'string') {
@@ -141,6 +168,14 @@ export class Anomaly extends AggregateRoot<AnomalyId> {
     return this.props.naturalEnemies;
   }
 
+  get resources(): SupportResourcePrimitives[] | undefined {
+    return this.props.resources;
+  }
+
+  get confusedWith(): string[] | undefined {
+    return this.props.confusedWith;
+  }
+
   get status(): AnomalyStatus {
     return this.props.status;
   }
@@ -208,6 +243,22 @@ export class Anomaly extends AggregateRoot<AnomalyId> {
       if (list.length > 0) guidance[key] = list;
     }
 
+    if (props.resources !== undefined) {
+      const resources = normaliseSupportResources(
+        props.resources,
+        'Anomaly.resources'
+      );
+      if (resources.length > 0) guidance.resources = resources;
+    }
+
+    if (props.confusedWith !== undefined) {
+      const confusedWith = normaliseConfusedWith(
+        props.confusedWith,
+        props.slug
+      );
+      if (confusedWith.length > 0) guidance.confusedWith = confusedWith;
+    }
+
     return guidance;
   }
 
@@ -247,6 +298,8 @@ export class Anomaly extends AggregateRoot<AnomalyId> {
 
     for (const key of SINGLE_TEXT_KEYS) applyNullable(draft, key, changes[key]);
     for (const key of LIST_KEYS) applyNullable(draft, key, changes[key]);
+    applyNullable(draft, 'resources', changes.resources);
+    applyNullable(draft, 'confusedWith', changes.confusedWith);
 
     const candidate = Anomaly.normalise(draft);
 
