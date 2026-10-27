@@ -20,7 +20,9 @@ export type PlaceholderKey =
   | 'anomalyId'
   | 'anomalySlug'
   | 'otherAnomalyId'
-  | 'otherAnomalySlug';
+  | 'otherAnomalySlug'
+  | 'gardenInputId'
+  | 'gardenInputSlug';
 
 const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'bedId',
@@ -36,7 +38,9 @@ const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'anomalyId',
   'anomalySlug',
   'otherAnomalyId',
-  'otherAnomalySlug'
+  'otherAnomalySlug',
+  'gardenInputId',
+  'gardenInputSlug'
 ];
 
 /** Scenario context: built fresh by Cucumber for every scenario. */
@@ -55,6 +59,8 @@ export class AgroWorld extends World {
   anomalySlug?: string;
   otherAnomalyId?: string;
   otherAnomalySlug?: string;
+  gardenInputId?: string;
+  gardenInputSlug?: string;
 
   loggedInToken?: string;
   loggedInEmail?: string;

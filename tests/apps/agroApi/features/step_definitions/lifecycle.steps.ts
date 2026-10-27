@@ -10,6 +10,7 @@ import {
 import { up as seedRolesIndexAndGuard } from '../../../../../migrations/scripts/20261018120000-users-roles-index-and-admin-guard.js';
 import {
   AgroWorld,
+  seedMockGardenInputs,
   settledMailbox,
   startSuite,
   stopSuite,
@@ -32,6 +33,7 @@ Before(async () => {
   // `roleGuards` singleton the admin-mutating transaction reserves. Re-seed it
   // (idempotent, same path as production) so revoke scenarios find it present.
   await seedRolesIndexAndGuard(suite().client.db());
+  await seedMockGardenInputs(suite().client.db());
 });
 
 AfterAll(stopSuite);

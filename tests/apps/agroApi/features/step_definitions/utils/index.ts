@@ -8,6 +8,7 @@ export * from './parseJsonObject.js';
 export * from './plantOverrides.js';
 export * from './requests.js';
 export * from './resources.js';
+export * from './seedMockGardenInputs.js';
 export * from './suite.js';
 export * from './tokens.js';
 export * from './world.js';

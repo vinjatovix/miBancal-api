@@ -10,7 +10,7 @@ import { createError } from '../../../shared/errors/index.js';
 // the issue paths only, never the stored values.
 
 export type CheckContext = {
-  resource: 'Plant' | 'Family' | 'Anomaly';
+  resource: 'Plant' | 'Family' | 'Anomaly' | 'GardenInput';
   logger: AppLogger;
 };
 

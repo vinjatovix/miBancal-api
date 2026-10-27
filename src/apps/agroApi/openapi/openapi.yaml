@@ -21,6 +21,8 @@ tags:
     description: Endpoints for managing plant families.
   - name: Anomalies
     description: Endpoints for managing the plant anomaly diagnosis catalog.
+  - name: GardenInputs
+    description: Endpoints for managing organic remedies, fertilizers, biostimulants, and soil amendments catalog.
   - name: Plants
     description: Endpoints for managing plant data.
   - name: Beds
@@ -732,6 +734,197 @@ paths:
       responses:
         '204':
           description: Deleted (no content)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/garden-inputs:
+    get:
+      tags: [GardenInputs]
+      summary: List garden inputs
+      description: >
+        Public. Retrieve active organic inputs with pagination, sorting, filtering,
+        and sparse fieldsets.
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: filter
+          description: >
+            Declared fields only, one operator per field. Unknown fields,
+            operators or values of the wrong type → 400.
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/GardenInputListFilter'
+        - in: query
+          name: sort
+          description: Declared sort keys only, `asc` or `desc`.
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/GardenInputListSort'
+        - in: query
+          name: pagination
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/ListPagination'
+        - $ref: '#/components/parameters/GardenInputFields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, pagination]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      anyOf:
+                        - $ref: '#/components/schemas/GardenInput'
+                        - $ref: '#/components/schemas/GardenInputFieldset'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [GardenInputs]
+      summary: Create garden input
+      description: >
+        Admin or collaborator. Create a new organic input.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGardenInput'
+      responses:
+        '201':
+          description: Created
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GardenInput'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/garden-inputs/{idOrSlug}:
+    get:
+      tags: [GardenInputs]
+      summary: Get garden input by id or slug
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GardenInputIdOrSlug'
+        - in: query
+          name: fields[gardenInputs]
+          schema:
+            type: string
+        - $ref: '#/components/parameters/GardenInputFields'
+      responses:
+        '200':
+          description: OK
+          headers:
+            ETag:
+              $ref: '#/components/headers/ReadETag'
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/GardenInput'
+                  - $ref: '#/components/schemas/GardenInputFieldset'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags: [GardenInputs]
+      summary: Update garden input
+      description: >
+        Admin or collaborator. Update details with optimistic concurrency (If-Match required).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GardenInputIdOrSlug'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGardenInput'
+      responses:
+        '200':
+          description: OK
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GardenInput'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [GardenInputs]
+      summary: Soft-delete garden input
+      description: >
+        Admin or collaborator. Soft-delete input with optimistic concurrency (If-Match required).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GardenInputIdOrSlug'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204':
+          description: No Content
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -1796,6 +1989,35 @@ components:
             type: string
             example: slug,name
 
+    GardenInputIdOrSlug:
+      name: idOrSlug
+      in: path
+      required: true
+      description: A UUID is looked up by id; anything else by slug. Trimmed.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+        pattern: '\S'
+
+    GardenInputFields:
+      in: query
+      name: fields
+      description: >
+        JSON:API sparse fieldset. `fields[gardenInputs]` is a comma-separated list
+        of top-level fields: `id`, `slug`, `name`, `description`, `category`,
+        `actions`, `activeIngredients`, `nutrients`, `targets`, `recipes`,
+        `resources`, `status`, `deletedAt`, `metadata`, `version`.
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties: false
+        properties:
+          gardenInputs:
+            type: string
+            example: slug,name,category
+
     BedId:
       name: id
       in: path
@@ -2392,6 +2614,342 @@ components:
           maxItems: 200
           items:
             $ref: '#/components/schemas/AnomalySlug'
+
+    # ---------- Garden Inputs ----------
+
+    GardenInputCategory:
+      type: string
+      enum: [defense, fertilizer, biostimulant, soil_amendment]
+
+    GardenInputAction:
+      type: string
+      enum:
+        [
+          fungicide,
+          insecticide,
+          repellent,
+          nematicide,
+          fertilizer,
+          biostimulant,
+          rooting,
+          compost_activator
+        ]
+
+    Ingredient:
+      type: object
+      required: [item, quantity]
+      properties:
+        item:
+          type: string
+        quantity:
+          type: string
+
+    Dosage:
+      type: object
+      required: [method, dilution, frequency]
+      properties:
+        method:
+          type: string
+          enum: [foliar, irrigation, soil, soaking, dusting, other]
+        dilution:
+          type: string
+        frequency:
+          type: string
+
+    Storage:
+      type: object
+      required: [duration, conditions]
+      properties:
+        duration:
+          type: string
+        conditions:
+          type: string
+        spoilageSigns:
+          type: string
+
+    Recipe:
+      type: object
+      required: [name, ingredients, instructions, dosage]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        instructions:
+          type: array
+          items:
+            type: string
+        brewTime:
+          type: string
+        dosage:
+          $ref: '#/components/schemas/Dosage'
+        storage:
+          $ref: '#/components/schemas/Storage'
+        safetyNotes:
+          type: array
+          items:
+            type: string
+
+    GardenInput:
+      type: object
+      required: [id, slug, name, category, status, version, metadata]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+        slug:
+          type: string
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        description:
+          $ref: '#/components/schemas/RequiredLongText'
+        category:
+          $ref: '#/components/schemas/GardenInputCategory'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GardenInputAction'
+        activeIngredients:
+          type: array
+          items:
+            type: string
+        nutrients:
+          type: array
+          items:
+            type: string
+        targets:
+          type: array
+          items:
+            type: string
+        recipes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipe'
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportResource'
+        status:
+          type: string
+          enum: [active, deleted]
+        deletedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+
+    GardenInputFieldset:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+        slug:
+          type: string
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        description:
+          $ref: '#/components/schemas/RequiredLongText'
+        category:
+          $ref: '#/components/schemas/GardenInputCategory'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GardenInputAction'
+        activeIngredients:
+          type: array
+          items:
+            type: string
+        nutrients:
+          type: array
+          items:
+            type: string
+        targets:
+          type: array
+          items:
+            type: string
+        recipes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipe'
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportResource'
+        status:
+          type: string
+          enum: [active, deleted]
+        deletedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/Metadata'
+          readOnly: true
+
+    CreateGardenInput:
+      type: object
+      additionalProperties: false
+      required: [id, slug, name, category]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        description:
+          $ref: '#/components/schemas/RequiredLongText'
+        category:
+          $ref: '#/components/schemas/GardenInputCategory'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GardenInputAction'
+        activeIngredients:
+          type: array
+          items:
+            type: string
+        nutrients:
+          type: array
+          items:
+            type: string
+        targets:
+          type: array
+          items:
+            type: string
+        recipes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipe'
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportResource'
+
+    UpdateGardenInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        description:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 2000
+          pattern: '\S'
+        category:
+          $ref: '#/components/schemas/GardenInputCategory'
+        actions:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/GardenInputAction'
+        activeIngredients:
+          type: array
+          nullable: true
+          items:
+            type: string
+        nutrients:
+          type: array
+          nullable: true
+          items:
+            type: string
+        targets:
+          type: array
+          nullable: true
+          items:
+            type: string
+        recipes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Recipe'
+        resources:
+          type: array
+          nullable: true
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/SupportResource'
+
+    GardenInputListFilter:
+      type: object
+      additionalProperties: false
+      description: Declared filterable fields only.
+      properties:
+        slug:
+          description: Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              type: string
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+        category:
+          description: Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              $ref: '#/components/schemas/GardenInputCategory'
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+        action:
+          description: Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              $ref: '#/components/schemas/GardenInputAction'
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+        status:
+          description: Exactly one operator.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              type: string
+              enum: [active, deleted]
+            in:
+              $ref: '#/components/schemas/FilterTextList'
+
+    GardenInputListSort:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { $ref: '#/components/schemas/SortDirection' }
+        slug: { $ref: '#/components/schemas/SortDirection' }
+        category: { $ref: '#/components/schemas/SortDirection' }
 
     # ---------- Plants ----------
 
