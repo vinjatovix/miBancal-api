@@ -70,6 +70,18 @@ Given(
 );
 
 Given(
+  'a seeded anomaly {string} exists with treatment {string}',
+  async function (this: AgroWorld, slug: string, treatment: string) {
+    const seeded = await seedAnomaly({
+      slug,
+      treatment: [treatment]
+    });
+    this.anomalyId = seeded.id;
+    this.anomalySlug = seeded.slug;
+  }
+);
+
+Given(
   'the look-alike anomaly is soft-deleted',
   async function (this: AgroWorld) {
     assert.exists(this.otherAnomalyId, 'No look-alike anomaly was seeded');

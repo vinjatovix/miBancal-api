@@ -38,6 +38,16 @@ import type {
 } from '../../../Contexts/Agro/Families/application/useCases/index.js';
 import type { MongoFamilyRepository } from '../../../Contexts/Agro/Families/infrastructure/persistence/MongoFamilyRepository.js';
 import type { FamilyPersistenceMapper } from '../../../Contexts/Agro/Families/mappers/interfaces/FamilyPersistenceMapper.js';
+import type { GardenInputReadRepository } from '../../../Contexts/Agro/GardenInputs/application/queries/index.js';
+import type {
+  CreateGardenInput,
+  DeleteGardenInput,
+  GetGardenInputByIdOrSlug,
+  ListGardenInputs,
+  UpdateGardenInput
+} from '../../../Contexts/Agro/GardenInputs/application/useCases/index.js';
+import type { MongoGardenInputRepository } from '../../../Contexts/Agro/GardenInputs/infrastructure/persistence/MongoGardenInputRepository.js';
+import type { GardenInputPersistenceMapper } from '../../../Contexts/Agro/GardenInputs/mappers/interfaces/GardenInputPersistenceMapper.js';
 import type {
   GetPlantInstanceById,
   ListPlantInstances,
@@ -138,6 +148,13 @@ import type {
   GetFamilyBySlugController,
   UpdateFamilyController
 } from '../controllers/Families/index.js';
+import type {
+  CreateGardenInputController,
+  DeleteGardenInputController,
+  GetGardenInputByIdOrSlugController,
+  ListGardenInputsController,
+  UpdateGardenInputController
+} from '../controllers/GardenInputs/index.js';
 import type { HealthController } from '../controllers/health/HealthController.js';
 import type {
   GetPlantInstanceByIdController,
@@ -172,6 +189,7 @@ export type ContainerCradle = {
   bedPersistenceMapper: BedPersistenceMapper;
   familyPersistenceMapper: FamilyPersistenceMapper;
   anomalyPersistenceMapper: AnomalyPersistenceMapper;
+  gardenInputPersistenceMapper: GardenInputPersistenceMapper;
   plantPersistenceMapper: PlantPersistenceMapper;
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
   userBookmarksPersistenceMapper: UserBookmarksPersistenceMapper;
@@ -201,6 +219,8 @@ export type ContainerCradle = {
   familyReadRepository: FamilyReadRepository;
   anomalyRepository: MongoAnomalyRepository;
   anomalyReadRepository: AnomalyReadRepository;
+  gardenInputRepository: MongoGardenInputRepository;
+  gardenInputReadRepository: GardenInputReadRepository;
   plantRepository: MongoPlantRepository;
   plantReadRepository: PlantReadRepository;
   bedRepository: MongoBedRepository;
@@ -233,6 +253,11 @@ export type ContainerCradle = {
   createAnomaly: CreateAnomaly;
   updateAnomaly: UpdateAnomaly;
   deleteAnomaly: DeleteAnomaly;
+  getGardenInputByIdOrSlug: GetGardenInputByIdOrSlug;
+  listGardenInputs: ListGardenInputs;
+  createGardenInput: CreateGardenInput;
+  updateGardenInput: UpdateGardenInput;
+  deleteGardenInput: DeleteGardenInput;
   createPlant: CreatePlant;
   getPlant: GetPlant;
   listPlants: ListPlants;
@@ -278,6 +303,11 @@ export type ContainerCradle = {
   createAnomalyController: CreateAnomalyController;
   updateAnomalyController: UpdateAnomalyController;
   deleteAnomalyController: DeleteAnomalyController;
+  getGardenInputByIdOrSlugController: GetGardenInputByIdOrSlugController;
+  listGardenInputsController: ListGardenInputsController;
+  createGardenInputController: CreateGardenInputController;
+  updateGardenInputController: UpdateGardenInputController;
+  deleteGardenInputController: DeleteGardenInputController;
   createPlantController: CreatePlantController;
   getAllPlantsController: GetAllPlantsController;
   getPlantByIdController: GetPlantByIdController;

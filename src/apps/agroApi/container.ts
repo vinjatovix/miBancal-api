@@ -14,6 +14,7 @@ import { anomalyPersistenceMapper } from '../../Contexts/Agro/Anomalies/mappers/
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
 import { userBookmarksPersistenceMapper } from '../../Contexts/Agro/Bookmarks/mappers/userBookmarksPersistenceMapper.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
+import { gardenInputPersistenceMapper } from '../../Contexts/Agro/GardenInputs/mappers/gardenInputPersistenceMapperImpl.js';
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
 import { plantLikePersistenceMapper } from '../../Contexts/Agro/PlantLikes/mappers/plantLikePersistenceMapper.js';
@@ -70,6 +71,7 @@ export function buildExplicitRegistrations({
     bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
     familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
     anomalyPersistenceMapper: asValue(anomalyPersistenceMapper), // Plain persistence mapper without class state
+    gardenInputPersistenceMapper: asValue(gardenInputPersistenceMapper), // Plain persistence mapper without class state
     plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
     plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
     userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper), // Plain persistence mapper without class state

@@ -26,6 +26,7 @@ import { FakeGoogleIdTokenVerifier } from '../../shared/fakes/FakeGoogleIdTokenV
 import {
   AnomalySeeder,
   FamilySeeder,
+  GardenInputSeeder,
   PlantSeeder,
   UserSeeder
 } from '../../shared/seeders/index.js';
@@ -47,6 +48,7 @@ export interface SuiteResources {
     plant: ReturnType<typeof PlantSeeder>;
     family: ReturnType<typeof FamilySeeder>;
     anomaly: ReturnType<typeof AnomalySeeder>;
+    gardenInput: ReturnType<typeof GardenInputSeeder>;
     user: ReturnType<typeof UserSeeder>;
   }>;
 }
@@ -152,6 +154,7 @@ const buildSuite = async (): Promise<SuiteResources> => {
       family: FamilySeeder(httpServer, tokens.admin),
       plant: PlantSeeder(httpServer, tokens.admin),
       anomaly: AnomalySeeder(httpServer, tokens.admin),
+      gardenInput: GardenInputSeeder(httpServer, tokens.admin),
       user: UserSeeder({
         authRepository: container.resolve<AuthRepository>('authRepository'),
         encrypter,

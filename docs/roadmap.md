@@ -925,7 +925,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [knowledge.md](spec/modules/knowledge.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
 
-- **Status**: Completed (feature `041-anomaly-domain`: spec module [knowledge.md](spec/modules/knowledge.md) delivered; `Anomaly` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, and a one-directional `Plant.anomalies` slug list validated at write time; collection and endpoints fully implemented).
+- **Status**: Completed (features `041-anomaly-domain` and `042-anomaly-encyclopedic-content`: spec module [knowledge.md](spec/modules/knowledge.md) delivered; `Anomaly` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, visual `SupportResource` attachments, differential diagnosis `confusedWith` pointers, and a one-directional `Plant.anomalies` slug list validated at write time; collection and endpoints fully implemented).
 - **Value delivered**: Unifies crop diagnosis (pests, diseases, disorders) into a central database.
 - **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented. Spec module [knowledge.md](spec/modules/knowledge.md) is documented.
 - **Dependencies**: None.
@@ -941,10 +941,11 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [knowledge.md](spec/modules/knowledge.md)
 
+- **Status**: Completed (feature `043-gardeninput-domain`: `GardenInput` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, structured recipes, dosage, and linkability; collection and endpoints fully implemented).
 - **Value delivered**: Catalogs organic remedies, treatments, and bio-stimulants with structured recipes.
 - **Definition of Done**: `GardenInput` aggregate and CRUD endpoints are fully implemented.
 - **Dependencies**: None.
-- **Risks**: Schema complexity.
+- **Risks**: None.
 - **Prompt for /speckit.specify**:
   ```text
   IMPLEMENT GARDENINPUT DOMAIN AND CRUD ENDPOINTS
