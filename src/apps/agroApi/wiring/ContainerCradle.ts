@@ -65,6 +65,8 @@ import type {
 } from '../../../Contexts/Agro/PlantLikes/application/useCases/index.js';
 import type { MongoPlantLikeRepository } from '../../../Contexts/Agro/PlantLikes/infrastructure/persistence/MongoPlantLikeRepository.js';
 import type { PlantLikePersistenceMapper } from '../../../Contexts/Agro/PlantLikes/mappers/interfaces/PlantLikePersistenceMapper.js';
+import type { MongoPlantRelationRepository } from '../../../Contexts/Agro/PlantRelations/infrastructure/persistence/MongoPlantRelationRepository.js';
+import type { PlantRelationPersistenceMapper } from '../../../Contexts/Agro/PlantRelations/mappers/interfaces/PlantRelationPersistenceMapper.js';
 import type {
   FamilySummaryReader,
   PlantReadRepository
@@ -194,6 +196,7 @@ export type ContainerCradle = {
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
   userBookmarksPersistenceMapper: UserBookmarksPersistenceMapper;
   plantLikePersistenceMapper: PlantLikePersistenceMapper;
+  plantRelationPersistenceMapper: PlantRelationPersistenceMapper;
   cropSpatialService: CropSpatialService;
   unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
@@ -228,6 +231,7 @@ export type ContainerCradle = {
   userBookmarksRepository: MongoUserBookmarksRepository;
   plantLikeRepository: MongoPlantLikeRepository;
   plantLikesCounterRepository: MongoPlantLikesCounterRepository;
+  plantRelationRepository: MongoPlantRelationRepository;
   plantQueryMapper: PlantQueryMapper;
 
   // Scoped use cases
