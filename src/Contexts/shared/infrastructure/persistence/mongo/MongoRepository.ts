@@ -49,13 +49,15 @@ export abstract class MongoRepository {
     );
   }
 
-  protected async delete(id: string): Promise<void> {
+  protected async delete(id: string): Promise<boolean> {
     const collection = this.collection();
     const _id = toMongoId(id);
 
-    await this.handleMongoError(() =>
+    const result = await this.handleMongoError(() =>
       collection.deleteOne({ _id }, this.sessionOptions())
     );
+
+    return result.deletedCount === 1;
   }
 
   protected async handleMongoError<T>(operation: () => Promise<T>): Promise<T> {

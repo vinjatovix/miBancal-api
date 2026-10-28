@@ -18,6 +18,7 @@ import { gardenInputPersistenceMapper } from '../../Contexts/Agro/GardenInputs/m
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
 import { plantLikePersistenceMapper } from '../../Contexts/Agro/PlantLikes/mappers/plantLikePersistenceMapper.js';
+import { plantRelationPersistenceMapper } from '../../Contexts/Agro/PlantRelations/mappers/plantRelationPersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { MailerAccountNotifier } from '../../Contexts/Auth/application/notifications/index.js';
 import {
@@ -76,6 +77,7 @@ export function buildExplicitRegistrations({
     plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
     userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper), // Plain persistence mapper without class state
     plantLikePersistenceMapper: asValue(plantLikePersistenceMapper), // Plain persistence mapper without class state
+    plantRelationPersistenceMapper: asValue(plantRelationPersistenceMapper), // Plain persistence mapper without class state
     cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
     unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
     familySummaryReader: aliasTo('familyReadRepository'), // Plants' port, served by the family read side
