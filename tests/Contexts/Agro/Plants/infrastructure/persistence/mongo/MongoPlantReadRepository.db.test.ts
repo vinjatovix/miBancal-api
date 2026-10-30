@@ -442,4 +442,40 @@ describe('MongoPlantReadRepository', () => {
       pagination: { page: 1, limit: 20, totalPages: 0, totalItems: 0 }
     });
   });
+
+  describe('findSummariesByIds', () => {
+    it('returns minimal summaries for requested active plant IDs in one call', async () => {
+      const plant1 = PlantFactory.random();
+      const plant2 = PlantFactory.random();
+      const deletedPlant = deleted(PlantFactory.random());
+      await saveAll([plant1, plant2, deletedPlant]);
+
+      const summaries = await readRepository.findSummariesByIds([
+        plant1.id,
+        plant2.id,
+        deletedPlant.id,
+        random.uuid()
+      ]);
+
+      expect(summaries).toHaveLength(2);
+      expect(summaries.map((s) => s.id).sort()).toEqual(
+        [plant1.id, plant2.id].sort()
+      );
+      const summary1 = summaries.find((s) => s.id === plant1.id);
+      expect(summary1).toMatchObject({
+        id: plant1.id,
+        name: { primary: plant1.identity.name.primary },
+        scientificName: plant1.identity.scientificName
+      });
+    });
+
+    it.each([
+      ['an empty list', []],
+      ['invalid UUIDs', ['not-a-uuid']]
+    ])('returns empty array when given %s', async (_description, input) => {
+      const summaries = await readRepository.findSummariesByIds(input);
+
+      expect(summaries).toEqual([]);
+    });
+  });
 });

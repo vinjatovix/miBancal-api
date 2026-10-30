@@ -81,6 +81,7 @@ export function buildExplicitRegistrations({
     cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
     unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
     familySummaryReader: aliasTo('familyReadRepository'), // Plants' port, served by the family read side
+    plantSummaryReader: aliasTo('plantReadRepository'), // PlantRelations' port, served by the plant read side
     mailer: asValue<Mailer>(
       createMailer({
         nodeEnv: envs.NODE_ENV,

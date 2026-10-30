@@ -3,7 +3,8 @@ import type {
   PlantField,
   PlantReadRepository,
   PlantReadView,
-  PlantSparseView
+  PlantSparseView,
+  PlantSummary
 } from '../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { PlantFilter } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
 import type { PaginatedResult } from '../../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
@@ -22,6 +23,7 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
   private readonly findByIdMock = jest.fn();
   private readonly findActiveByIdMock = jest.fn();
   private readonly findAllMock = jest.fn();
+  private readonly findSummariesByIdsMock = jest.fn();
   private readonly storage = new Map<string, PlantReadView>();
 
   async findById(
@@ -68,6 +70,39 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
     };
   }
 
+  async findSummariesByIds(
+    ids: readonly string[]
+  ): Promise<readonly PlantSummary[]> {
+    this.findSummariesByIdsMock(ids);
+
+    const idSet = new Set(ids);
+    const result: PlantSummary[] = [];
+
+    for (const view of this.storage.values()) {
+      if (idSet.has(view.id) && view.status !== 'DELETED') {
+        result.push({
+          id: view.id,
+          name: {
+            primary: view.identity.name.primary,
+            ...(view.identity.name.aliases && {
+              aliases: view.identity.name.aliases
+            })
+          },
+          scientificName: view.identity.scientificName,
+          image: view.image
+            ? {
+                url: view.image.url,
+                ...(view.image.title && { title: view.image.title }),
+                ...(view.image.source && { source: view.image.source })
+              }
+            : null
+        });
+      }
+    }
+
+    return result;
+  }
+
   private select(
     view: PlantReadView,
     { fields }: ReadOptions<PlantField>
@@ -106,5 +141,9 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
 
   assertFindAllHasBeenCalledWith(options: unknown): void {
     expect(this.findAllMock).toHaveBeenCalledWith(options);
+  }
+
+  assertFindSummariesByIdsHasBeenCalledWith(ids: readonly string[]): void {
+    expect(this.findSummariesByIdsMock).toHaveBeenCalledWith(ids);
   }
 }

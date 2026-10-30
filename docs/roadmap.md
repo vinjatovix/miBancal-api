@@ -1680,3 +1680,49 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHY: Protected environments have roofs; external rainfall does not water these crops.
   WHAT: Apply the Protected Environment Bypass rule in the Reminders engine, skipping Open-Meteo checks for indoor and greenhouse beds.
   ```
+
+## Iteration 87: Hierarchical Taxonomic and Broadcast Companion Resolution for Plant Relations
+
+**Spec Module(s)**: [plant-relation.md](spec/modules/plant-relation.md), [spatial.md](spec/modules/spatial.md)
+
+- **Value delivered**: Prevents relationship gaps for cultivars, generic soil pest repellents (e.g. *Tagetes* spp.), nitrogen fixers (e.g. *Trifolium* / clover), and broader botanical groups by supporting scoped taxonomic relationships and broadcast neighborhood services (`target: all`).
+- **Definition of Done**:
+  - `PlantRelation` supports defining relationships with explicit taxonomic scopes (Plant, Genus, Family) and universal broadcast (`target: all` for general soil/neighborhood benefits like nitrogen fixation, dynamic accumulation, or nematode suppression within proximity radius).
+  - Companion evaluation engine resolves compatibility in 4 tiers: exact plant pair (Tier 1: Species) -> Genus fallback derived from scientific names (Tier 2) -> Botanical Family fallback derived from the `families` collection (Tier 3) -> Broadcast neighborhood rules within distance (Tier 4: `all`).
+  - Strict specificity precedence: narrower rules shadow/override broader rules for the same mechanism (Species > Genus > Family > Broadcast) so that specific antagonistic exceptions (e.g. Fennel vs Tomato) are never overridden by family synergies.
+  - Full backward compatibility with existing direct species-to-species `PlantRelation` records.
+- **Dependencies**: Iteration 37, Iteration 38, Iteration 64.
+- **Risks**: Over-generalization of rare species-specific antagonisms if family-level or broadcast rules override specific exceptions without an explicit precedence rule (mitigated by deterministic specificity shadowing).
+- **Prompt for /speckit.specify**:
+  ```text
+  IMPLEMENT HIERARCHICAL TAXONOMIC AND BROADCAST COMPANION RESOLUTION FOR PLANT RELATIONS
+
+  WHY:
+  Pairwise species-to-species edges (e.g., Tagetes minuta -> Solanum lycopersicum) fail to cover related species (Tagetes erecta, Solanum melongena) and cannot naturally express broadcast soil services (e.g., Trifolium nitrogen fixation or Tagetes nematicidal exudates for any neighboring crop within proximity) or family-wide dynamics (e.g., Solanaceae blight susceptibility, Fabaceae-Allium antagonism). Requiring millions of manual pairwise combinations creates massive knowledge gaps.
+
+  WHAT:
+  Extend the companion relationship model and evaluation engine to support multi-tier hierarchical and broadcast companion resolution:
+  1. Scoped Companion Modeling: Support defining companion relations with explicit scopes for source and target (Plant, Genus, Family) and universal broadcast (`target: all` for neighborhood ecosystem services like nitrogen fixation, soil pest repellent, or pollinator attraction).
+  2. Multi-tier Resolution Engine: In companion evaluation, resolve relationships across 4 tiers:
+     - Tier 1 (Species): Exact plant-to-plant match (highest precedence).
+     - Tier 2 (Genus): Derived from scientificName (e.g., Tagetes spp., Allium spp.).
+     - Tier 3 (Family): Derived from botanical family reference (identity.family).
+     - Tier 4 (Broadcast / All): General neighbor effect within proximity radius (e.g., Trifolium fixing nitrogen for any adjacent crop).
+  3. Specificity Precedence: Narrower rules ALWAYS shadow/override broader rules for the same mechanism (Species > Genus > Family > Broadcast). Specific antagonistic exceptions (e.g., Fennel vs Tomato) strictly override broad family synergies without conflict merging.
+  4. Backward Compatibility: Existing species-to-species relations remain fully valid.
+  ```
+
+## Iteration 88: Expose Filter by ID in Plant Catalog Query
+
+**Spec Module(s)**: [api-layer.md](spec/modules/api-layer.md), [query.md](spec/modules/query.md)
+
+- **Value delivered**: Allows frontend clients and consumer services to batch-resolve specific arbitrary plant IDs (e.g., hydration of Bed layouts, SeedBanks, and bookmarks) in a single request.
+- **Definition of Done**: `listPlantsQuery` exposes `id: identifierField()`, validating `filter[id][eq]` and `filter[id][in]`, backed by existing `PlantQueryMapper` persistence support.
+- **Dependencies**: Iteration 4, Iteration 16.
+- **Risks**: None.
+- **Prompt for /speckit.specify**:
+  ```text
+  EXPOSE FILTER BY ID IN PLANT CATALOG QUERY
+  WHY: Clients holding plant ID references must currently fetch individual records in N+1 requests or load full catalog pages.
+  WHAT: Expose `id: identifierField()` in `listPlantsQuery` schema, allowing batch resolution via `filter[id][in]` and single lookup via `filter[id][eq]`.
+  ```

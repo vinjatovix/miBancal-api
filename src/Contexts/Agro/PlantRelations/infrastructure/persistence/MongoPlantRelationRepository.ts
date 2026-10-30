@@ -156,7 +156,10 @@ export class MongoPlantRelationRepository
     return docs.map((doc) => this.persistenceMapper.fromMongoDocument(doc));
   }
 
-  public override async delete(id: string): Promise<boolean> {
-    return super.delete(id);
+  public override async delete(
+    id: string,
+    expectedVersion?: number
+  ): Promise<boolean> {
+    return super.delete(id, expectedVersion);
   }
 }

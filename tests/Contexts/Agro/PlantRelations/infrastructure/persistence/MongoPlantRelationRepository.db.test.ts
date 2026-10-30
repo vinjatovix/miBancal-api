@@ -616,6 +616,54 @@ describe('MongoPlantRelationRepository (db)', () => {
       expect(found).toBeNull();
     });
 
+    it('physically removes existing document when expectedVersion matches current version', async () => {
+      const relation = createRelation(
+        REL_BASIL_TOMATO,
+        BASIL_ID,
+        TOMATO_ID,
+        'beneficial',
+        'pest_repellent',
+        4,
+        0,
+        50,
+        'Basil protects tomato'
+      );
+      await repository.save(relation);
+
+      const deleted = await repository.delete(
+        REL_BASIL_TOMATO,
+        relation.version
+      );
+
+      expect(deleted).toBe(true);
+      const found = await repository.findById(REL_BASIL_TOMATO);
+      expect(found).toBeNull();
+    });
+
+    it('returns false and preserves document when expectedVersion does not match current version', async () => {
+      const relation = createRelation(
+        REL_BASIL_TOMATO,
+        BASIL_ID,
+        TOMATO_ID,
+        'beneficial',
+        'pest_repellent',
+        4,
+        0,
+        50,
+        'Basil protects tomato'
+      );
+      await repository.save(relation);
+
+      const deleted = await repository.delete(
+        REL_BASIL_TOMATO,
+        relation.version + 1
+      );
+
+      expect(deleted).toBe(false);
+      const found = await repository.findById(REL_BASIL_TOMATO);
+      expect(found).not.toBeNull();
+    });
+
     it('returns false when deleting a non-existent identifier', async () => {
       const nonExistentId = '0192e201-0000-7000-8000-000000000999';
 

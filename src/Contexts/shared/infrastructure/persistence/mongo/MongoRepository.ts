@@ -49,12 +49,19 @@ export abstract class MongoRepository {
     );
   }
 
-  protected async delete(id: string): Promise<boolean> {
+  protected async delete(
+    id: string,
+    expectedVersion?: number
+  ): Promise<boolean> {
     const collection = this.collection();
-    const _id = toMongoId(id);
+    const filter: Record<string, unknown> = { _id: toMongoId(id) };
+
+    if (expectedVersion !== undefined) {
+      filter.version = expectedVersion;
+    }
 
     const result = await this.handleMongoError(() =>
-      collection.deleteOne({ _id }, this.sessionOptions())
+      collection.deleteOne(filter, this.sessionOptions())
     );
 
     return result.deletedCount === 1;
