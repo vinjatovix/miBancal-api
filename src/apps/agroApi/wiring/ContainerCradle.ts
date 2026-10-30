@@ -65,6 +65,18 @@ import type {
 } from '../../../Contexts/Agro/PlantLikes/application/useCases/index.js';
 import type { MongoPlantLikeRepository } from '../../../Contexts/Agro/PlantLikes/infrastructure/persistence/MongoPlantLikeRepository.js';
 import type { PlantLikePersistenceMapper } from '../../../Contexts/Agro/PlantLikes/mappers/interfaces/PlantLikePersistenceMapper.js';
+import type {
+  PlantRelationReadRepository,
+  PlantSummaryReader
+} from '../../../Contexts/Agro/PlantRelations/application/queries/index.js';
+import type {
+  CreatePlantRelation,
+  DeletePlantRelation,
+  GetPlantRelationById,
+  ListPlantRelations,
+  UpdatePlantRelation
+} from '../../../Contexts/Agro/PlantRelations/application/useCases/index.js';
+import type { PlantRelationQueryMapper } from '../../../Contexts/Agro/PlantRelations/infrastructure/persistence/mappers/PlantRelationQueryMapper.js';
 import type { MongoPlantRelationRepository } from '../../../Contexts/Agro/PlantRelations/infrastructure/persistence/MongoPlantRelationRepository.js';
 import type { PlantRelationPersistenceMapper } from '../../../Contexts/Agro/PlantRelations/mappers/interfaces/PlantRelationPersistenceMapper.js';
 import type {
@@ -171,6 +183,13 @@ import type {
   UnlikePlantController
 } from '../controllers/PlantLikes/index.js';
 import type {
+  CreatePlantRelationController,
+  DeletePlantRelationController,
+  GetPlantRelationByIdController,
+  ListPlantRelationsController,
+  UpdatePlantRelationController
+} from '../controllers/PlantRelations/index.js';
+import type {
   CreatePlantController,
   DeletePlantController,
   GetAllPlantsController,
@@ -200,6 +219,7 @@ export type ContainerCradle = {
   cropSpatialService: CropSpatialService;
   unitOfWork: UnitOfWork;
   familySummaryReader: FamilySummaryReader;
+  plantSummaryReader: PlantSummaryReader;
   mailer: Mailer;
   backgroundTasks: BackgroundTasks;
   accountNotifier: AccountNotifier;
@@ -232,6 +252,8 @@ export type ContainerCradle = {
   plantLikeRepository: MongoPlantLikeRepository;
   plantLikesCounterRepository: MongoPlantLikesCounterRepository;
   plantRelationRepository: MongoPlantRelationRepository;
+  plantRelationReadRepository: PlantRelationReadRepository;
+  plantRelationQueryMapper: PlantRelationQueryMapper;
   plantQueryMapper: PlantQueryMapper;
 
   // Scoped use cases
@@ -284,6 +306,11 @@ export type ContainerCradle = {
   likePlant: LikePlant;
   unlikePlant: UnlikePlant;
   checkPlantLike: CheckPlantLike;
+  createPlantRelation: CreatePlantRelation;
+  getPlantRelationById: GetPlantRelationById;
+  listPlantRelations: ListPlantRelations;
+  updatePlantRelation: UpdatePlantRelation;
+  deletePlantRelation: DeletePlantRelation;
 
   // Scoped controllers
   healthController: HealthController;
@@ -322,6 +349,11 @@ export type ContainerCradle = {
   getBedByIdController: GetBedByIdController;
   updateBedController: UpdateBedController;
   deleteBedController: DeleteBedController;
+  createPlantRelationController: CreatePlantRelationController;
+  getPlantRelationByIdController: GetPlantRelationByIdController;
+  listPlantRelationsController: ListPlantRelationsController;
+  updatePlantRelationController: UpdatePlantRelationController;
+  deletePlantRelationController: DeletePlantRelationController;
   placePlantInstanceController: PlacePlantInstanceController;
   getPlantInstanceByIdController: GetPlantInstanceByIdController;
   listPlantInstancesController: ListPlantInstancesController;

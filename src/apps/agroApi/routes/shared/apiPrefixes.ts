@@ -9,5 +9,6 @@ export const API_PREFIXES = {
   beds: '/api/v1/beds',
   plantInstances: '/api/v1/plant-instances',
   users: '/api/v1/users',
-  bookmarks: '/api/v1/bookmarks'
+  bookmarks: '/api/v1/bookmarks',
+  plantRelations: '/api/v1/plant-relations'
 } as const;

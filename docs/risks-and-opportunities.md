@@ -128,3 +128,9 @@
 - **Technical Reason:** Executing complex, data-mutating migrations (e.g., backfilling `sowingMethod` to `establishment`) during the Node.js application startup phase (`app.listen`) is highly dangerous in orchestrated environments (Kubernetes/Docker Swarm).
 - **Opportunity/Risk:** Multiple replicated pods starting simultaneously will attempt to run the same backfill scripts, causing database locking contention or data corruption.
 - **Benefit/Mitigation:** Extract schema migration execution (`migrate-mongo`) completely out of the Express lifecycle. Migrations should be executed by isolated `init-containers` or dedicated CI/CD release jobs before the application pods are updated.
+
+### 2.22 Taxonomic Propagation and Hierarchical Evaluation of Companion Relations `[PRODUCT FEATURE - Backlog]`
+
+- **Technical Reason:** Biological relationships in companion planting are predominantly conserved at the genus or family level (e.g., all _Allium_ species deter pests but inhibit _Fabaceae_ nodulation; all _Brassicaceae_ suffer from _Pieris_ caterpillars; _Juglandaceae_ secrete allelopathic juglone against _Solanaceae_), or operate as broadcast soil/neighborhood services (e.g., _Trifolium_ fixing nitrogen or _Tagetes_ exuding nematicidal compounds for any adjacent crop within proximity). Defining strictly pairwise species edges (`sourcePlantId`, `targetPlantId`) creates knowledge blind spots whenever a grower uses a specific cultivar, sub-variety, or unlinked neighbor species.
+- **Opportunity:** Introduce a multi-tier hierarchical companion resolution strategy (Species -> Genus -> Family -> Broadcast `all` within proximity radius) with explicit scoping support on companion relations.
+- **Benefit:** Guarantees universal compatibility coverage for thousands of catalog cultivars and varieties without bloating the database graph with combinatorial millions of redundant edges.

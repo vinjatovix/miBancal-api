@@ -1,8 +1,12 @@
 import type { CollationOptions, Db } from 'mongodb';
+import { validate as validateUuid } from 'uuid';
 import type { ReadOptions } from '../../../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { Nullable } from '../../../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../../../shared/domain/types/UnknownRecord.js';
-import { toMongoId } from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
+import {
+  fromMongoId,
+  toMongoId
+} from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import {
   MongoReadRepository,
   type ProjectionExpression,
@@ -12,7 +16,8 @@ import type {
   PlantField,
   PlantReadRepository,
   PlantReadView,
-  PlantSparseView
+  PlantSparseView,
+  PlantSummary
 } from '../../../application/queries/index.js';
 import type { PlantFilter } from '../../../domain/entities/types/PlantFilter.js';
 import type { PlantQueryMapper } from './mappers/PlantQueryMapper.js';
@@ -128,5 +133,43 @@ export class MongoPlantReadRepository
       { _id: toMongoId(id), ...this.activeFilter() },
       options
     );
+  }
+
+  async findSummariesByIds(
+    ids: readonly string[]
+  ): Promise<readonly PlantSummary[]> {
+    const mongoIds = [...new Set(ids)].filter(validateUuid).map(toMongoId);
+    if (mongoIds.length === 0) return [];
+
+    const filter: UnknownRecord = {
+      _id: { $in: mongoIds },
+      ...this.activeFilter()
+    };
+    const documents = await this.collection()
+      .find<StoredPlantDocument>(filter, {
+        projection: {
+          _id: 1,
+          'identity.name': 1,
+          'identity.scientificName': 1,
+          image: PRIMARY_IMAGE
+        }
+      })
+      .toArray();
+
+    return documents.map((doc) => ({
+      id: fromMongoId(doc._id),
+      name: {
+        primary: doc.identity.name.primary,
+        ...(doc.identity.name.aliases && { aliases: doc.identity.name.aliases })
+      },
+      scientificName: doc.identity.scientificName,
+      image: doc.image
+        ? {
+            url: doc.image.url,
+            ...(doc.image.title && { title: doc.image.title }),
+            ...(doc.image.source && { source: doc.image.source })
+          }
+        : null
+    }));
   }
 }

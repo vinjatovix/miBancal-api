@@ -15,5 +15,5 @@ export interface PlantRelationRepository {
     plantBId: string
   ): Promise<PlantRelation[]>;
   findForPlantBatch(plantIds: string[]): Promise<PlantRelation[]>;
-  delete(id: string): Promise<boolean>;
+  delete(id: string, expectedVersion?: number): Promise<boolean>;
 }
