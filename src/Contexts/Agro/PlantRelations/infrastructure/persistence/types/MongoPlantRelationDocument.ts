@@ -5,8 +5,16 @@ import type { PlantRelationType } from '../../../domain/entities/types/PlantRela
 
 export type MongoPlantRelationDocument = {
   _id: Binary | string;
-  sourcePlantId: Binary | string;
-  targetPlantId: Binary | string;
+  source?: {
+    scope: 'plant' | 'genus' | 'family';
+    value?: Binary | string;
+  };
+  target?: {
+    scope: 'plant' | 'genus' | 'family' | 'all';
+    value?: Binary | string;
+  };
+  sourcePlantId?: Binary | string;
+  targetPlantId?: Binary | string;
   type: PlantRelationType;
   mechanism: PlantRelationMechanism;
   strength: number;

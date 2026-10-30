@@ -66,6 +66,7 @@ import type {
 import type { MongoPlantLikeRepository } from '../../../Contexts/Agro/PlantLikes/infrastructure/persistence/MongoPlantLikeRepository.js';
 import type { PlantLikePersistenceMapper } from '../../../Contexts/Agro/PlantLikes/mappers/interfaces/PlantLikePersistenceMapper.js';
 import type {
+  FamilySummaryReader as PlantRelationFamilySummaryReader,
   PlantRelationReadRepository,
   PlantSummaryReader
 } from '../../../Contexts/Agro/PlantRelations/application/queries/index.js';
@@ -76,6 +77,7 @@ import type {
   ListPlantRelations,
   UpdatePlantRelation
 } from '../../../Contexts/Agro/PlantRelations/application/useCases/index.js';
+import type { CompanionEvaluationService } from '../../../Contexts/Agro/PlantRelations/domain/services/CompanionEvaluationService.js';
 import type { PlantRelationQueryMapper } from '../../../Contexts/Agro/PlantRelations/infrastructure/persistence/mappers/PlantRelationQueryMapper.js';
 import type { MongoPlantRelationRepository } from '../../../Contexts/Agro/PlantRelations/infrastructure/persistence/MongoPlantRelationRepository.js';
 import type { PlantRelationPersistenceMapper } from '../../../Contexts/Agro/PlantRelations/mappers/interfaces/PlantRelationPersistenceMapper.js';
@@ -217,8 +219,9 @@ export type ContainerCradle = {
   plantLikePersistenceMapper: PlantLikePersistenceMapper;
   plantRelationPersistenceMapper: PlantRelationPersistenceMapper;
   cropSpatialService: CropSpatialService;
+  companionEvaluationService: CompanionEvaluationService;
   unitOfWork: UnitOfWork;
-  familySummaryReader: FamilySummaryReader;
+  familySummaryReader: FamilySummaryReader & PlantRelationFamilySummaryReader;
   plantSummaryReader: PlantSummaryReader;
   mailer: Mailer;
   backgroundTasks: BackgroundTasks;

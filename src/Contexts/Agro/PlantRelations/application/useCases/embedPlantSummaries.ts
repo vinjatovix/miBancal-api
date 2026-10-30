@@ -29,8 +29,8 @@ export const embedPlantSummaries = async (
 
   const ids = new Set<string>();
   for (const view of views) {
-    if (includeSource) ids.add(view.sourcePlantId);
-    if (includeTarget) ids.add(view.targetPlantId);
+    if (includeSource && view.sourcePlantId) ids.add(view.sourcePlantId);
+    if (includeTarget && view.targetPlantId) ids.add(view.targetPlantId);
   }
 
   if (ids.size === 0) return [...views];
@@ -42,11 +42,11 @@ export const embedPlantSummaries = async (
 
   return views.map((view) => {
     const sourcePlant =
-      includeSource && summaries.has(view.sourcePlantId)
+      includeSource && view.sourcePlantId && summaries.has(view.sourcePlantId)
         ? summaries.get(view.sourcePlantId)
         : undefined;
     const targetPlant =
-      includeTarget && summaries.has(view.targetPlantId)
+      includeTarget && view.targetPlantId && summaries.has(view.targetPlantId)
         ? summaries.get(view.targetPlantId)
         : undefined;
 

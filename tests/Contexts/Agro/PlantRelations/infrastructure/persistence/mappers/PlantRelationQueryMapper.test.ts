@@ -6,6 +6,7 @@ describe('PlantRelationQueryMapper', () => {
   const mapper = new PlantRelationQueryMapper();
   const plantAId = '00000000-0000-4000-8000-000000000001';
   const plantBId = '00000000-0000-4000-8000-000000000002';
+  const familyId = '00000000-0000-4000-8000-000000000099';
 
   it('should return empty query when no filter is provided', () => {
     const query = mapper.toMongo({});
@@ -65,7 +66,7 @@ describe('PlantRelationQueryMapper', () => {
     });
   });
 
-  it('should map plantId eq to an $or clause on sourcePlantId or targetPlantId', () => {
+  it('should map plantId eq to an $or clause across modern and legacy fields', () => {
     const filter: PlantRelationFilter = {
       plantId: { eq: plantAId }
     };
@@ -74,13 +75,15 @@ describe('PlantRelationQueryMapper', () => {
 
     expect(query).toEqual({
       $or: [
+        { 'source.scope': 'plant', 'source.value': toMongoId(plantAId) },
+        { 'target.scope': 'plant', 'target.value': toMongoId(plantAId) },
         { sourcePlantId: toMongoId(plantAId) },
         { targetPlantId: toMongoId(plantAId) }
       ]
     });
   });
 
-  it('should map plantId in to an $or clause with $in arrays', () => {
+  it('should map plantId in to an $or clause with $in arrays across modern and legacy fields', () => {
     const filter: PlantRelationFilter = {
       plantId: { in: [plantAId, plantBId] }
     };
@@ -89,8 +92,70 @@ describe('PlantRelationQueryMapper', () => {
 
     expect(query).toEqual({
       $or: [
+        {
+          'source.scope': 'plant',
+          'source.value': { $in: [toMongoId(plantAId), toMongoId(plantBId)] }
+        },
+        {
+          'target.scope': 'plant',
+          'target.value': { $in: [toMongoId(plantAId), toMongoId(plantBId)] }
+        },
         { sourcePlantId: { $in: [toMongoId(plantAId), toMongoId(plantBId)] } },
         { targetPlantId: { $in: [toMongoId(plantAId), toMongoId(plantBId)] } }
+      ]
+    });
+  });
+
+  it('should map sourceScope eq condition', () => {
+    const filter: PlantRelationFilter = {
+      sourceScope: { eq: 'genus' }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({
+      'source.scope': 'genus'
+    });
+  });
+
+  it('should map targetScope eq condition', () => {
+    const filter: PlantRelationFilter = {
+      targetScope: { eq: 'all' }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({
+      'target.scope': 'all'
+    });
+  });
+
+  it('should map genus eq to an $or clause over source or target genus', () => {
+    const filter: PlantRelationFilter = {
+      genus: { eq: 'Solanum' }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({
+      $or: [
+        { 'source.scope': 'genus', 'source.value': 'Solanum' },
+        { 'target.scope': 'genus', 'target.value': 'Solanum' }
+      ]
+    });
+  });
+
+  it('should map familyId eq to an $or clause over source or target family with binary value', () => {
+    const filter: PlantRelationFilter = {
+      familyId: { eq: familyId }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({
+      $or: [
+        { 'source.scope': 'family', 'source.value': toMongoId(familyId) },
+        { 'target.scope': 'family', 'target.value': toMongoId(familyId) }
       ]
     });
   });
@@ -155,10 +220,76 @@ describe('PlantRelationQueryMapper', () => {
     expect(query).toEqual({
       type: 'beneficial',
       $or: [
+        { 'source.scope': 'plant', 'source.value': toMongoId(plantAId) },
+        { 'target.scope': 'plant', 'target.value': toMongoId(plantAId) },
         { sourcePlantId: toMongoId(plantAId) },
         { targetPlantId: toMongoId(plantAId) }
       ]
     });
+  });
+
+  it('should map appliesTo to a single $or clause across all tiers and both sides', () => {
+    const filter: PlantRelationFilter = {
+      appliesTo: { plantId: plantAId, genus: 'Solanum', familyId }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({
+      $or: [
+        { 'source.scope': 'plant', 'source.value': toMongoId(plantAId) },
+        { 'target.scope': 'plant', 'target.value': toMongoId(plantAId) },
+        { 'source.scope': 'genus', 'source.value': 'Solanum' },
+        { 'target.scope': 'genus', 'target.value': 'Solanum' },
+        { 'source.scope': 'family', 'source.value': toMongoId(familyId) },
+        { 'target.scope': 'family', 'target.value': toMongoId(familyId) },
+        { 'target.scope': 'all' }
+      ]
+    });
+  });
+
+  it('should omit the genus and family branches when they are not resolved', () => {
+    const filter: PlantRelationFilter = {
+      appliesTo: { plantId: plantAId }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({
+      $or: [
+        { 'source.scope': 'plant', 'source.value': toMongoId(plantAId) },
+        { 'target.scope': 'plant', 'target.value': toMongoId(plantAId) },
+        { 'target.scope': 'all' }
+      ]
+    });
+  });
+
+  it('should combine appliesTo with a scalar filter under $and-free query', () => {
+    const filter: PlantRelationFilter = {
+      type: { eq: 'beneficial' },
+      appliesTo: { plantId: plantAId }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({
+      type: 'beneficial',
+      $or: [
+        { 'source.scope': 'plant', 'source.value': toMongoId(plantAId) },
+        { 'target.scope': 'plant', 'target.value': toMongoId(plantAId) },
+        { 'target.scope': 'all' }
+      ]
+    });
+  });
+
+  it('should ignore appliesToPlantId (resolved by the application layer)', () => {
+    const filter: PlantRelationFilter = {
+      appliesToPlantId: { eq: plantAId }
+    };
+
+    const query = mapper.toMongo(filter);
+
+    expect(query).toEqual({});
   });
 
   describe('sort mapping', () => {

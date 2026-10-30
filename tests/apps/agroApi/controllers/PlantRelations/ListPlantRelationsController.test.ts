@@ -22,6 +22,14 @@ describe('ListPlantRelationsController', () => {
 
   const sampleView: PlantRelationReadView = {
     id: '0192e201-0000-7000-8000-000000000001',
+    source: {
+      scope: 'plant',
+      value: '0192e200-0000-7000-8000-000000000001'
+    },
+    target: {
+      scope: 'plant',
+      value: '0192e200-0000-7000-8000-000000000002'
+    },
     sourcePlantId: '0192e200-0000-7000-8000-000000000001',
     targetPlantId: '0192e200-0000-7000-8000-000000000002',
     type: 'beneficial',
@@ -67,6 +75,8 @@ describe('ListPlantRelationsController', () => {
       data: [
         {
           id: sampleView.id,
+          source: sampleView.source,
+          target: sampleView.target,
           sourcePlantId: sampleView.sourcePlantId,
           targetPlantId: sampleView.targetPlantId,
           type: sampleView.type,
@@ -87,13 +97,13 @@ describe('ListPlantRelationsController', () => {
     const viewWithIncludedPlants: PlantRelationReadView = {
       ...sampleView,
       sourcePlant: {
-        id: sampleView.sourcePlantId,
+        id: sampleView.sourcePlantId!,
         name: { primary: 'tomate', aliases: ['tomatera'] },
         scientificName: 'solanum lycopersicum',
         image: { url: 'https://example.com/tomato.jpg' }
       },
       targetPlant: {
-        id: sampleView.targetPlantId,
+        id: sampleView.targetPlantId!,
         name: { primary: 'albahaca' },
         scientificName: 'ocimum basilicum',
         image: null
@@ -134,6 +144,8 @@ describe('ListPlantRelationsController', () => {
       data: [
         {
           id: sampleView.id,
+          source: sampleView.source,
+          target: sampleView.target,
           sourcePlantId: sampleView.sourcePlantId,
           targetPlantId: sampleView.targetPlantId,
           type: sampleView.type,
@@ -152,8 +164,46 @@ describe('ListPlantRelationsController', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it('answers 200 OK when filtering with scoped parameters', async () => {
+    const paginatedResult = {
+      data: [sampleView],
+      pagination: {
+        totalItems: 1,
+        page: 1,
+        limit: 25,
+        totalPages: 1
+      }
+    };
+    const executeMock = jest.fn().mockResolvedValue(paginatedResult);
+    const listPlantRelations = {
+      execute: executeMock
+    } as unknown as ListPlantRelations;
+    const controller = new ListPlantRelationsController({
+      listPlantRelations,
+      logger: fakeLogger
+    });
+    const req = buildRequest({
+      query: {
+        filter: {
+          sourceScope: { eq: 'plant' },
+          targetScope: { eq: 'plant' },
+          genus: { eq: 'Solanum' }
+        }
+      }
+    });
+    const { res, status, json } = buildResponse();
+    const next = buildNext();
+
+    await runWithValidation(listPlantRelationsRequest, req, res);
+    await controller.run(req, res, next as NextFunction);
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toBeDefined();
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('forwards error to next when use case fails', async () => {
-    const error = new Error('Database error');
+    const error = new Error('Database connection failed');
     const listPlantRelations = {
       execute: jest.fn().mockRejectedValue(error)
     } as unknown as ListPlantRelations;

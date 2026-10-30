@@ -55,7 +55,9 @@ const identitySchema = z.object({
     aliases: labelListSchema.exactOptional()
   }),
   scientificName: requiredShortTextResponseSchema,
-  family: plantFamilySchema
+  family: plantFamilySchema,
+  // Read-only projection derived from `scientificName`; absent when none.
+  genus: requiredShortTextResponseSchema.exactOptional()
 });
 
 const traitsSchema = z.object({

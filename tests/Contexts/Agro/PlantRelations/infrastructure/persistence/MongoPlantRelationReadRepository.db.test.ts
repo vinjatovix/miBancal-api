@@ -6,6 +6,7 @@ import type { PlantRelationMechanism } from '../../../../../../src/Contexts/Agro
 import { createPlantRelationId } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/PlantRelationId.js';
 import type { PlantRelationRepository } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/repositories/interfaces/PlantRelationRepository.js';
 import { ProximityDistance } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/ProximityDistance.js';
+import { TaxonomicScope } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/TaxonomicScope.js';
 import { PlantRelationQueryMapper } from '../../../../../../src/Contexts/Agro/PlantRelations/infrastructure/persistence/mappers/PlantRelationQueryMapper.js';
 import { MongoPlantRelationReadRepository } from '../../../../../../src/Contexts/Agro/PlantRelations/infrastructure/persistence/MongoPlantRelationReadRepository.js';
 import { MongoPlantRelationRepository } from '../../../../../../src/Contexts/Agro/PlantRelations/infrastructure/persistence/MongoPlantRelationRepository.js';
@@ -247,6 +248,94 @@ describe('MongoPlantRelationReadRepository (db)', () => {
       expect(result.pagination.limit).toBe(2);
       expect(result.pagination.totalPages).toBe(2);
       expect(result.pagination.totalItems).toBe(3);
+    });
+  });
+
+  describe('findAll with appliesTo', () => {
+    const SOLANACEAE_ID = '0192e100-0000-7000-8000-000000000009';
+    const REL_GENUS = createPlantRelationId(
+      '0192e201-0000-7000-8000-000000000010'
+    );
+    const REL_FAMILY = createPlantRelationId(
+      '0192e201-0000-7000-8000-000000000011'
+    );
+    const REL_BROADCAST = createPlantRelationId(
+      '0192e201-0000-7000-8000-000000000012'
+    );
+    const REL_OTHER = createPlantRelationId(
+      '0192e201-0000-7000-8000-000000000013'
+    );
+
+    beforeEach(async () => {
+      // Plant tier: tomato as source.
+      await writeRepository.save(
+        PlantRelationMother.scoped(
+          TaxonomicScope.plant(TOMATO_ID),
+          TaxonomicScope.plant(BASIL_ID),
+          { id: REL_1, mechanism: 'pest_repellent' }
+        )
+      );
+      // Genus tier: Solanum.
+      await writeRepository.save(
+        PlantRelationMother.scoped(
+          TaxonomicScope.genus('Solanum'),
+          TaxonomicScope.plant(BASIL_ID),
+          { id: REL_GENUS, mechanism: 'nitrogen_fixer' }
+        )
+      );
+      // Family tier: Solanaceae.
+      await writeRepository.save(
+        PlantRelationMother.scoped(
+          TaxonomicScope.family(SOLANACEAE_ID),
+          TaxonomicScope.plant(PEPPER_ID),
+          { id: REL_FAMILY, mechanism: 'disease_vector' }
+        )
+      );
+      // Broadcast tier: a generic neighborhood service for any plant.
+      await writeRepository.save(
+        PlantRelationMother.scoped(
+          TaxonomicScope.genus('Trifolium'),
+          TaxonomicScope.all(),
+          { id: REL_BROADCAST, mechanism: 'growth_stimulator' }
+        )
+      );
+      // Does not apply to tomato: another genus and plant, other family.
+      await writeRepository.save(
+        PlantRelationMother.scoped(
+          TaxonomicScope.genus('Allium'),
+          TaxonomicScope.plant(PEPPER_ID),
+          { id: REL_OTHER, mechanism: 'allelopathy' }
+        )
+      );
+    });
+
+    it('matches the plant across every tier and broadcast in one query', async () => {
+      const result = await readRepository.findAll({
+        filter: {
+          appliesTo: {
+            plantId: TOMATO_ID,
+            genus: 'Solanum',
+            familyId: SOLANACEAE_ID
+          }
+        }
+      });
+
+      const ids = result.data.map((r) => r.id);
+      expect(result.pagination.totalItems).toBe(4);
+      expect(ids).toEqual(
+        expect.arrayContaining([REL_1, REL_GENUS, REL_FAMILY, REL_BROADCAST])
+      );
+      expect(ids).not.toContain(REL_OTHER);
+    });
+
+    it('matches only the plant and broadcast tiers when genus and family are unresolved', async () => {
+      const result = await readRepository.findAll({
+        filter: { appliesTo: { plantId: TOMATO_ID } }
+      });
+
+      const ids = result.data.map((r) => r.id);
+      expect(result.pagination.totalItems).toBe(2);
+      expect(ids).toEqual(expect.arrayContaining([REL_1, REL_BROADCAST]));
     });
   });
 });

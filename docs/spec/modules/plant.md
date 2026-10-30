@@ -264,6 +264,7 @@ Rules:
 - `GET /plants` and `GET /plants/:id` show deleted plants only to admins and collaborators (`canSeeDeletedPlants`); for everyone else the listing adds `status: { eq: ACTIVE }` to the filter, which `PlantQueryMapper` translates to the `status` field (`findAll` does not apply `activeFilter()`)
 - **Read path (Iteration 18)**: `GetPlant` and `ListPlants` depend on the read port `PlantReadRepository` (`application/queries/`), not on `PlantRepository`; they return `PlantReadView` (plain stored data) and never build a `Plant`. The visibility rule above is unchanged. Write use cases keep loading the aggregate (persistence.md §5.8.8)
 - **Derived `image` (Iteration 19b)**: `PlantReadView` has `image`, computed from `knowledge.resources` by the read projection and shaped by the read mapper (§4.4.2, Primary image). It is the only plant read field not copied from a stored field
+- **Derived `identity.genus`**: `identity.genus` is a read-only projection, the first word of `scientificName` capitalized (first letter upper, rest lower; stored scientific names are lower-case). It is never stored and never accepted on write. It is absent when no valid genus can be derived (e.g. a leading hybrid "×"). The same derivation (`shared/domain/utils/deriveGenus`, the rule of `TaxonomicScope.genus`) runs in both the read mapper and the write-response mapper, so a write response and a later read stay identical (parity test). The plant-relations context reuses it to resolve `appliesToPlantId` (plant-relation.md §8bis)
 
 ---
 

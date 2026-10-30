@@ -2,6 +2,7 @@ import { PlantRelation } from '../../../../../../src/Contexts/Agro/PlantRelation
 import type { PlantRelationPrimitives } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/entities/types/PlantRelationPrimitives.js';
 import { createPlantRelationId } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/PlantRelationId.js';
 import { ProximityDistance } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/ProximityDistance.js';
+import { TaxonomicScope } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/TaxonomicScope.js';
 import { createPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/InvalidArgumentException.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
@@ -79,7 +80,7 @@ describe('PlantRelation', () => {
           user: 'curator'
         })
       ).toThrow(
-        '<PlantRelation> sourcePlantId and targetPlantId must be distinct'
+        '<PlantRelation> source and target participants must be distinct'
       );
     });
 
@@ -290,6 +291,97 @@ describe('PlantRelation', () => {
       expect(relation.metadata.createdBy).toBe('curator-1');
       expect(relation.metadata.updatedBy).toBe('curator-1');
       expect(relation.metadata.updatedAt).toEqual(createdAt);
+    });
+  });
+
+  describe('scoped relations creation and backward compatibility', () => {
+    it('creates a genus-to-family scoped relation', () => {
+      const source = TaxonomicScope.genus('Tagetes');
+      const target = TaxonomicScope.family(
+        '0192e200-0000-7000-8000-000000000099'
+      );
+
+      const relation = PlantRelationMother.scoped(source, target, {
+        mechanism: 'pest_repellent',
+        reason: 'Tagetes repels nematodes for Solanaceae family'
+      });
+
+      expect(relation.source.scope).toBe('genus');
+      expect(relation.source.value).toBe('Tagetes');
+      expect(relation.target.scope).toBe('family');
+      expect(relation.sourcePlantId).toBeUndefined();
+      expect(relation.targetPlantId).toBeUndefined();
+    });
+
+    it('creates a universal broadcast relation targeting all', () => {
+      const source = TaxonomicScope.plant(PLANT_A_ID);
+      const target = TaxonomicScope.all();
+
+      const relation = PlantRelationMother.scoped(source, target, {
+        mechanism: 'nitrogen_fixer',
+        reason: 'Fixes atmospheric nitrogen for all neighbors'
+      });
+
+      expect(relation.source.isPlant()).toBe(true);
+      expect(relation.sourcePlantId).toBe(PLANT_A_ID);
+      expect(relation.target.isAll()).toBe(true);
+      expect(relation.targetPlantId).toBeUndefined();
+    });
+
+    it('throws InvalidArgumentException when source scope is all', () => {
+      const source = TaxonomicScope.all();
+      const target = TaxonomicScope.plant(PLANT_B_ID);
+
+      expect(() => PlantRelationMother.scoped(source, target)).toThrow(
+        '<PlantRelation> source scope cannot be broadcast "all"'
+      );
+    });
+
+    it.each([
+      [
+        'identical genus scopes',
+        TaxonomicScope.genus('Solanum'),
+        TaxonomicScope.genus('Solanum')
+      ],
+      [
+        'identical family scopes',
+        TaxonomicScope.family('0192e200-0000-7000-8000-000000000001'),
+        TaxonomicScope.family('0192e200-0000-7000-8000-000000000001')
+      ],
+      [
+        'case-insensitive genus scopes',
+        TaxonomicScope.genus('Solanum'),
+        TaxonomicScope.genus('SOLANUM')
+      ]
+    ])(
+      'throws InvalidArgumentException when source and target have %s',
+      (_label, source, target) => {
+        expect(() => PlantRelationMother.scoped(source, target)).toThrow(
+          '<PlantRelation> source and target participants must be distinct'
+        );
+      }
+    );
+
+    it('serializes and reconstitutes scoped relations preserving scopes and projections', () => {
+      const source = TaxonomicScope.genus('Allium');
+      const target = TaxonomicScope.all();
+      const original = PlantRelationMother.scoped(source, target, {
+        id: RELATION_ID,
+        type: 'beneficial',
+        mechanism: 'pest_repellent',
+        strength: 3,
+        proximity: ProximityDistance.create(0, 100),
+        reason: 'Allium volatile compounds deter pests broadly'
+      });
+
+      const primitives = original.toPrimitives();
+      const reconstituted = PlantRelation.fromPrimitives(primitives);
+
+      expect(reconstituted.source.scope).toBe('genus');
+      expect(reconstituted.source.value).toBe('Allium');
+      expect(reconstituted.target.scope).toBe('all');
+      expect(reconstituted.sourcePlantId).toBeUndefined();
+      expect(reconstituted.targetPlantId).toBeUndefined();
     });
   });
 

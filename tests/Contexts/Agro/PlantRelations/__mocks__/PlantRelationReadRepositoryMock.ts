@@ -75,19 +75,28 @@ export class PlantRelationReadRepositoryMock implements PlantRelationReadReposit
     let filtered = items;
     if (filter.sourcePlantId?.eq) {
       filtered = filtered.filter(
-        (r) => r.sourcePlantId === filter.sourcePlantId?.eq
+        (r) =>
+          r.sourcePlantId === filter.sourcePlantId?.eq ||
+          (r.source.scope === 'plant' &&
+            r.source.value === filter.sourcePlantId?.eq)
       );
     }
     if (filter.targetPlantId?.eq) {
       filtered = filtered.filter(
-        (r) => r.targetPlantId === filter.targetPlantId?.eq
+        (r) =>
+          r.targetPlantId === filter.targetPlantId?.eq ||
+          (r.target.scope === 'plant' &&
+            r.target.value === filter.targetPlantId?.eq)
       );
     }
     if (filter.plantId?.eq) {
+      const pid = filter.plantId.eq;
       filtered = filtered.filter(
         (r) =>
-          r.sourcePlantId === filter.plantId?.eq ||
-          r.targetPlantId === filter.plantId?.eq
+          (r.source.scope === 'plant' && r.source.value === pid) ||
+          (r.target.scope === 'plant' && r.target.value === pid) ||
+          r.sourcePlantId === pid ||
+          r.targetPlantId === pid
       );
     }
     return filtered;
@@ -98,6 +107,40 @@ export class PlantRelationReadRepositoryMock implements PlantRelationReadReposit
     filter: PlantRelationFilter
   ): PlantRelationReadView[] {
     let filtered = items;
+    if (filter.sourceScope?.eq) {
+      filtered = filtered.filter(
+        (r) => r.source.scope === filter.sourceScope?.eq
+      );
+    }
+    if (filter.targetScope?.eq) {
+      filtered = filtered.filter(
+        (r) => r.target.scope === filter.targetScope?.eq
+      );
+    }
+    return this.applyTaxonFilters(filtered, filter);
+  }
+
+  private applyTaxonFilters(
+    items: PlantRelationReadView[],
+    filter: PlantRelationFilter
+  ): PlantRelationReadView[] {
+    let filtered = items;
+    if (filter.genus?.eq) {
+      const g = filter.genus.eq.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          (r.source.scope === 'genus' && r.source.value?.toLowerCase() === g) ||
+          (r.target.scope === 'genus' && r.target.value?.toLowerCase() === g)
+      );
+    }
+    if (filter.familyId?.eq) {
+      const fam = filter.familyId.eq;
+      filtered = filtered.filter(
+        (r) =>
+          (r.source.scope === 'family' && r.source.value === fam) ||
+          (r.target.scope === 'family' && r.target.value === fam)
+      );
+    }
     if (filter.type?.eq) {
       filtered = filtered.filter((r) => r.type === filter.type?.eq);
     }

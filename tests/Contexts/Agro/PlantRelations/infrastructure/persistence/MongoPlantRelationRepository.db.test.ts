@@ -1,10 +1,12 @@
 import { asClass, asValue } from 'awilix';
 import type { Db } from 'mongodb';
 import { up } from '../../../../../../migrations/scripts/20261028120000-create-plant-relations-collection.js';
+import { up as upHierarchicalIndexes } from '../../../../../../migrations/scripts/20261030120000-hierarchical-plant-relations-indexes.js';
 import type { PlantRelationMechanism } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/entities/types/PlantRelationMechanism.js';
 import { createPlantRelationId } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/PlantRelationId.js';
 import type { PlantRelationRepository } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/repositories/interfaces/PlantRelationRepository.js';
 import { ProximityDistance } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/ProximityDistance.js';
+import { TaxonomicScope } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/TaxonomicScope.js';
 import { MongoPlantRelationRepository } from '../../../../../../src/Contexts/Agro/PlantRelations/infrastructure/persistence/MongoPlantRelationRepository.js';
 import { plantRelationPersistenceMapper } from '../../../../../../src/Contexts/Agro/PlantRelations/mappers/plantRelationPersistenceMapper.js';
 import { createPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
@@ -88,6 +90,7 @@ describe('MongoPlantRelationRepository (db)', () => {
     db = context.db;
 
     await up(db);
+    await upHierarchicalIndexes(db);
 
     repository = context.container.resolve<PlantRelationRepository>(
       'plantRelationRepository'
@@ -670,6 +673,150 @@ describe('MongoPlantRelationRepository (db)', () => {
       const deleted = await repository.delete(nonExistentId);
 
       expect(deleted).toBe(false);
+    });
+  });
+
+  describe('findApplicableForTaxa', () => {
+    const FAMILY_SOLANACEAE = '0192e200-0000-7000-8000-000000000010';
+    const FAMILY_FABACEAE = '0192e200-0000-7000-8000-000000000020';
+
+    it('retrieves multi-tier candidate relations matching plants, genera, families, and broadcast', async () => {
+      const ANOTHER_UNRELATED_ID = createPlantId(
+        '0192e200-0000-7000-8000-000000000098'
+      );
+      const relSpecies = createRelation(
+        REL_BASIL_TOMATO,
+        BASIL_ID,
+        TOMATO_ID,
+        'beneficial',
+        'pest_repellent',
+        4,
+        0,
+        50,
+        'Species rule'
+      );
+      const relGenusToFamily = PlantRelationMother.scoped(
+        TaxonomicScope.genus('Tagetes'),
+        TaxonomicScope.family(FAMILY_SOLANACEAE),
+        {
+          id: REL_CORN_BEAN,
+          mechanism: 'pest_repellent',
+          reason: 'Tagetes repels Solanaceae pests'
+        }
+      );
+      const relBroadcast = PlantRelationMother.scoped(
+        TaxonomicScope.genus('Trifolium'),
+        TaxonomicScope.all(),
+        {
+          id: REL_BEAN_CORN,
+          mechanism: 'nitrogen_fixer',
+          reason: 'Clover fixes nitrogen for all'
+        }
+      );
+      const relUnrelated = createRelation(
+        REL_SQUASH_CORN,
+        UNRELATED_ID,
+        ANOTHER_UNRELATED_ID,
+        'detrimental',
+        'resource_competition',
+        3,
+        0,
+        30,
+        'Unrelated pair'
+      );
+
+      await repository.save(relSpecies);
+      await repository.save(relGenusToFamily);
+      await repository.save(relBroadcast);
+      await repository.save(relUnrelated);
+
+      const results = await repository.findApplicableForTaxa({
+        plantIds: [BASIL_ID, TOMATO_ID],
+        genera: ['Tagetes', 'Trifolium', 'Solanum'],
+        familyIds: [FAMILY_SOLANACEAE, FAMILY_FABACEAE]
+      });
+
+      const resultIds = results.map((r) => r.id);
+      expect(resultIds).toContain(REL_BASIL_TOMATO);
+      expect(resultIds).toContain(REL_CORN_BEAN);
+      expect(resultIds).toContain(REL_BEAN_CORN);
+      expect(resultIds).not.toContain(REL_SQUASH_CORN);
+    });
+
+    it('returns empty array when source taxa do not match any candidate rules', async () => {
+      const relSpecies = createRelation(
+        REL_BASIL_TOMATO,
+        BASIL_ID,
+        TOMATO_ID,
+        'beneficial',
+        'pest_repellent',
+        4,
+        0,
+        50,
+        'Species rule'
+      );
+      await repository.save(relSpecies);
+
+      const results = await repository.findApplicableForTaxa({
+        plantIds: [UNRELATED_ID],
+        genera: ['Cucurbita'],
+        familyIds: ['0192e200-0000-7000-8000-000000000099']
+      });
+
+      expect(results).toEqual([]);
+    });
+  });
+
+  describe('scoped compound unique index enforcement', () => {
+    it('rejects duplicate scoped relation with identical source, target, and mechanism', async () => {
+      const rel1 = PlantRelationMother.scoped(
+        TaxonomicScope.genus('Tagetes'),
+        TaxonomicScope.genus('Solanum'),
+        {
+          id: REL_BASIL_TOMATO,
+          mechanism: 'pest_repellent',
+          reason: 'First entry'
+        }
+      );
+      const rel2 = PlantRelationMother.scoped(
+        TaxonomicScope.genus('Tagetes'),
+        TaxonomicScope.genus('Solanum'),
+        {
+          id: REL_BASIL_PEPPER,
+          mechanism: 'pest_repellent',
+          reason: 'Duplicate entry with different id'
+        }
+      );
+
+      await repository.save(rel1);
+
+      await expect(repository.save(rel2)).rejects.toThrow(
+        DomainConflictException
+      );
+    });
+
+    it('allows distinct mechanisms between identical source and target scopes', async () => {
+      const rel1 = PlantRelationMother.scoped(
+        TaxonomicScope.genus('Tagetes'),
+        TaxonomicScope.all(),
+        {
+          id: REL_BASIL_TOMATO,
+          mechanism: 'pest_repellent',
+          reason: 'Repellent'
+        }
+      );
+      const rel2 = PlantRelationMother.scoped(
+        TaxonomicScope.genus('Tagetes'),
+        TaxonomicScope.all(),
+        {
+          id: REL_BASIL_PEPPER,
+          mechanism: 'growth_stimulator',
+          reason: 'Growth'
+        }
+      );
+
+      await repository.save(rel1);
+      await expect(repository.save(rel2)).resolves.not.toThrow();
     });
   });
 });

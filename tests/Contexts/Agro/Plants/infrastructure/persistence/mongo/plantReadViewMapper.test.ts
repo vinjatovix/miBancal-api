@@ -260,6 +260,35 @@ describe('likesCount projection', () => {
   });
 });
 
+describe('genus projection', () => {
+  const withScientificName = (name: string): MongoPlantDocument => {
+    const document = stored(PlantFactory.tomato());
+
+    return {
+      ...document,
+      identity: { ...document.identity, scientificName: name }
+    };
+  };
+
+  it('derives the capitalized genus from the first word of the scientific name', () => {
+    expect(
+      readView(withScientificName('solanum lycopersicum')).identity.genus
+    ).toBe('Solanum');
+  });
+
+  it('takes the genus even when a hybrid "×" marker follows it', () => {
+    expect(readView(withScientificName('citrus × limon')).identity.genus).toBe(
+      'Citrus'
+    );
+  });
+
+  it('omits genus when none can be derived (leading hybrid "×")', () => {
+    const view = readView(withScientificName('× Citrofortunella microcarpa'));
+
+    expect(view.identity).not.toHaveProperty('genus');
+  });
+});
+
 describe('toPlantImage', () => {
   it.each([
     ['missing', undefined],

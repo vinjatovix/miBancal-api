@@ -1,5 +1,6 @@
 import type { UpdatePlantRelationInput } from '../../../../../../src/Contexts/Agro/PlantRelations/application/useCases/interfaces/UpdatePlantRelationInput.js';
 import { UpdatePlantRelation } from '../../../../../../src/Contexts/Agro/PlantRelations/application/useCases/UpdatePlantRelation.js';
+import { TaxonomicScope } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/TaxonomicScope.js';
 import {
   DomainConflictException,
   DomainNotFoundException,
@@ -113,8 +114,8 @@ describe('UpdatePlantRelation', () => {
       user: 'creator'
     });
     const existing2 = PlantRelationMother.create({
-      sourcePlantId: existing1.sourcePlantId,
-      targetPlantId: existing1.targetPlantId,
+      source: existing1.source,
+      target: existing1.target,
       mechanism: 'nitrogen_fixer',
       user: 'creator'
     });
@@ -150,5 +151,34 @@ describe('UpdatePlantRelation', () => {
 
     expect(result.version).toBe(0);
     expect(result.metadata.updatedBy).toBe('creator');
+  });
+
+  it('preserves source and target scopes unchanged when updating scoped relation parameters', async () => {
+    const scopedRelation = PlantRelationMother.scoped(
+      TaxonomicScope.genus('Tagetes'),
+      TaxonomicScope.all(),
+      {
+        mechanism: 'pest_repellent',
+        strength: 3,
+        user: 'curator-1'
+      }
+    );
+    plantRelationRepository.populate([scopedRelation]);
+
+    const updateInput: UpdatePlantRelationInput = {
+      id: scopedRelation.id,
+      strength: 5
+    };
+
+    const result = await useCase.execute(updateInput, 'curator-2', [
+      scopedRelation.version
+    ]);
+
+    expect(result.source.scope).toBe('genus');
+    expect(result.source.value).toBe('Tagetes');
+    expect(result.target.isAll()).toBe(true);
+    expect(result.strength).toBe(5);
+    expect(result.version).toBe(1);
+    expect(result.metadata.updatedBy).toBe('curator-2');
   });
 });

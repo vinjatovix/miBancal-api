@@ -6,6 +6,7 @@ import type {
 import type { PlantRelationPrimitives } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/entities/types/PlantRelationPrimitives.js';
 import { randomPlantRelationId } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/PlantRelationId.js';
 import { ProximityDistance } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/ProximityDistance.js';
+import { TaxonomicScope } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/TaxonomicScope.js';
 import type { MongoPlantRelationDocument } from '../../../../../../src/Contexts/Agro/PlantRelations/infrastructure/persistence/types/MongoPlantRelationDocument.js';
 import {
   createPlantId,
@@ -63,17 +64,43 @@ export class PlantRelationMother {
     overrides: Partial<CreatePlantRelationParams> = {}
   ): PlantRelation {
     const id = overrides.id ?? randomPlantRelationId();
-    const sourcePlantId =
-      overrides.sourcePlantId ?? createPlantId(random.uuid());
-    const targetPlantId =
-      overrides.targetPlantId ?? createPlantId(random.uuid());
+
+    const params: CreatePlantRelationParams = {
+      ...BASE_PARAMS,
+      ...overrides,
+      id
+    };
+
+    if (overrides.source) {
+      params.source = overrides.source;
+    } else {
+      params.sourcePlantId =
+        overrides.sourcePlantId ?? createPlantId(random.uuid());
+    }
+
+    if (overrides.target) {
+      params.target = overrides.target;
+    } else {
+      params.targetPlantId =
+        overrides.targetPlantId ?? createPlantId(random.uuid());
+    }
+
+    return PlantRelation.create(params);
+  }
+
+  static scoped(
+    source: TaxonomicScope,
+    target: TaxonomicScope,
+    overrides: Partial<CreatePlantRelationParams> = {}
+  ): PlantRelation {
+    const id = overrides.id ?? randomPlantRelationId();
 
     return PlantRelation.create({
       ...BASE_PARAMS,
       ...overrides,
       id,
-      sourcePlantId,
-      targetPlantId
+      source,
+      target
     });
   }
 
@@ -128,11 +155,21 @@ export class PlantRelationMother {
     const id = overrides.id ?? random.uuid();
     const sourcePlantId = overrides.sourcePlantId ?? random.uuid();
     const targetPlantId = overrides.targetPlantId ?? random.uuid();
+    const source = overrides.source ?? {
+      scope: 'plant',
+      value: sourcePlantId
+    };
+    const target = overrides.target ?? {
+      scope: 'plant',
+      value: targetPlantId
+    };
 
     return {
       ...BASE_PRIMITIVES,
       ...overrides,
       id,
+      source,
+      target,
       sourcePlantId,
       targetPlantId
     };
@@ -144,11 +181,21 @@ export class PlantRelationMother {
     const id = overrides._id ?? toMongoId(random.uuid());
     const sourcePlantId = overrides.sourcePlantId ?? toMongoId(random.uuid());
     const targetPlantId = overrides.targetPlantId ?? toMongoId(random.uuid());
+    const source = overrides.source ?? {
+      scope: 'plant',
+      value: sourcePlantId
+    };
+    const target = overrides.target ?? {
+      scope: 'plant',
+      value: targetPlantId
+    };
 
     return {
       ...BASE_MONGO_DOC,
       ...overrides,
       _id: id,
+      source,
+      target,
       sourcePlantId,
       targetPlantId
     };
