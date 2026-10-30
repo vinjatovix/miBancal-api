@@ -20,10 +20,56 @@ export class PlantRelationQueryMapper {
     this.applySourcePlantFilter(filter, parts);
     this.applyTargetPlantFilter(filter, parts);
     this.applyPlantIdFilter(filter, parts);
+    this.applyAppliesToFilter(filter, parts);
+    this.applySourceScopeFilter(filter, parts);
+    this.applyTargetScopeFilter(filter, parts);
+    this.applyGenusFilter(filter, parts);
+    this.applyFamilyIdFilter(filter, parts);
     this.applyTypeFilter(filter, parts);
     this.applyMechanismFilter(filter, parts);
 
     return PlantRelationQueryMapper.withOrClauses(parts);
+  }
+
+  /**
+   * "Applies to this plant": one OR clause matching the plant as source OR
+   * target through every resolved tier (plant/genus/family) plus broadcast
+   * (`target.scope = all`). A single clause so pagination, order and totals
+   * cover the whole hierarchy at once; `source` is never broadcast, so `all`
+   * is only matched on `target`.
+   */
+  private applyAppliesToFilter(
+    filter: PlantRelationFilter,
+    parts: QueryParts
+  ): void {
+    const appliesTo = filter.appliesTo;
+    if (!appliesTo) return;
+
+    const clause: OrClause = [];
+    const plantBinary = toMongoId(appliesTo.plantId);
+    clause.push(
+      { 'source.scope': 'plant', 'source.value': plantBinary },
+      { 'target.scope': 'plant', 'target.value': plantBinary }
+    );
+
+    if (appliesTo.genus) {
+      clause.push(
+        { 'source.scope': 'genus', 'source.value': appliesTo.genus },
+        { 'target.scope': 'genus', 'target.value': appliesTo.genus }
+      );
+    }
+
+    if (appliesTo.familyId) {
+      const familyBinary = toMongoId(appliesTo.familyId);
+      clause.push(
+        { 'source.scope': 'family', 'source.value': familyBinary },
+        { 'target.scope': 'family', 'target.value': familyBinary }
+      );
+    }
+
+    clause.push({ 'target.scope': 'all' });
+
+    parts.orClauses.push(clause);
   }
 
   private applySourcePlantFilter(
@@ -59,14 +105,76 @@ export class PlantRelationQueryMapper {
     if (filter.plantId?.eq) {
       const idBinary = toMongoId(filter.plantId.eq);
       parts.orClauses.push([
+        { 'source.scope': 'plant', 'source.value': idBinary },
+        { 'target.scope': 'plant', 'target.value': idBinary },
         { sourcePlantId: idBinary },
         { targetPlantId: idBinary }
       ]);
     } else if (filter.plantId?.in) {
       const idsBinary = filter.plantId.in.map(toMongoId);
       parts.orClauses.push([
+        { 'source.scope': 'plant', 'source.value': { $in: idsBinary } },
+        { 'target.scope': 'plant', 'target.value': { $in: idsBinary } },
         { sourcePlantId: { $in: idsBinary } },
         { targetPlantId: { $in: idsBinary } }
+      ]);
+    }
+  }
+
+  private applySourceScopeFilter(
+    filter: PlantRelationFilter,
+    parts: QueryParts
+  ): void {
+    if (filter.sourceScope?.eq) {
+      parts.query['source.scope'] = filter.sourceScope.eq;
+    } else if (filter.sourceScope?.in) {
+      parts.query['source.scope'] = { $in: filter.sourceScope.in };
+    }
+  }
+
+  private applyTargetScopeFilter(
+    filter: PlantRelationFilter,
+    parts: QueryParts
+  ): void {
+    if (filter.targetScope?.eq) {
+      parts.query['target.scope'] = filter.targetScope.eq;
+    } else if (filter.targetScope?.in) {
+      parts.query['target.scope'] = { $in: filter.targetScope.in };
+    }
+  }
+
+  private applyGenusFilter(
+    filter: PlantRelationFilter,
+    parts: QueryParts
+  ): void {
+    if (filter.genus?.eq) {
+      parts.orClauses.push([
+        { 'source.scope': 'genus', 'source.value': filter.genus.eq },
+        { 'target.scope': 'genus', 'target.value': filter.genus.eq }
+      ]);
+    } else if (filter.genus?.in) {
+      parts.orClauses.push([
+        { 'source.scope': 'genus', 'source.value': { $in: filter.genus.in } },
+        { 'target.scope': 'genus', 'target.value': { $in: filter.genus.in } }
+      ]);
+    }
+  }
+
+  private applyFamilyIdFilter(
+    filter: PlantRelationFilter,
+    parts: QueryParts
+  ): void {
+    if (filter.familyId?.eq) {
+      const idBinary = toMongoId(filter.familyId.eq);
+      parts.orClauses.push([
+        { 'source.scope': 'family', 'source.value': idBinary },
+        { 'target.scope': 'family', 'target.value': idBinary }
+      ]);
+    } else if (filter.familyId?.in) {
+      const idsBinary = filter.familyId.in.map(toMongoId);
+      parts.orClauses.push([
+        { 'source.scope': 'family', 'source.value': { $in: idsBinary } },
+        { 'target.scope': 'family', 'target.value': { $in: idsBinary } }
       ]);
     }
   }

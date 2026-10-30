@@ -99,11 +99,49 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 
 ---
 
+## 8bis. "APPLIES TO A PLANT" READ RESOLUTION
+
+Listing relations for a single plant must cover every tier at once, so the
+listing accepts `filter[appliesToPlantId][eq]=<plantId>`:
+
+- The application layer loads the plant and resolves it to its taxonomic
+  coordinates: its id, the **genus derived from its scientific name** (first
+  word, capitalized — scientific names are stored lower-case while a relation's
+  genus value is stored capitalized, so the derivation normalizes before
+  matching; a name with no derivable genus, such as a leading hybrid "×",
+  simply skips the genus tier) and its family id. Persistence does no I/O, so
+  this resolution happens before the query is built.
+- The query matches, in a **single OR clause** (so pagination, order and totals
+  cover the whole hierarchy), relations where the plant participates as source
+  OR target through the plant, genus or family tier, plus broadcast relations
+  (`target.scope = all`; `source` is never broadcast).
+- Each returned item carries two computed fields: `appliesVia`
+  (`plant | genus | family | all`, the most specific tier that matched —
+  `plant > genus > family > all`) and `role` (`source | target`, the side the
+  queried plant sits on; a specificity tie between sides resolves to `target`).
+  They are present only on an `appliesToPlantId` query.
+- An unknown plant still resolves to its id alone, matching the plant and
+  broadcast tiers rather than failing.
+
+This is the read-side counterpart of the hierarchical companion resolution;
+the spatial **evaluation** engine (proximity-based tier shadowing) remains
+future work.
+
+---
+
 ## 9. CURRENT IMPLEMENTATION STATUS
 
 ### Implemented
 
 - Core conceptual model defined.
+- Aggregate, repository and CRUD endpoints.
+- Taxonomic scopes (plant/genus/family) and broadcast (`all`) on source/target.
+- "Applies to a plant" read resolution (`appliesToPlantId`) with derived genus,
+  single-query tier matching and `appliesVia`/`role` annotation (see §8bis).
+- Relation embedding via `include`: `sourcePlant`/`targetPlant` (companion plant
+  summary for plant-scope sides) and `sourceFamily`/`targetFamily` (family
+  summary `{ id, name, slug }` for family-scope sides). Genus sides need no
+  reader: the label is the `value` itself.
 
 ### Pending `[TARGET STATE (Pending [Iteration 37](../../roadmap.md#iteration-37-implement-plantrelation-aggregate-and-repository))]`
 

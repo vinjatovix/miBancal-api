@@ -57,10 +57,19 @@ export class MongoPlantRelationRepository
   }
 
   async findBySourcePlant(sourcePlantId: string): Promise<PlantRelation[]> {
+    const binarySource = toMongoId(sourcePlantId);
     const docs = await this.handleMongoError(() =>
       this.relationCollection()
         .find(
-          { sourcePlantId: toMongoId(sourcePlantId) },
+          {
+            $or: [
+              { sourcePlantId: binarySource },
+              {
+                'source.scope': 'plant',
+                'source.value': binarySource
+              }
+            ]
+          },
           this.sessionOptions()
         )
         .toArray()
@@ -70,10 +79,19 @@ export class MongoPlantRelationRepository
   }
 
   async findByTargetPlant(targetPlantId: string): Promise<PlantRelation[]> {
+    const binaryTarget = toMongoId(targetPlantId);
     const docs = await this.handleMongoError(() =>
       this.relationCollection()
         .find(
-          { targetPlantId: toMongoId(targetPlantId) },
+          {
+            $or: [
+              { targetPlantId: binaryTarget },
+              {
+                'target.scope': 'plant',
+                'target.value': binaryTarget
+              }
+            ]
+          },
           this.sessionOptions()
         )
         .toArray()
@@ -90,12 +108,27 @@ export class MongoPlantRelationRepository
       return [];
     }
 
+    const s = toMongoId(sourcePlantId);
+    const t = toMongoId(targetPlantId);
+
     const docs = await this.handleMongoError(() =>
       this.relationCollection()
         .find(
           {
-            sourcePlantId: toMongoId(sourcePlantId),
-            targetPlantId: toMongoId(targetPlantId)
+            $and: [
+              {
+                $or: [
+                  { sourcePlantId: s },
+                  { 'source.scope': 'plant', 'source.value': s }
+                ]
+              },
+              {
+                $or: [
+                  { targetPlantId: t },
+                  { 'target.scope': 'plant', 'target.value': t }
+                ]
+              }
+            ]
           },
           this.sessionOptions()
         )
@@ -121,8 +154,38 @@ export class MongoPlantRelationRepository
         .find(
           {
             $or: [
-              { sourcePlantId: a, targetPlantId: b },
-              { sourcePlantId: b, targetPlantId: a }
+              {
+                $and: [
+                  {
+                    $or: [
+                      { sourcePlantId: a },
+                      { 'source.scope': 'plant', 'source.value': a }
+                    ]
+                  },
+                  {
+                    $or: [
+                      { targetPlantId: b },
+                      { 'target.scope': 'plant', 'target.value': b }
+                    ]
+                  }
+                ]
+              },
+              {
+                $and: [
+                  {
+                    $or: [
+                      { sourcePlantId: b },
+                      { 'source.scope': 'plant', 'source.value': b }
+                    ]
+                  },
+                  {
+                    $or: [
+                      { targetPlantId: a },
+                      { 'target.scope': 'plant', 'target.value': a }
+                    ]
+                  }
+                ]
+              }
             ]
           },
           this.sessionOptions()
@@ -145,12 +208,96 @@ export class MongoPlantRelationRepository
       this.relationCollection()
         .find(
           {
-            sourcePlantId: { $in: binaryIds },
-            targetPlantId: { $in: binaryIds }
+            $and: [
+              {
+                $or: [
+                  { sourcePlantId: { $in: binaryIds } },
+                  {
+                    'source.scope': 'plant',
+                    'source.value': { $in: binaryIds }
+                  }
+                ]
+              },
+              {
+                $or: [
+                  { targetPlantId: { $in: binaryIds } },
+                  {
+                    'target.scope': 'plant',
+                    'target.value': { $in: binaryIds }
+                  }
+                ]
+              }
+            ]
           },
           this.sessionOptions()
         )
         .toArray()
+    );
+
+    return docs.map((doc) => this.persistenceMapper.fromMongoDocument(doc));
+  }
+
+  async findApplicableForTaxa(criteria: {
+    readonly plantIds: readonly string[];
+    readonly genera: readonly string[];
+    readonly familyIds: readonly string[];
+  }): Promise<PlantRelation[]> {
+    const binaryPlantIds = [...new Set(criteria.plantIds)].map(toMongoId);
+    const uniqueGenera = [...new Set(criteria.genera)];
+    const binaryFamilyIds = [...new Set(criteria.familyIds)].map(toMongoId);
+
+    const sourceClauses: Record<string, unknown>[] = [];
+    if (binaryPlantIds.length > 0) {
+      sourceClauses.push(
+        { 'source.scope': 'plant', 'source.value': { $in: binaryPlantIds } },
+        { sourcePlantId: { $in: binaryPlantIds } }
+      );
+    }
+    if (uniqueGenera.length > 0) {
+      sourceClauses.push({
+        'source.scope': 'genus',
+        'source.value': { $in: uniqueGenera }
+      });
+    }
+    if (binaryFamilyIds.length > 0) {
+      sourceClauses.push({
+        'source.scope': 'family',
+        'source.value': { $in: binaryFamilyIds }
+      });
+    }
+
+    if (sourceClauses.length === 0) {
+      return [];
+    }
+
+    const targetClauses: Record<string, unknown>[] = [
+      { 'target.scope': 'all' }
+    ];
+    if (binaryPlantIds.length > 0) {
+      targetClauses.push(
+        { 'target.scope': 'plant', 'target.value': { $in: binaryPlantIds } },
+        { targetPlantId: { $in: binaryPlantIds } }
+      );
+    }
+    if (uniqueGenera.length > 0) {
+      targetClauses.push({
+        'target.scope': 'genus',
+        'target.value': { $in: uniqueGenera }
+      });
+    }
+    if (binaryFamilyIds.length > 0) {
+      targetClauses.push({
+        'target.scope': 'family',
+        'target.value': { $in: binaryFamilyIds }
+      });
+    }
+
+    const filter = {
+      $and: [{ $or: sourceClauses }, { $or: targetClauses }]
+    };
+
+    const docs = await this.handleMongoError(() =>
+      this.relationCollection().find(filter, this.sessionOptions()).toArray()
     );
 
     return docs.map((doc) => this.persistenceMapper.fromMongoDocument(doc));

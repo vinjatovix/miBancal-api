@@ -1892,6 +1892,46 @@ paths:
             type: string
             format: uuid
           description: Filter relations where source plant OR target plant equals this UUID.
+        - name: filter[sourceScope][eq]
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [plant, genus, family]
+          description: Filter relations by source taxonomic scope.
+        - name: filter[targetScope][eq]
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [plant, genus, family, all]
+          description: Filter relations by target taxonomic scope.
+        - name: filter[genus][eq]
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter relations where source or target genus equals this name.
+        - name: filter[familyId][eq]
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter relations where source or target family equals this UUID.
+        - name: filter[appliesToPlantId][eq]
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: >
+            Resolve the plant's genus (from its scientific name) and family, then
+            return, in one paginated query, every relation where the plant
+            participates as source OR target through any tier — plant, genus,
+            family — plus broadcast relations (`target.scope = all`). Each item
+            then carries `appliesVia` and `role`. Combinable with `type` and
+            `mechanism`.
         - name: filter[type][eq]
           in: query
           required: false
@@ -1930,8 +1970,13 @@ paths:
           required: false
           schema:
             type: string
-            example: sourcePlant,targetPlant
-          description: Comma-separated list of companion plant resources to embed (sourcePlant, targetPlant).
+            example: sourcePlant,targetPlant,sourceFamily,targetFamily
+          description: >
+            Comma-separated relations to embed. `sourcePlant`/`targetPlant`
+            embed the companion plant summary for plant-scope sides;
+            `sourceFamily`/`targetFamily` embed the family summary (`id`, `name`,
+            `slug`) for family-scope sides. Genus-scope sides carry their label
+            in `value`.
       responses:
         '200':
           description: Paginated collection of plant relations.
@@ -1997,8 +2042,13 @@ paths:
           required: false
           schema:
             type: string
-            example: sourcePlant,targetPlant
-          description: Comma-separated list of companion plant resources to embed (sourcePlant, targetPlant).
+            example: sourcePlant,targetPlant,sourceFamily,targetFamily
+          description: >
+            Comma-separated relations to embed. `sourcePlant`/`targetPlant`
+            embed the companion plant summary for plant-scope sides;
+            `sourceFamily`/`targetFamily` embed the family summary (`id`, `name`,
+            `slug`) for family-scope sides. Genus-scope sides carry their label
+            in `value`.
       responses:
         '200':
           description: Plant relation found.
@@ -4099,6 +4149,13 @@ components:
               $ref: '#/components/schemas/ShortTextList'
         scientificName:
           $ref: '#/components/schemas/RequiredShortText'
+        genus:
+          description: >
+            Read-only projection derived from the first word of
+            `scientificName` (capitalized). Absent when no valid genus can be
+            derived (e.g. a leading hybrid "×"). Never stored or accepted on
+            write.
+          $ref: '#/components/schemas/RequiredShortText'
         family:
           description: >
             The family id; with `include=family`, the family summary (or the
@@ -4829,13 +4886,46 @@ components:
             source:
               type: string
 
+    TaxonomicScopeType:
+      type: string
+      enum: [plant, genus, family, all]
+
+    TaxonomicSourceScope:
+      type: object
+      additionalProperties: false
+      required:
+        - scope
+        - value
+      properties:
+        scope:
+          type: string
+          enum: [plant, genus, family]
+        value:
+          type: string
+          description: UUID for plant and family, botanical genus name for genus.
+          example: 'Solanum'
+
+    TaxonomicTargetScope:
+      type: object
+      additionalProperties: false
+      required:
+        - scope
+      properties:
+        scope:
+          type: string
+          enum: [plant, genus, family, all]
+        value:
+          type: string
+          description: UUID for plant and family, genus name for genus. Strictly omitted when scope is 'all'.
+          example: 'Solanum'
+
     PlantRelation:
       type: object
       additionalProperties: false
       required:
         - id
-        - sourcePlantId
-        - targetPlantId
+        - source
+        - target
         - type
         - mechanism
         - strength
@@ -4847,12 +4937,18 @@ components:
         id:
           type: string
           format: uuid
+        source:
+          $ref: '#/components/schemas/TaxonomicSourceScope'
+        target:
+          $ref: '#/components/schemas/TaxonomicTargetScope'
         sourcePlantId:
           type: string
           format: uuid
+          description: Legacy projection. Present when source.scope is 'plant'.
         targetPlantId:
           type: string
           format: uuid
+          description: Legacy projection. Present when target.scope is 'plant'.
         type:
           $ref: '#/components/schemas/PlantRelationType'
         mechanism:
@@ -4877,44 +4973,93 @@ components:
           $ref: '#/components/schemas/PlantSummary'
         targetPlant:
           $ref: '#/components/schemas/PlantSummary'
+        sourceFamily:
+          $ref: '#/components/schemas/FamilySummary'
+        targetFamily:
+          $ref: '#/components/schemas/FamilySummary'
+        appliesVia:
+          type: string
+          enum: [plant, genus, family, all]
+          description: >
+            Only present on an `appliesToPlantId` query: the most specific tier
+            (plant > genus > family > all) through which the queried plant matched.
+        role:
+          type: string
+          enum: [source, target]
+          description: >
+            Only present on an `appliesToPlantId` query: the side the queried
+            plant sits on. `source` aports to the companion, `target` receives.
 
     CreatePlantRelation:
       type: object
       additionalProperties: false
-      required:
-        - id
-        - sourcePlantId
-        - targetPlantId
-        - type
-        - mechanism
-        - strength
-        - proximity
-        - reason
-      properties:
-        id:
-          type: string
-          format: uuid
-          example: 0192e201-0000-7000-8000-000000000001
-          description: Client-assigned plant relation UUID.
-        sourcePlantId:
-          type: string
-          format: uuid
-        targetPlantId:
-          type: string
-          format: uuid
-        type:
-          $ref: '#/components/schemas/PlantRelationType'
-        mechanism:
-          $ref: '#/components/schemas/PlantRelationMechanism'
-        strength:
-          type: integer
-          minimum: 1
-          maximum: 5
-        proximity:
-          $ref: '#/components/schemas/ProximityDistance'
-        reason:
-          type: string
-          minLength: 1
+      oneOf:
+        - required:
+            - id
+            - source
+            - target
+            - type
+            - mechanism
+            - strength
+            - proximity
+            - reason
+          properties:
+            id:
+              type: string
+              format: uuid
+              example: 0192e201-0000-7000-8000-000000000001
+              description: Client-assigned plant relation UUID.
+            source:
+              $ref: '#/components/schemas/TaxonomicSourceScope'
+            target:
+              $ref: '#/components/schemas/TaxonomicTargetScope'
+            type:
+              $ref: '#/components/schemas/PlantRelationType'
+            mechanism:
+              $ref: '#/components/schemas/PlantRelationMechanism'
+            strength:
+              type: integer
+              minimum: 1
+              maximum: 5
+            proximity:
+              $ref: '#/components/schemas/ProximityDistance'
+            reason:
+              type: string
+              minLength: 1
+        - required:
+            - id
+            - sourcePlantId
+            - targetPlantId
+            - type
+            - mechanism
+            - strength
+            - proximity
+            - reason
+          properties:
+            id:
+              type: string
+              format: uuid
+              example: 0192e201-0000-7000-8000-000000000001
+              description: Client-assigned plant relation UUID.
+            sourcePlantId:
+              type: string
+              format: uuid
+            targetPlantId:
+              type: string
+              format: uuid
+            type:
+              $ref: '#/components/schemas/PlantRelationType'
+            mechanism:
+              $ref: '#/components/schemas/PlantRelationMechanism'
+            strength:
+              type: integer
+              minimum: 1
+              maximum: 5
+            proximity:
+              $ref: '#/components/schemas/ProximityDistance'
+            reason:
+              type: string
+              minLength: 1
 
     UpdatePlantRelation:
       type: object

@@ -42,6 +42,53 @@ Feature: Public Consultation of Plant Relations Collection
     Then the response status code should be 200
     And response matches OpenAPI contract
 
+  Scenario: Public visitor filters relations by source scope
+    When I send a GET request to "/api/v1/plant-relations?filter[sourceScope][eq]=plant"
+    Then the response status code should be 200
+    And every item should match:
+      | field        | operator | value |
+      | source.scope | eq       | plant |
+    And response matches OpenAPI contract
+
+  Scenario: Public visitor filters relations by target scope
+    When I send a GET request to "/api/v1/plant-relations?filter[targetScope][eq]=plant"
+    Then the response status code should be 200
+    And every item should match:
+      | field        | operator | value |
+      | target.scope | eq       | plant |
+    And response matches OpenAPI contract
+
+  Scenario: Public visitor filters relations by genus
+    When I send a GET request to "/api/v1/plant-relations?filter[genus][eq]=Solanum"
+    Then the response status code should be 200
+    And response matches OpenAPI contract
+
+  Scenario: Public visitor filters relations by familyId
+    Given two catalog plants exist
+    When I send a GET request to "/api/v1/plant-relations?filter[familyId][eq]=<familyId>"
+    Then the response status code should be 200
+    And response matches OpenAPI contract
+
+  Scenario: Public visitor lists every relation that applies to a plant across tiers
+    Given a plant with companion relations across taxonomic tiers exists
+    When I send a GET request to "/api/v1/plant-relations?filter[appliesToPlantId][eq]=<plantId>"
+    Then the response status code should be 200
+    And the response body should contain
+      """
+      {
+        "pagination": {
+          "totalItems": 4
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Public visitor embeds the family summary of family-scope relations
+    Given a plant with companion relations across taxonomic tiers exists
+    When I send a GET request to "/api/v1/plant-relations?filter[appliesToPlantId][eq]=<plantId>&include=sourceFamily,targetFamily"
+    Then the response status code should be 200
+    And response matches OpenAPI contract
+
   Scenario: Public visitor lists plant relations with embedded companion plants
     Given two catalog plants exist
     And a plant relation exists between the two plants

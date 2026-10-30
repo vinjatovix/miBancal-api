@@ -4,6 +4,7 @@ import { createPlantRelationRequest } from '../../../../../src/apps/agroApi/cont
 import type { CreatePlantRelation } from '../../../../../src/Contexts/Agro/PlantRelations/application/useCases/CreatePlantRelation.js';
 import { createPlantRelationId } from '../../../../../src/Contexts/Agro/PlantRelations/domain/PlantRelationId.js';
 import { ProximityDistance } from '../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/ProximityDistance.js';
+import { TaxonomicScope } from '../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/TaxonomicScope.js';
 import { createPlantId } from '../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
 import type { UserSessionInfo } from '../../../../../src/Contexts/Auth/application/interfaces/index.js';
 import type { AppLogger } from '../../../../../src/Contexts/shared/plugins/logger.plugin.js';
@@ -31,7 +32,7 @@ describe('CreatePlantRelationController', () => {
     email: 'curator@example.com'
   };
 
-  const validBody = {
+  const validLegacyBody = {
     id: '0192e201-0000-7000-8000-000000000001',
     sourcePlantId: '0192e200-0000-7000-8000-000000000001',
     targetPlantId: '0192e200-0000-7000-8000-000000000002',
@@ -45,16 +46,33 @@ describe('CreatePlantRelationController', () => {
     reason: 'Basil repels hornworms from tomato.'
   };
 
-  it('answers 201 Created and emits strong ETag header', async () => {
+  const validScopedBody = {
+    id: '0192e201-0000-7000-8000-000000000002',
+    source: { scope: 'genus' as const, value: 'Tagetes' },
+    target: {
+      scope: 'family' as const,
+      value: '0192e200-0000-7000-8000-000000000010'
+    },
+    type: 'beneficial' as const,
+    mechanism: 'pest_repellent' as const,
+    strength: 4,
+    proximity: {
+      minDistanceCm: 0,
+      maxDistanceCm: 100
+    },
+    reason: 'Tagetes repels nematodes for Solanaceae.'
+  };
+
+  it('answers 201 Created and emits strong ETag header for legacy payload', async () => {
     const relation = PlantRelationMother.create({
-      id: createPlantRelationId(validBody.id),
-      sourcePlantId: createPlantId(validBody.sourcePlantId),
-      targetPlantId: createPlantId(validBody.targetPlantId),
-      type: validBody.type,
-      mechanism: validBody.mechanism,
-      strength: validBody.strength,
+      id: createPlantRelationId(validLegacyBody.id),
+      sourcePlantId: createPlantId(validLegacyBody.sourcePlantId),
+      targetPlantId: createPlantId(validLegacyBody.targetPlantId),
+      type: validLegacyBody.type,
+      mechanism: validLegacyBody.mechanism,
+      strength: validLegacyBody.strength,
       proximity: ProximityDistance.create(0, 50),
-      reason: validBody.reason,
+      reason: validLegacyBody.reason,
       user: user.username
     });
 
@@ -67,7 +85,7 @@ describe('CreatePlantRelationController', () => {
       logger: fakeLogger
     });
 
-    const req = buildRequest({ body: validBody });
+    const req = buildRequest({ body: validLegacyBody });
     const { res, status, json, set } = buildResponse({ user });
     const next = buildNext();
 
@@ -78,6 +96,8 @@ describe('CreatePlantRelationController', () => {
     expect(set).toHaveBeenCalledWith('ETag', '"0"');
     expect(json).toHaveBeenCalledWith({
       id: relation.id,
+      source: relation.source.toPrimitives(),
+      target: relation.target.toPrimitives(),
       sourcePlantId: relation.sourcePlantId,
       targetPlantId: relation.targetPlantId,
       type: relation.type,
@@ -86,6 +106,65 @@ describe('CreatePlantRelationController', () => {
       proximity: {
         minDistanceCm: 0,
         maxDistanceCm: 50
+      },
+      reason: relation.reason,
+      metadata: {
+        createdAt: relation.metadata.createdAt,
+        createdBy: user.username,
+        updatedAt: relation.metadata.updatedAt,
+        updatedBy: user.username
+      },
+      version: 0
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('answers 201 Created for scoped payload (genus to family)', async () => {
+    const relation = PlantRelationMother.scoped(
+      TaxonomicScope.genus('Tagetes'),
+      TaxonomicScope.family('0192e200-0000-7000-8000-000000000010'),
+      {
+        id: createPlantRelationId(validScopedBody.id),
+        type: validScopedBody.type,
+        mechanism: validScopedBody.mechanism,
+        strength: validScopedBody.strength,
+        proximity: ProximityDistance.create(0, 100),
+        reason: validScopedBody.reason,
+        user: user.username
+      }
+    );
+
+    const createPlantRelation = {
+      execute: jest.fn().mockResolvedValue(relation)
+    } as unknown as CreatePlantRelation;
+
+    const controller = new CreatePlantRelationController({
+      createPlantRelation,
+      logger: fakeLogger
+    });
+
+    const req = buildRequest({ body: validScopedBody });
+    const { res, status, json, set } = buildResponse({ user });
+    const next = buildNext();
+
+    await runWithValidation(createPlantRelationRequest, req, res);
+    await controller.run(req, res, next as NextFunction);
+
+    expect(status).toHaveBeenCalledWith(201);
+    expect(set).toHaveBeenCalledWith('ETag', '"0"');
+    expect(json).toHaveBeenCalledWith({
+      id: relation.id,
+      source: { scope: 'genus', value: 'Tagetes' },
+      target: {
+        scope: 'family',
+        value: '0192e200-0000-7000-8000-000000000010'
+      },
+      type: relation.type,
+      mechanism: relation.mechanism,
+      strength: relation.strength,
+      proximity: {
+        minDistanceCm: 0,
+        maxDistanceCm: 100
       },
       reason: relation.reason,
       metadata: {
@@ -110,7 +189,7 @@ describe('CreatePlantRelationController', () => {
       logger: fakeLogger
     });
 
-    const req = buildRequest({ body: validBody });
+    const req = buildRequest({ body: validLegacyBody });
     const { res } = buildResponse({ user });
     const next = buildNext();
 
@@ -130,7 +209,7 @@ describe('CreatePlantRelationController', () => {
       logger: fakeLogger
     });
 
-    const req = buildRequest({ body: validBody });
+    const req = buildRequest({ body: validLegacyBody });
     const { res } = buildResponse({ user });
     const next = buildNext();
 

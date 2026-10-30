@@ -27,6 +27,8 @@ export type PlantReadView = {
   /** `family` is the plain id unless the family is included. */
   readonly identity: Omit<IdentityPrimitives, 'family'> & {
     readonly family: PlantFamilyView;
+    /** Derived from `scientificName` (read-only); absent when none derivable. */
+    readonly genus?: string;
   };
   readonly traits: PlantPrimitives['traits'];
   readonly phenology: PlantPrimitives['phenology'];

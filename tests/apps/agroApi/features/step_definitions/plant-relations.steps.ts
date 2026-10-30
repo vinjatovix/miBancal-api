@@ -45,6 +45,14 @@ export const seedMockRelations = async (): Promise<void> => {
     const docs = mockRelations.map((rel) => ({
       ...rel,
       _id: toMongoId(rel._id),
+      source: {
+        scope: 'plant',
+        value: toMongoId(rel.sourcePlantId)
+      },
+      target: {
+        scope: 'plant',
+        value: toMongoId(rel.targetPlantId)
+      },
       sourcePlantId: toMongoId(rel.sourcePlantId),
       targetPlantId: toMongoId(rel.targetPlantId),
       metadata: {
@@ -121,6 +129,14 @@ Given(
     const now = new Date();
     await rawCollection('plant_relations').insertOne({
       _id: toMongoId(relationId),
+      source: {
+        scope: 'plant',
+        value: toMongoId(this.sourcePlantId)
+      },
+      target: {
+        scope: 'plant',
+        value: toMongoId(this.targetPlantId)
+      },
       sourcePlantId: toMongoId(this.sourcePlantId),
       targetPlantId: toMongoId(this.targetPlantId),
       type: 'beneficial',
@@ -139,6 +155,86 @@ Given(
     });
 
     this.plantRelationId = relationId;
+  }
+);
+
+Given(
+  'a plant with companion relations across taxonomic tiers exists',
+  async function (this: AgroWorld) {
+    const family = await suite().seeders.family.create();
+    const plant = await suite().seeders.plant.create({
+      'identity.family': family.id,
+      'identity.scientificName': 'solanum testii'
+    });
+    this.plantId = plant.id;
+    this.familyId = family.id;
+
+    const otherA = uuidv4();
+    const otherB = uuidv4();
+    const now = new Date();
+    const base = {
+      type: 'beneficial' as const,
+      mechanism: 'pest_repellent',
+      strength: 4,
+      minDistanceCm: 0,
+      maxDistanceCm: 50,
+      reason: 'Tier relation for testing',
+      metadata: {
+        createdAt: now,
+        createdBy: 'system',
+        updatedAt: now,
+        updatedBy: 'system'
+      },
+      version: 0
+    };
+    const plantScope = (id: string) => ({
+      scope: 'plant' as const,
+      value: toMongoId(id)
+    });
+
+    await rawCollection('plant_relations').insertMany([
+      {
+        ...base,
+        _id: toMongoId(uuidv4()),
+        mechanism: 'pest_repellent',
+        source: plantScope(plant.id),
+        target: plantScope(otherA),
+        sourcePlantId: toMongoId(plant.id),
+        targetPlantId: toMongoId(otherA)
+      },
+      {
+        ...base,
+        _id: toMongoId(uuidv4()),
+        mechanism: 'nitrogen_fixer',
+        source: { scope: 'genus', value: 'Solanum' },
+        target: plantScope(otherA),
+        targetPlantId: toMongoId(otherA)
+      },
+      {
+        ...base,
+        _id: toMongoId(uuidv4()),
+        mechanism: 'disease_vector',
+        type: 'detrimental',
+        source: plantScope(otherA),
+        target: { scope: 'family', value: toMongoId(family.id) },
+        sourcePlantId: toMongoId(otherA)
+      },
+      {
+        ...base,
+        _id: toMongoId(uuidv4()),
+        mechanism: 'growth_stimulator',
+        source: { scope: 'genus', value: 'Trifolium' },
+        target: { scope: 'all' }
+      },
+      {
+        ...base,
+        _id: toMongoId(uuidv4()),
+        mechanism: 'allelopathy',
+        source: { scope: 'genus', value: 'Allium' },
+        target: plantScope(otherB),
+        targetPlantId: toMongoId(otherB)
+      }
+    ]);
   }
 );
 

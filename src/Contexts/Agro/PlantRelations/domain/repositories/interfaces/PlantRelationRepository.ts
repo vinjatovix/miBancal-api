@@ -15,5 +15,10 @@ export interface PlantRelationRepository {
     plantBId: string
   ): Promise<PlantRelation[]>;
   findForPlantBatch(plantIds: string[]): Promise<PlantRelation[]>;
+  findApplicableForTaxa(criteria: {
+    readonly plantIds: readonly string[];
+    readonly genera: readonly string[];
+    readonly familyIds: readonly string[];
+  }): Promise<PlantRelation[]>;
   delete(id: string, expectedVersion?: number): Promise<boolean>;
 }

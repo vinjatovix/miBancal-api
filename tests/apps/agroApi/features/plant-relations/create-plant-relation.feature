@@ -139,3 +139,140 @@ Feature: Create Plant Relation
       """
     Then the response status code should be 400
     And response matches OpenAPI contract
+
+  Scenario: Collaborator creates a scoped genus-to-family relation
+    Given a POST collaborator request to "/api/v1/plant-relations" with body
+      """
+      {
+        "id": "0192e201-0000-7000-8000-000000000020",
+        "source": {
+          "scope": "genus",
+          "value": "Tagetes"
+        },
+        "target": {
+          "scope": "family",
+          "value": "<familyId>"
+        },
+        "type": "beneficial",
+        "mechanism": "pest_repellent",
+        "strength": 4,
+        "proximity": {
+          "minDistanceCm": 0,
+          "maxDistanceCm": 100
+        },
+        "reason": "Tagetes root exudates deter nematodes for family crops."
+      }
+      """
+    Then the response status code should be 201
+    And the response ETag should match the body version
+    And the response body should contain
+      """
+      {
+        "id": "0192e201-0000-7000-8000-000000000020",
+        "source": {
+          "scope": "genus",
+          "value": "Tagetes"
+        },
+        "target": {
+          "scope": "family",
+          "value": "<familyId>"
+        },
+        "type": "beneficial",
+        "mechanism": "pest_repellent",
+        "version": 0
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Collaborator creates a universal broadcast relation
+    Given a POST collaborator request to "/api/v1/plant-relations" with body
+      """
+      {
+        "id": "0192e201-0000-7000-8000-000000000021",
+        "source": {
+          "scope": "genus",
+          "value": "Trifolium"
+        },
+        "target": {
+          "scope": "all"
+        },
+        "type": "beneficial",
+        "mechanism": "nitrogen_fixer",
+        "strength": 5,
+        "proximity": {
+          "minDistanceCm": 0,
+          "maxDistanceCm": 80
+        },
+        "reason": "Fixes atmospheric nitrogen for all neighboring crops."
+      }
+      """
+    Then the response status code should be 201
+    And the response ETag should match the body version
+    And the response body should contain
+      """
+      {
+        "id": "0192e201-0000-7000-8000-000000000021",
+        "source": {
+          "scope": "genus",
+          "value": "Trifolium"
+        },
+        "target": {
+          "scope": "all"
+        },
+        "type": "beneficial",
+        "mechanism": "nitrogen_fixer",
+        "version": 0
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Reject creation when family scope references non-existent family
+    Given a POST collaborator request to "/api/v1/plant-relations" with body
+      """
+      {
+        "id": "0192e201-0000-7000-8000-000000000022",
+        "source": {
+          "scope": "genus",
+          "value": "Tagetes"
+        },
+        "target": {
+          "scope": "family",
+          "value": "0192e200-0000-7000-8000-000000000999"
+        },
+        "type": "beneficial",
+        "mechanism": "pest_repellent",
+        "strength": 4,
+        "proximity": {
+          "minDistanceCm": 0,
+          "maxDistanceCm": 100
+        },
+        "reason": "Non-existent family relation."
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract
+
+  Scenario: Reject creation when source scope is broadcast all
+    Given a POST collaborator request to "/api/v1/plant-relations" with body
+      """
+      {
+        "id": "0192e201-0000-7000-8000-000000000023",
+        "source": {
+          "scope": "all"
+        },
+        "target": {
+          "scope": "family",
+          "value": "<familyId>"
+        },
+        "type": "beneficial",
+        "mechanism": "pest_repellent",
+        "strength": 4,
+        "proximity": {
+          "minDistanceCm": 0,
+          "maxDistanceCm": 100
+        },
+        "reason": "Invalid broadcast source."
+      }
+      """
+    Then the response status code should be 400
+    And response matches OpenAPI contract

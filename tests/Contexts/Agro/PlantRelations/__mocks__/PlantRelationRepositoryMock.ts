@@ -12,6 +12,7 @@ export class PlantRelationRepositoryMock implements PlantRelationRepository {
   readonly findBetweenPlantsMock = jest.fn();
   readonly findForPlantPairMock = jest.fn();
   readonly findForPlantBatchMock = jest.fn();
+  readonly findApplicableForTaxaMock = jest.fn();
   readonly deleteMock = jest.fn();
 
   private readonly storage = new Map<string, PlantRelation>();
@@ -27,12 +28,14 @@ export class PlantRelationRepositoryMock implements PlantRelationRepository {
     for (const existing of this.storage.values()) {
       if (
         existing.id !== relation.id &&
-        existing.sourcePlantId === relation.sourcePlantId &&
-        existing.targetPlantId === relation.targetPlantId &&
+        existing.source.scope === relation.source.scope &&
+        existing.source.value === relation.source.value &&
+        existing.target.scope === relation.target.scope &&
+        existing.target.value === relation.target.value &&
         existing.mechanism === relation.mechanism
       ) {
         throw new DomainConflictException(
-          `PlantRelation already exists between source '${relation.sourcePlantId}' and target '${relation.targetPlantId}' with mechanism '${relation.mechanism}'`
+          `PlantRelation already exists between source '${relation.source.value ?? relation.source.scope}' and target '${relation.target.value ?? relation.target.scope}' with mechanism '${relation.mechanism}'`
         );
       }
     }
@@ -84,8 +87,57 @@ export class PlantRelationRepositoryMock implements PlantRelationRepository {
   async findForPlantBatch(plantIds: string[]): Promise<PlantRelation[]> {
     this.findForPlantBatchMock(plantIds);
     const set = new Set(plantIds);
+    return [...this.storage.values()].filter((r) =>
+      Boolean(
+        r.sourcePlantId &&
+        set.has(r.sourcePlantId) &&
+        r.targetPlantId &&
+        set.has(r.targetPlantId)
+      )
+    );
+  }
+
+  async findApplicableForTaxa(criteria: {
+    readonly plantIds: readonly string[];
+    readonly genera: readonly string[];
+    readonly familyIds: readonly string[];
+  }): Promise<PlantRelation[]> {
+    this.findApplicableForTaxaMock(criteria);
+    const plantSet = new Set(criteria.plantIds);
+    const genusSet = new Set(criteria.genera.map((g) => g.toLowerCase()));
+    const familySet = new Set(criteria.familyIds);
+
+    const matchesSource = (rel: PlantRelation): boolean => {
+      if (rel.source.isPlant() && rel.source.value) {
+        return plantSet.has(rel.source.value);
+      }
+      if (rel.source.isGenus() && rel.source.value) {
+        return genusSet.has(rel.source.value.toLowerCase());
+      }
+      if (rel.source.isFamily() && rel.source.value) {
+        return familySet.has(rel.source.value);
+      }
+      return false;
+    };
+
+    const matchesTarget = (rel: PlantRelation): boolean => {
+      if (rel.target.isAll()) {
+        return true;
+      }
+      if (rel.target.isPlant() && rel.target.value) {
+        return plantSet.has(rel.target.value);
+      }
+      if (rel.target.isGenus() && rel.target.value) {
+        return genusSet.has(rel.target.value.toLowerCase());
+      }
+      if (rel.target.isFamily() && rel.target.value) {
+        return familySet.has(rel.target.value);
+      }
+      return false;
+    };
+
     return [...this.storage.values()].filter(
-      (r) => set.has(r.sourcePlantId) && set.has(r.targetPlantId)
+      (r) => matchesSource(r) && matchesTarget(r)
     );
   }
 

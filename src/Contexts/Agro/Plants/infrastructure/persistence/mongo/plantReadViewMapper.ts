@@ -1,3 +1,4 @@
+import { deriveGenus } from '../../../../../../shared/domain/utils/deriveGenus.js';
 import type { MetadataPrimitives } from '../../../../../shared/domain/MetadataPrimitives.js';
 import { fromMongoId } from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import {
@@ -72,7 +73,11 @@ const PLANT_VIEW_FIELDS: ReadViewFieldMappers<
   PlantReadView
 > = {
   id: (document) => fromMongoId(document._id),
-  identity: (document) => document.identity,
+  identity: (document) => {
+    const genus = deriveGenus(document.identity.scientificName);
+
+    return { ...document.identity, ...(genus !== undefined && { genus }) };
+  },
   traits: (document) => document.traits,
   phenology: (document) => document.phenology,
   knowledge: (document) => document.knowledge ?? {},

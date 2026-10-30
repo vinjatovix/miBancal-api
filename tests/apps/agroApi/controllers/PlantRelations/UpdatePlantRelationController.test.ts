@@ -68,6 +68,8 @@ describe('UpdatePlantRelationController', () => {
     expect(set).toHaveBeenCalledWith('ETag', `"${relation.version}"`);
     expect(json).toHaveBeenCalledWith({
       id: relation.id,
+      source: relation.source.toPrimitives(),
+      target: relation.target.toPrimitives(),
       sourcePlantId: relation.sourcePlantId,
       targetPlantId: relation.targetPlantId,
       type: relation.type,

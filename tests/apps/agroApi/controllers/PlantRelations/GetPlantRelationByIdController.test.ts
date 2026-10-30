@@ -22,6 +22,14 @@ describe('GetPlantRelationByIdController', () => {
 
   const sampleView: PlantRelationReadView = {
     id: '0192e201-0000-7000-8000-000000000001',
+    source: {
+      scope: 'plant',
+      value: '0192e200-0000-7000-8000-000000000001'
+    },
+    target: {
+      scope: 'plant',
+      value: '0192e200-0000-7000-8000-000000000002'
+    },
     sourcePlantId: '0192e200-0000-7000-8000-000000000001',
     targetPlantId: '0192e200-0000-7000-8000-000000000002',
     type: 'beneficial',
@@ -57,6 +65,8 @@ describe('GetPlantRelationByIdController', () => {
     expect(set).toHaveBeenCalledWith('ETag', '"0"');
     expect(json).toHaveBeenCalledWith({
       id: sampleView.id,
+      source: sampleView.source,
+      target: sampleView.target,
       sourcePlantId: sampleView.sourcePlantId,
       targetPlantId: sampleView.targetPlantId,
       type: sampleView.type,
@@ -74,13 +84,13 @@ describe('GetPlantRelationByIdController', () => {
     const viewWithIncludedPlants: PlantRelationReadView = {
       ...sampleView,
       sourcePlant: {
-        id: sampleView.sourcePlantId,
+        id: '0192e200-0000-7000-8000-000000000001',
         name: { primary: 'tomate', aliases: ['tomatera'] },
         scientificName: 'solanum lycopersicum',
         image: { url: 'https://example.com/tomato.jpg' }
       },
       targetPlant: {
-        id: sampleView.targetPlantId,
+        id: '0192e200-0000-7000-8000-000000000002',
         name: { primary: 'albahaca' },
         scientificName: 'ocimum basilicum',
         image: null
@@ -111,6 +121,8 @@ describe('GetPlantRelationByIdController', () => {
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith({
       id: sampleView.id,
+      source: sampleView.source,
+      target: sampleView.target,
       sourcePlantId: sampleView.sourcePlantId,
       targetPlantId: sampleView.targetPlantId,
       type: sampleView.type,
