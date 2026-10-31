@@ -4,8 +4,13 @@ import { type Db, MongoServerError } from 'mongodb';
 import type { Nullable } from '../../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../../shared/domain/types/UnknownRecord.js';
 import { isRecord } from '../../../../shared/domain/utils/isRecord.js';
-import { DomainConflictException } from '../../../shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException,
+  DomainStaleVersionException
+} from '../../../shared/domain/errors/index.js';
 import type { MetadataPrimitives } from '../../../shared/domain/MetadataPrimitives.js';
+import type { WriteOutcome } from '../../../shared/domain/repositories/WriteOutcome.js';
 import { MONGO_ERROR_CODES } from '../../../shared/infrastructure/persistence/mongo/mongoErrorCodes.js';
 import { MongoErrorHandler } from '../../../shared/infrastructure/persistence/mongo/MongoErrorHandler.js';
 import {
@@ -13,7 +18,7 @@ import {
   toMongoId
 } from '../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import { MongoRepository } from '../../../shared/infrastructure/persistence/mongo/MongoRepository.js';
-import { USERNAME_TAKEN_MESSAGE } from '../../application/messages.js';
+import { USER_NOT_CREATED_MESSAGE } from '../../application/messages.js';
 import type { UserPrimitives } from '../../domain/entities/types/UserPrimitives.js';
 import { User } from '../../domain/entities/User.js';
 import type {
@@ -29,6 +34,12 @@ import type {
 } from '../../domain/value-objects/types/EmailTokenPrimitives.js';
 import type { UserAuthMethodPrimitives } from '../../domain/value-objects/types/UserAuthMethodPrimitives.js';
 import { Username } from '../../domain/value-objects/Username.js';
+import type {
+  ManageableRole,
+  UserRole
+} from '../../domain/value-objects/UserRoles.js';
+
+const ROLE_GUARDS_COLLECTION = 'roleGuards';
 
 export interface AuthDocument {
   _id: string | Binary | UUID;
@@ -40,6 +51,7 @@ export interface AuthDocument {
   emailTokens?: EmailTokenPrimitives[];
   roles: string[];
   metadata: MetadataPrimitives;
+  version?: number;
 }
 
 type UserWrite = {
@@ -65,15 +77,6 @@ export class MongoAuthRepository
   }
   protected collectionName(): string {
     return `${this.entityName().toLowerCase()}s`;
-  }
-
-  async save(user: User): Promise<void> {
-    const { id: _, ...userPrimitives } = user.toPrimitives();
-    const mongoDocument = {
-      _id: toMongoId(user.id),
-      ...userPrimitives
-    };
-    await this.persist(mongoDocument);
   }
 
   async create(user: User): Promise<CreateUserOutcome> {
@@ -112,6 +115,88 @@ export class MongoAuthRepository
     );
 
     return result.matchedCount === 0 ? 'stale' : 'written';
+  }
+
+  /**
+   * Version-guarded role change: writes the diff of two full states plus
+   * `$inc: { version: 1 }`, matching only `_id` + the read version. A write
+   * that matches nothing is disambiguated into 412 (stale) or 404 (missing).
+   */
+  async updateRoles(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome> {
+    const write = this.diff(before, after);
+    const hasSet = Object.keys(write.set).length > 0;
+    const hasUnset = Object.keys(write.unset).length > 0;
+
+    const writeFilter = {
+      _id: toMongoId(before.id),
+      ...this.versionFilter(before.version ?? 0)
+    };
+
+    if (!hasSet && !hasUnset) {
+      const matches = await this.collection().countDocuments(writeFilter, {
+        limit: 1,
+        ...this.sessionOptions()
+      });
+
+      if (matches > 0) return 'unchanged';
+
+      return this.throwFailedRoleWrite(before.id);
+    }
+
+    const result = await this.handleMongoError(() =>
+      this.collection().updateOne(
+        writeFilter,
+        {
+          ...(hasSet && { $set: write.set }),
+          ...(hasUnset && { $unset: write.unset }),
+          $inc: { version: 1 }
+        },
+        this.sessionOptions()
+      )
+    );
+
+    if (result.matchedCount > 0) return 'written';
+
+    return this.throwFailedRoleWrite(before.id);
+  }
+
+  async searchByUsername(username: string): Promise<Nullable<User>> {
+    return this.findOneUser({ username });
+  }
+
+  async countByRole(role: UserRole): Promise<number> {
+    return this.collection().countDocuments(
+      { roles: role },
+      this.sessionOptions()
+    );
+  }
+
+  /**
+   * Touches the shared `roleGuards` document inside the active transaction so
+   * concurrent admin mutations collide on it. A plain update, not an upsert: a
+   * missing guard must surface as a setup error, never be silently created
+   * (the migration seeds it). `updatedAt` is rewritten so the write is a real
+   * mutation WiredTiger treats as a conflict, never a no-op. A `matchedCount`
+   * of 0 means the guard is absent, which silently voids the whole
+   * last-holder protection, so it fails loudly instead of returning.
+   */
+  async reserveMinimumHolderGuard(role: ManageableRole): Promise<void> {
+    const result = await this.db
+      .collection<{ _id: string; updatedAt: Date }>(ROLE_GUARDS_COLLECTION)
+      .updateOne(
+        { _id: role },
+        { $set: { updatedAt: new Date() } },
+        this.sessionOptions()
+      );
+
+    if (result.matchedCount === 0) {
+      throw new Error(
+        `Missing <${role}> guard in ${ROLE_GUARDS_COLLECTION}: run the roles migration`
+      );
+    }
   }
 
   async deleteIfReplaceable(user: User, at: Date): Promise<boolean> {
@@ -189,6 +274,36 @@ export class MongoAuthRepository
     }));
   }
 
+  /**
+   * Optimistic concurrency: only match the read version. Documents without a
+   * stored version are read as version 0.
+   */
+  private versionFilter(version: number): UnknownRecord {
+    return version === 0
+      ? { $or: [{ version: 0 }, { version: { $exists: false } }] }
+      : { version };
+  }
+
+  /**
+   * After a failed conditional role write or no-op confirmation, tells a stale
+   * version (412) from a missing document (404).
+   */
+  private async throwFailedRoleWrite(id: string): Promise<never> {
+    const exists =
+      (await this.collection().countDocuments(
+        { _id: toMongoId(id) },
+        this.sessionOptions()
+      )) > 0;
+
+    if (exists) {
+      throw new DomainStaleVersionException(
+        `${this.entityName()} was modified concurrently: ${id}`
+      );
+    }
+
+    throw new DomainNotFoundException(`${this.entityName()} not found: ${id}`);
+  }
+
   private async findOneUser(filter: UnknownRecord): Promise<Nullable<User>> {
     const document = await this.collection().findOne<AuthDocument>(
       filter,
@@ -252,22 +367,21 @@ export class MongoAuthRepository
   }
 
   /**
-   * Maps a duplicate key on insert. The email is not an error for
-   * registration (it must not reveal the account); username and id are
-   * conflicts reported without the duplicated value.
+   * Maps a duplicate key on insert. Email, username and provider id are
+   * outcomes each caller decides on; an id or any other key is a conflict
+   * reported without the duplicated value.
    */
   private duplicateOutcome(error: unknown, id: string): CreateUserOutcome {
     const key = this.duplicatedKey(error);
 
     if (key === 'email') return 'emailTaken';
-    if (key === 'username') {
-      throw new DomainConflictException(USERNAME_TAKEN_MESSAGE);
-    }
+    if (key === 'username') return 'usernameTaken';
+    if (key === 'authMethods.providerUserId') return 'providerTaken';
     if (key === '_id') {
       throw new DomainConflictException(`User with id ${id} already exists`);
     }
     if (key !== undefined) {
-      throw new DomainConflictException('User could not be created, try again');
+      throw new DomainConflictException(USER_NOT_CREATED_MESSAGE);
     }
     if (error instanceof MongoServerError) {
       MongoErrorHandler.formatError(error);
@@ -307,7 +421,8 @@ export class MongoAuthRepository
             emailTokens: document.emailTokens
           }),
           roles: document.roles,
-          metadata: document.metadata
+          metadata: document.metadata,
+          ...(document.version !== undefined && { version: document.version })
         })
       : null;
   }

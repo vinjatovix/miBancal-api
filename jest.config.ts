@@ -58,7 +58,8 @@ const baseProjectConfig: Config = {
   ],
 
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@src/(.*)$': '<rootDir>/src/$1'
   },
 
   cacheDirectory: '.tmp/jestCache'
@@ -97,7 +98,7 @@ const config: Config = {
     '!src/**/*.interface.ts',
     '!src/**/*.interfaces.ts',
     '!src/**/*.types.ts',
-    '!src/**/*.dto.ts'
+    'src/**/*.dto.ts'
   ],
 
   coverageDirectory: 'coverage',

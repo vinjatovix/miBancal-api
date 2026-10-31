@@ -27,9 +27,18 @@ export type PlantProps = {
 
   knowledge: PlantKnowledge;
 
+  /** Slugs of catalog anomalies this plant is susceptible to (deduplicated). */
+  anomalies?: string[];
+
   metadata: Metadata;
 
   status?: PlantStatus;
   deletedAt?: Date;
   version?: number;
+  /**
+   * Read-only likes projection, hydrated from storage only (default `0`).
+   * Deliberately absent from `PlantPrimitives` so the write path can never
+   * serialize it.
+   */
+  likesCount?: number;
 };

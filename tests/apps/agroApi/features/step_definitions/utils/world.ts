@@ -13,7 +13,19 @@ export type PlaceholderKey =
   | 'familySlug'
   | 'familyName'
   | 'otherFamilyId'
-  | 'cropId';
+  | 'cropId'
+  | 'userId'
+  | 'targetEmail'
+  | 'targetUsername'
+  | 'anomalyId'
+  | 'anomalySlug'
+  | 'otherAnomalyId'
+  | 'otherAnomalySlug'
+  | 'gardenInputId'
+  | 'gardenInputSlug'
+  | 'plantRelationId'
+  | 'sourcePlantId'
+  | 'targetPlantId';
 
 const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'bedId',
@@ -22,7 +34,19 @@ const PLACEHOLDER_KEYS: readonly PlaceholderKey[] = [
   'familySlug',
   'familyName',
   'otherFamilyId',
-  'cropId'
+  'cropId',
+  'userId',
+  'targetEmail',
+  'targetUsername',
+  'anomalyId',
+  'anomalySlug',
+  'otherAnomalyId',
+  'otherAnomalySlug',
+  'gardenInputId',
+  'gardenInputSlug',
+  'plantRelationId',
+  'sourcePlantId',
+  'targetPlantId'
 ];
 
 /** Scenario context: built fresh by Cucumber for every scenario. */
@@ -34,6 +58,18 @@ export class AgroWorld extends World {
   familyName?: string;
   otherFamilyId?: string;
   cropId?: string;
+  userId?: string;
+  targetEmail?: string;
+  targetUsername?: string;
+  anomalyId?: string;
+  anomalySlug?: string;
+  otherAnomalyId?: string;
+  otherAnomalySlug?: string;
+  gardenInputId?: string;
+  gardenInputSlug?: string;
+  plantRelationId?: string;
+  sourcePlantId?: string;
+  targetPlantId?: string;
 
   loggedInToken?: string;
   loggedInEmail?: string;

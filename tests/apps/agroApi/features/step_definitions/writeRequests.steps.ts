@@ -17,12 +17,18 @@ Given(
 );
 
 Given(
-  'a POST admin request to {string} with query {string} and body',
-  function (this: AgroWorld, route: string, query: string, body: string) {
+  'a POST {role} request to {string} with query {string} and body',
+  function (
+    this: AgroWorld,
+    role: Role,
+    route: string,
+    query: string,
+    body: string
+  ) {
     prepareRequest(this, {
       method: 'POST',
       route,
-      role: 'admin',
+      role,
       query,
       body
     });
@@ -43,26 +49,20 @@ When(
   }
 );
 
-Given(
-  'a POST user request to {string} with query {string} and body',
-  function (this: AgroWorld, route: string, query: string, body: string) {
-    prepareRequest(this, {
-      method: 'POST',
-      route,
-      role: 'user',
-      query,
-      body
-    });
-  }
-);
-
 When(
-  'I send a PATCH admin request to {string} with body',
+  'I send a POST request to {string} with body',
   function (this: AgroWorld, route: string, body: string) {
+    prepareRequest(this, { method: 'POST', route, body });
+  }
+);
+
+When(
+  'I send a PATCH {role} request to {string} with body',
+  function (this: AgroWorld, role: Role, route: string, body: string) {
     prepareRequest(this, {
       method: 'PATCH',
       route,
-      role: 'admin',
+      role,
       body,
       conditional: true
     });
@@ -70,40 +70,19 @@ When(
 );
 
 When(
-  'I send a PATCH admin request to {string} with query {string} and body',
-  function (this: AgroWorld, route: string, query: string, body: string) {
+  'I send a PATCH {role} request to {string} with query {string} and body',
+  function (
+    this: AgroWorld,
+    role: Role,
+    route: string,
+    query: string,
+    body: string
+  ) {
     prepareRequest(this, {
       method: 'PATCH',
       route,
-      role: 'admin',
+      role,
       query,
-      body,
-      conditional: true
-    });
-  }
-);
-
-When(
-  'I send a PATCH user request to {string} with query {string} and body',
-  function (this: AgroWorld, route: string, query: string, body: string) {
-    prepareRequest(this, {
-      method: 'PATCH',
-      route,
-      role: 'user',
-      query,
-      body,
-      conditional: true
-    });
-  }
-);
-
-When(
-  'I send a PATCH user request to {string} with body',
-  function (this: AgroWorld, route: string, body: string) {
-    prepareRequest(this, {
-      method: 'PATCH',
-      route,
-      role: 'user',
       body,
       conditional: true
     });
@@ -118,24 +97,12 @@ When(
 );
 
 When(
-  'I send a DELETE admin request to {string}',
-  function (this: AgroWorld, route: string) {
+  'I send a DELETE {role} request to {string}',
+  function (this: AgroWorld, role: Role, route: string) {
     prepareRequest(this, {
       method: 'DELETE',
       route,
-      role: 'admin',
-      conditional: true
-    });
-  }
-);
-
-When(
-  'I send a DELETE user request to {string}',
-  function (this: AgroWorld, route: string) {
-    prepareRequest(this, {
-      method: 'DELETE',
-      route,
-      role: 'user',
+      role,
       conditional: true
     });
   }

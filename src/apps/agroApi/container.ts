@@ -10,12 +10,22 @@ import {
 } from 'awilix';
 import type { Db, MongoClient } from 'mongodb';
 
+import { anomalyPersistenceMapper } from '../../Contexts/Agro/Anomalies/mappers/anomalyPersistenceMapper.js';
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
+import { userBookmarksPersistenceMapper } from '../../Contexts/Agro/Bookmarks/mappers/userBookmarksPersistenceMapper.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
+import { gardenInputPersistenceMapper } from '../../Contexts/Agro/GardenInputs/mappers/gardenInputPersistenceMapperImpl.js';
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
+import { plantLikePersistenceMapper } from '../../Contexts/Agro/PlantLikes/mappers/plantLikePersistenceMapper.js';
+import { CompanionEvaluationService } from '../../Contexts/Agro/PlantRelations/domain/services/CompanionEvaluationService.js';
+import { plantRelationPersistenceMapper } from '../../Contexts/Agro/PlantRelations/mappers/plantRelationPersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { MailerAccountNotifier } from '../../Contexts/Auth/application/notifications/index.js';
+import {
+  ProviderUserResolver,
+  SessionTokenIssuer
+} from '../../Contexts/Auth/application/services/index.js';
 import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
 import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
 import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
@@ -24,7 +34,7 @@ import {
   buildLogger,
   type AppLogger
 } from '../../Contexts/shared/plugins/index.js';
-import { envs } from './config/plugins/envs.plugin.js';
+import { getEnvs } from './config/plugins/envs.plugin.js';
 import { COMPONENT_ROLES } from './wiring/componentRoles.js';
 import type {
   AppContainer,
@@ -53,6 +63,7 @@ export function buildExplicitRegistrations({
   'db' | 'client'
 >): NameAndRegistrationPair<ContainerCradle> {
   const logger = buildLogger('agroApi');
+  const envs = getEnvs();
 
   return {
     db: asValue(db), // Runtime Mongo database instance connected at start-up
@@ -61,11 +72,18 @@ export function buildExplicitRegistrations({
     logger: asValue<AppLogger>(logger), // Contextual root logger instance
     bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
     familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
+    anomalyPersistenceMapper: asValue(anomalyPersistenceMapper), // Plain persistence mapper without class state
+    gardenInputPersistenceMapper: asValue(gardenInputPersistenceMapper), // Plain persistence mapper without class state
     plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
     plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
+    userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper), // Plain persistence mapper without class state
+    plantLikePersistenceMapper: asValue(plantLikePersistenceMapper), // Plain persistence mapper without class state
+    plantRelationPersistenceMapper: asValue(plantRelationPersistenceMapper), // Plain persistence mapper without class state
     cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
+    companionEvaluationService: asClass(CompanionEvaluationService).singleton(), // Multi-tier taxonomic companion resolution engine
     unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
     familySummaryReader: aliasTo('familyReadRepository'), // Plants' port, served by the family read side
+    plantSummaryReader: aliasTo('plantReadRepository'), // PlantRelations' port, served by the plant read side
     mailer: asValue<Mailer>(
       createMailer({
         nodeEnv: envs.NODE_ENV,
@@ -81,13 +99,25 @@ export function buildExplicitRegistrations({
     ), // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
     backgroundTasks: asClass(InProcessBackgroundTasks).singleton(), // Work started after the answer (emails); drained on shutdown
     accountNotifier: asClass(MailerAccountNotifier).singleton(), // Spanish account emails, sent in the background
-    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL) // Frontend the account emails link to (activation, password reset)
+    providerUserResolver: asClass(ProviderUserResolver).singleton(), // Shared find-by-id → by-email → link/create step for every provider
+    sessionTokenIssuer: asClass(SessionTokenIssuer).singleton(), // Mints the session token shared by password, Google and GitHub logins
+    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL), // Frontend the account emails link to (activation, password reset)
+    googleClientId: asValue(envs.GOOGLE_CLIENT_ID), // Only audience accepted in Google ID tokens (the web client)
+    githubClientId: asValue(envs.GITHUB_CLIENT_ID), // GitHub OAuth app client id used in the code exchange
+    githubClientSecret: asValue(envs.GITHUB_CLIENT_SECRET), // GitHub OAuth app secret; never leaves the server or is logged
+    githubRedirectUri: asValue(envs.GITHUB_REDIRECT_URI) // Redirect URI registered with the GitHub app (server-side only)
   };
 }
 
-export async function createAppContainer(
-  deps: ContainerDeps
-): Promise<AppContainer> {
+export type CreateAppContainerDeps = ContainerDeps & {
+  /** Test doubles for external providers; production passes nothing. */
+  overrides?: NameAndRegistrationPair<ContainerCradle>;
+};
+
+export async function createAppContainer({
+  overrides,
+  ...deps
+}: CreateAppContainerDeps): Promise<AppContainer> {
   const container = createContainer<ContainerCradle>({
     injectionMode: InjectionMode.PROXY,
     strict: true
@@ -103,6 +133,10 @@ export async function createAppContainer(
         component.lifetime
       )
     });
+  }
+
+  if (overrides) {
+    container.register(overrides);
   }
 
   return container;

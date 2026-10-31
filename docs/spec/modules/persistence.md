@@ -28,12 +28,24 @@ This module includes:
 
 - MongoCrudRepository base abstraction (shared CRUD layer for aggregates)
 - MongoRepository specialized base abstraction
-- PlantRepository implementation
-- BedRepository implementation
-- PlantInstanceRepository implementation
+- Write repositories:
+  - `PlantRepository` (biological catalog)
+  - `BedRepository` (cultivation boundaries)
+  - `PlantInstanceRepository` (standalone crops)
+  - `FamilyRepository` (botanical taxonomy)
+  - `AnomalyRepository` (pests, diseases, disorders)
+  - `GardenInputRepository` (organic remedies & fertilizers)
+  - `UserRepository` (identity, credentials, roles)
+  - `UserBookmarksRepository` (favorite varieties)
+- CQRS read repositories (direct projection bypass):
+  - `PlantReadRepository`
+  - `FamilyReadRepository`
+  - `AnomalyReadRepository`
+  - `GardenInputReadRepository`
+- `UnitOfWork` multi-document transaction manager (MongoDB sessions)
 - Full-state diff system (`diffObjects` / `updateWithDiff`)
-- DTO mapping layer
-- persistence lifecycle handling
+- DTO and Mongo mapping layer (`*PersistenceMapper`)
+- persistence lifecycle handling & formal migrations (`migrations/` via `migrate-mongo`)
 - **query translation layer (MongoQueryTranslator)**
 
 ---

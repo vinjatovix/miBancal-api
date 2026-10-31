@@ -60,7 +60,7 @@ Rules:
 /modules/knowledge.md
 ```
 
-- anomalies (unifying pests, pathogens, disorders, weeds)
+- anomalies (unifying pests, pathogens, disorders)
 - garden-inputs (organic remedies, nutrition)
 
 Rules:
@@ -211,7 +211,7 @@ Rules:
 
 ---
 
-### 3.10 Plant Instance System `[TARGET STATE (Pending [Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection))]`
+### 3.10 Plant Instance System `[DELIVERED (spec 024, Iteration 20)]`
 
 ```sh
 /modules/plant-instance.md
@@ -243,7 +243,7 @@ Rules:
 - no plant logic
 - no event logic
 - no knowledge logic
-- **`[TARGET STATE (Pending [Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection))]`** completely decoupled from individual plant aggregates (not responsible for saving or retrieving plant instances)
+- **`[DELIVERED (spec 024, Iteration 20)]`** completely decoupled from individual plant aggregates (not responsible for saving or retrieving plant instances, crops stored in dedicated `plant_instances` collection)
 
 ---
 

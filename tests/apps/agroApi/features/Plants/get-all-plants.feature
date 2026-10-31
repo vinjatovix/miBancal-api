@@ -212,7 +212,7 @@ Feature: Get All Plants
     And a plant exists
     When I send a GET request to "/api/v1/plants"
     Then the response status code should be 200
-    And each item should hold exactly the fields "id,version,identity,traits,phenology,knowledge,image,metadata,status,deletedAt"
+    And each item should hold exactly the fields "id,slug,version,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,likesCount"
     And response matches OpenAPI contract
 
   Scenario: List plants with their image and without their knowledge

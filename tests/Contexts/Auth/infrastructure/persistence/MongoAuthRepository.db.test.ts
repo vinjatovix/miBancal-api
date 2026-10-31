@@ -8,11 +8,18 @@ import {
 } from 'mongodb';
 import { up as createAccountIndexes } from '../../../../../migrations/scripts/20261003130000-account-family-unique-indexes.js';
 import { up as createEmailTokenIndex } from '../../../../../migrations/scripts/20261016120000-create-users-email-token-index.js';
+import { up as createProviderUserIdIndex } from '../../../../../migrations/scripts/20261017120000-create-users-provider-user-id-index.js';
+import { up as createRolesIndexAndGuard } from '../../../../../migrations/scripts/20261018120000-users-roles-index-and-admin-guard.js';
 import type { User } from '../../../../../src/Contexts/Auth/domain/entities/User.js';
 import type { AuthRepository } from '../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
+import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { MongoAuthRepository } from '../../../../../src/Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import type { UnitOfWork } from '../../../../../src/Contexts/shared/application/interfaces/index.js';
-import { DomainConflictException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException,
+  DomainStaleVersionException
+} from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import {
   createDbTestContext,
@@ -82,6 +89,8 @@ describe('MongoAuthRepository', () => {
 
     await createAccountIndexes(db);
     await createEmailTokenIndex(db);
+    await createProviderUserIdIndex(db);
+    await createRolesIndexAndGuard(db);
 
     repository = context.container.resolve<AuthRepository>('authRepository');
     unitOfWork = context.container.resolve<UnitOfWork>('unitOfWork');
@@ -93,16 +102,6 @@ describe('MongoAuthRepository', () => {
 
   afterAll(async () => {
     await context.close();
-  });
-
-  describe('save', () => {
-    it('should save a user without an `id` field', async () => {
-      const user = UserMother.random();
-
-      await repository.save(user);
-
-      expect(await rawUser(user)).not.toHaveProperty('id');
-    });
   });
 
   describe('create', () => {
@@ -128,16 +127,77 @@ describe('MongoAuthRepository', () => {
       expect(outcome).toBe('emailTaken');
     });
 
-    it('should refuse a taken username without echoing it', async () => {
+    it('should answer usernameTaken when the username is already stored', async () => {
       const stored = UserMother.active();
       await repository.create(stored);
 
-      const result = repository.create(
+      const outcome = await repository.create(
         UserMother.pending({ username: stored.username })
       );
 
-      await expect(result).rejects.toThrow(DomainConflictException);
-      await expect(result).rejects.not.toThrow(stored.username.value);
+      expect(outcome).toBe('usernameTaken');
+    });
+
+    it('should answer providerTaken when the Google identity is already stored', async () => {
+      const stored = UserMother.googleOnly();
+      const providerUserId = stored.findAuthMethod('google')?.providerUserId;
+      await repository.create(stored);
+
+      const outcome = await repository.create(
+        UserMother.googleOnly(providerUserId)
+      );
+
+      expect(outcome).toBe('providerTaken');
+    });
+
+    it('should store two accounts with a password and different Google identities', async () => {
+      const first = UserMother.activeLinkedTo('google');
+      const second = UserMother.activeLinkedTo('google');
+
+      expect(await repository.create(first)).toBe('created');
+      expect(await repository.create(second)).toBe('created');
+    });
+
+    it('should answer providerTaken when the same GitHub identity is stored twice', async () => {
+      const providerUserId = '424242';
+      await repository.create(
+        UserMother.create({
+          authMethods: [
+            UserMother.randomProviderMethod('github', providerUserId)
+          ]
+        })
+      );
+
+      const outcome = await repository.create(
+        UserMother.create({
+          authMethods: [
+            UserMother.randomProviderMethod('github', providerUserId)
+          ]
+        })
+      );
+
+      expect(outcome).toBe('providerTaken');
+    });
+
+    // The provider index is unique by `providerUserId` value across providers,
+    // so a GitHub id equal to a Google `sub` cannot both be stored. GitHub ids
+    // (short integers) and Google `sub`s (21 digits) never coincide in
+    // practice, so this is an accepted limitation, not a reachable conflict.
+    it('should answer providerTaken for the same id value under a different provider', async () => {
+      const sharedId = '987654';
+      await repository.create(
+        UserMother.create({
+          authMethods: [UserMother.randomProviderMethod('google', sharedId)]
+        })
+      );
+
+      const outcome = await repository.create(
+        UserMother.create({
+          authMethods: [UserMother.randomProviderMethod('github', sharedId)]
+        })
+      );
+
+      expect(outcome).toBe('providerTaken');
     });
 
     it('should refuse a taken id', async () => {
@@ -278,7 +338,7 @@ describe('MongoAuthRepository', () => {
     it('should return an existing user', async () => {
       const user = UserMother.random();
 
-      await repository.save(user);
+      await repository.create(user);
 
       expect(await repository.search(user.email.value)).toMatchObject(user);
     });
@@ -303,7 +363,7 @@ describe('MongoAuthRepository', () => {
         authMethods: [UserMother.randomGoogleAuthMethod(providerUserId)]
       });
 
-      await repository.save(user);
+      await repository.create(user);
 
       const found = await repository.searchByProvider('google', providerUserId);
 
@@ -316,6 +376,58 @@ describe('MongoAuthRepository', () => {
       const found = await repository.searchByProvider('google', 'missing-sub');
 
       expect(found).toBeNull();
+    });
+
+    it('should look up a provider identity with its index, never a collection scan', async () => {
+      const user = UserMother.googleOnly();
+      const providerUserId = user.findAuthMethod('google')?.providerUserId;
+      if (!providerUserId) throw new TypeError('No Google identity');
+      await repository.create(user);
+      await repository.create(UserMother.active());
+      const filter = await filterSentBy(() =>
+        repository.searchByProvider('google', providerUserId)
+      );
+
+      const explain = await usersCollection()
+        .find(filter)
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_auth_provider_user_id_unique'
+      });
+    });
+
+    it('should look up a GitHub identity with the provider index, never a collection scan', async () => {
+      const providerUserId = '13579';
+      await repository.create(
+        UserMother.create({
+          authMethods: [
+            UserMother.randomProviderMethod('github', providerUserId)
+          ]
+        })
+      );
+      await repository.create(UserMother.active());
+      const filter = await filterSentBy(() =>
+        repository.searchByProvider('github', providerUserId)
+      );
+
+      const explain = await usersCollection()
+        .find(filter)
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_auth_provider_user_id_unique'
+      });
     });
   });
 
@@ -379,7 +491,7 @@ describe('MongoAuthRepository', () => {
   describe('findByQuery', () => {
     it('should find a user by username', async () => {
       const user = UserMother.random();
-      await repository.save(user);
+      await repository.create(user);
 
       const results = await repository.findByQuery({
         username: user.username.value
@@ -392,7 +504,7 @@ describe('MongoAuthRepository', () => {
 
     it('should find a user by id', async () => {
       const user = UserMother.random();
-      await repository.save(user);
+      await repository.create(user);
 
       const results = await repository.findByQuery({ id: user.id });
 
@@ -408,7 +520,7 @@ describe('MongoAuthRepository', () => {
 
     it('should not include password in results', async () => {
       const user = UserMother.random();
-      await repository.save(user);
+      await repository.create(user);
 
       const results = await repository.findByQuery({
         username: user.username.value
@@ -420,8 +532,8 @@ describe('MongoAuthRepository', () => {
     it('should return all users when query is empty', async () => {
       const userA = UserMother.random();
       const userB = UserMother.random();
-      await repository.save(userA);
-      await repository.save(userB);
+      await repository.create(userA);
+      await repository.create(userB);
 
       const results = await repository.findByQuery({});
 
@@ -429,6 +541,150 @@ describe('MongoAuthRepository', () => {
       expect(results.map((result) => result.id)).toEqual(
         expect.arrayContaining([userA.id, userB.id])
       );
+    });
+  });
+
+  describe('searchByUsername', () => {
+    it('should return an existing user by exact username', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+
+      const found = await repository.searchByUsername(user.username.value);
+
+      expect(found?.id).toBe(user.id);
+    });
+
+    it('should return null when no account holds the username', async () => {
+      expect(await repository.searchByUsername('no-such-user')).toBeNull();
+    });
+
+    it('should use the username unique index, never a collection scan', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+      await repository.create(UserMother.active());
+      const filter = await filterSentBy(() =>
+        repository.searchByUsername(user.username.value)
+      );
+
+      const explain = await usersCollection()
+        .find(filter)
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_username_unique'
+      });
+    });
+  });
+
+  describe('countByRole', () => {
+    it('should count only accounts holding the role', async () => {
+      await repository.create(UserMother.active()); // roles: ['user']
+      await repository.create(
+        UserMother.create({ roles: new UserRoles(['user', 'admin']) })
+      );
+      await repository.create(
+        UserMother.create({ roles: new UserRoles(['user', 'admin']) })
+      );
+
+      expect(await repository.countByRole('admin')).toBe(2);
+    });
+
+    it('should count by role with the users_roles index, never a collection scan', async () => {
+      await repository.create(UserMother.active());
+      await repository.create(
+        UserMother.create({ roles: new UserRoles(['user', 'admin']) })
+      );
+
+      const explain = await usersCollection()
+        .find({ roles: 'admin' })
+        .explain('executionStats');
+
+      const stages = planStages(
+        (explain.executionStats as Record<string, unknown>).executionStages
+      );
+      expect(stages.map(({ stage }) => stage)).not.toContain('COLLSCAN');
+      expect(stages).toContainEqual({
+        stage: 'IXSCAN',
+        indexName: 'users_roles'
+      });
+    });
+
+    it('should leave the users_roles index and admin guard unchanged when its migration runs again', async () => {
+      const beforeIndexes = await usersCollection().indexes();
+
+      await createRolesIndexAndGuard(db);
+
+      expect(await usersCollection().indexes()).toEqual(beforeIndexes);
+    });
+  });
+
+  describe('reserveMinimumHolderGuard', () => {
+    it('should touch the seeded guard document', async () => {
+      await createRolesIndexAndGuard(db);
+
+      await expect(
+        repository.reserveMinimumHolderGuard('admin')
+      ).resolves.toBeUndefined();
+    });
+
+    it('should fail loudly when the guard document is absent', async () => {
+      await expect(
+        repository.reserveMinimumHolderGuard('admin')
+      ).rejects.toThrow(/guard/i);
+    });
+  });
+
+  describe('updateRoles', () => {
+    it('should $inc version by one and leave every field but roles and audit untouched', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+      const before = user.toPrimitives();
+      const storedBefore = await rawUser(user);
+      user.changeRoles(['admin'], [], 'acting-admin', new Date());
+
+      const outcome = await repository.updateRoles(before, user.toPrimitives());
+
+      expect(outcome).toBe('written');
+      const stored = await rawUser(user);
+      if (stored === null || storedBefore === null) {
+        throw new TypeError('The user was not stored');
+      }
+      expect(stored.version).toBe((storedBefore.version as number) + 1);
+      expect(stored.roles).toEqual(expect.arrayContaining(['user', 'admin']));
+      expect(stored.password).toEqual(storedBefore.password);
+      expect(stored.authMethods).toEqual(storedBefore.authMethods);
+      expect(stored.email).toEqual(storedBefore.email);
+      expect(stored.emailValidated).toEqual(storedBefore.emailValidated);
+      expect(stored.metadata).toMatchObject({ updatedBy: 'acting-admin' });
+    });
+
+    it('should surface a stale version as DomainStaleVersionException (412)', async () => {
+      const user = UserMother.active();
+      await repository.create(user);
+      const before = user.toPrimitives();
+      user.changeRoles(['admin'], [], 'acting-admin', new Date());
+      const after = user.toPrimitives();
+
+      await repository.updateRoles(before, after);
+
+      await expect(repository.updateRoles(before, after)).rejects.toThrow(
+        DomainStaleVersionException
+      );
+    });
+
+    it('should surface a missing document as DomainNotFoundException (404)', async () => {
+      const user = UserMother.active();
+      const before = user.toPrimitives();
+      user.changeRoles(['admin'], [], 'acting-admin', new Date());
+
+      await expect(
+        repository.updateRoles(before, user.toPrimitives())
+      ).rejects.toThrow(DomainNotFoundException);
     });
   });
 });

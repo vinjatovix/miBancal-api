@@ -13,6 +13,11 @@ import type {
   AuthProvider,
   EmailTokenPurpose
 } from '../../../../src/Contexts/Auth/domain/value-objects/types/index.js';
+import type {
+  ManageableRole,
+  UserRole
+} from '../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import type { WriteOutcome } from '../../../../src/Contexts/shared/domain/repositories/WriteOutcome.js';
 import { Email } from '../../../../src/Contexts/shared/domain/valueObject/index.js';
 import type { Nullable } from '../../../../src/shared/domain/types/Nullable.js';
 import { UserMother } from '../domain/mothers/UserMother.js';
@@ -26,11 +31,20 @@ type UserQuery = { id?: string; username?: string };
  * local password). Results set with the `set*` helpers win over that default.
  */
 export class AuthRepositoryMock implements AuthRepository {
-  private readonly saveMock = jest.fn<Promise<void>, [User]>();
   private readonly createMock = jest.fn<Promise<CreateUserOutcome>, [User]>();
   private readonly updateMock = jest.fn<
     Promise<UpdateUserOutcome>,
     [UserPrimitives, UserPrimitives]
+  >();
+  private readonly updateRolesMock = jest.fn<
+    Promise<WriteOutcome>,
+    [UserPrimitives, UserPrimitives]
+  >();
+  private readonly searchByUsernameMock = jest.fn<Nullable<User>, [string]>();
+  private readonly countByRoleMock = jest.fn<Promise<number>, [UserRole]>();
+  private readonly reserveMinimumHolderGuardMock = jest.fn<
+    Promise<void>,
+    [ManageableRole]
   >();
   private readonly deleteIfReplaceableMock = jest.fn<
     Promise<boolean>,
@@ -55,11 +69,14 @@ export class AuthRepositoryMock implements AuthRepository {
 
   constructor({ find }: { find: boolean } = DEFAULT_OPTIONS) {
     this.isFindable = find;
-    this.saveMock.mockResolvedValue(undefined);
     this.createMock.mockResolvedValue('created');
     this.updateMock.mockResolvedValue('written');
+    this.updateRolesMock.mockResolvedValue('written');
+    this.countByRoleMock.mockResolvedValue(2);
+    this.reserveMinimumHolderGuardMock.mockResolvedValue(undefined);
     this.deleteIfReplaceableMock.mockResolvedValue(true);
     this.searchByIdMock.mockReturnValue(null);
+    this.searchByUsernameMock.mockReturnValue(null);
     this.searchByEmailTokenMock.mockReturnValue(null);
     this.setupLookups();
   }
@@ -102,10 +119,6 @@ export class AuthRepositoryMock implements AuthRepository {
     });
   }
 
-  save(user: User): Promise<void> {
-    return this.saveMock(user);
-  }
-
   create(user: User): Promise<CreateUserOutcome> {
     return this.createMock(user);
   }
@@ -115,6 +128,26 @@ export class AuthRepositoryMock implements AuthRepository {
     after: UserPrimitives
   ): Promise<UpdateUserOutcome> {
     return this.updateMock(before, after);
+  }
+
+  updateRoles(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome> {
+    return this.updateRolesMock(before, after);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async searchByUsername(username: string): Promise<Nullable<User>> {
+    return this.searchByUsernameMock(username);
+  }
+
+  countByRole(role: UserRole): Promise<number> {
+    return this.countByRoleMock(role);
+  }
+
+  reserveMinimumHolderGuard(role: ManageableRole): Promise<void> {
+    return this.reserveMinimumHolderGuardMock(role);
   }
 
   deleteIfReplaceable(user: User, at: Date): Promise<boolean> {
@@ -170,6 +203,40 @@ export class AuthRepositoryMock implements AuthRepository {
     this.searchByIdMock.mockReturnValue(user);
   }
 
+  setSearchByUsernameResult(user: Nullable<User>): void {
+    this.searchByUsernameMock.mockReturnValue(user);
+  }
+
+  setUpdateRolesOutcome(outcome: WriteOutcome): void {
+    this.updateRolesMock.mockResolvedValue(outcome);
+  }
+
+  setCountByRole(count: number): void {
+    this.countByRoleMock.mockResolvedValue(count);
+  }
+
+  assertGuardReservedWith(role: ManageableRole): void {
+    expect(this.reserveMinimumHolderGuardMock).toHaveBeenCalledWith(role);
+  }
+
+  assertGuardNotReserved(): void {
+    expect(this.reserveMinimumHolderGuardMock).not.toHaveBeenCalled();
+  }
+
+  /** The guard must be the contention point: reserved before the count read. */
+  assertGuardReservedBeforeCount(): void {
+    const guardOrder =
+      this.reserveMinimumHolderGuardMock.mock.invocationCallOrder[0];
+    const countOrder = this.countByRoleMock.mock.invocationCallOrder[0];
+    if (guardOrder === undefined) {
+      throw new TypeError('The guard was not reserved');
+    }
+    if (countOrder === undefined) {
+      throw new TypeError('The administrator count was not read');
+    }
+    expect(guardOrder).toBeLessThan(countOrder);
+  }
+
   setSearchByEmailTokenResult(user: Nullable<User>): void {
     this.searchByEmailTokenMock.mockReturnValue(user);
   }
@@ -178,8 +245,22 @@ export class AuthRepositoryMock implements AuthRepository {
     this.searchByProviderResult = user;
   }
 
+  /** Results answered by the next `searchByProvider` calls, in order. */
+  setSearchByProviderResults(...users: Array<Nullable<User>>): void {
+    for (const user of users) {
+      this.searchByProviderMock.mockReturnValueOnce(user);
+    }
+  }
+
   setCreateOutcome(outcome: CreateUserOutcome): void {
     this.createMock.mockResolvedValue(outcome);
+  }
+
+  /** Outcomes answered by the next `create` calls, in order. */
+  setCreateOutcomes(...outcomes: CreateUserOutcome[]): void {
+    for (const outcome of outcomes) {
+      this.createMock.mockResolvedValueOnce(outcome);
+    }
   }
 
   /** Outcomes answered by the next `update` calls, in order. */
@@ -197,10 +278,6 @@ export class AuthRepositoryMock implements AuthRepository {
     this.storage.push(user);
   }
 
-  assertSaveHasBeenCalledWith(expected: unknown): void {
-    expect(this.saveMock).toHaveBeenCalledWith(expected);
-  }
-
   assertCreatedWith(expected: unknown): void {
     expect(this.createMock).toHaveBeenCalledTimes(1);
     expect(this.createMock).toHaveBeenCalledWith(expected);
@@ -213,6 +290,11 @@ export class AuthRepositoryMock implements AuthRepository {
     if (!user) throw new TypeError('No user was created');
 
     return user;
+  }
+
+  /** Every user passed to `create`, in call order. */
+  createdUsers(): User[] {
+    return this.createMock.mock.calls.map(([user]) => user);
   }
 
   assertUpdatedFrom(before: unknown, after: unknown): void {
@@ -236,7 +318,6 @@ export class AuthRepositoryMock implements AuthRepository {
   }
 
   assertNotWritten(): void {
-    expect(this.saveMock).not.toHaveBeenCalled();
     expect(this.createMock).not.toHaveBeenCalled();
     expect(this.updateMock).not.toHaveBeenCalled();
     expect(this.deleteIfReplaceableMock).not.toHaveBeenCalled();
@@ -256,6 +337,18 @@ export class AuthRepositoryMock implements AuthRepository {
 
   assertSearchByIdHasBeenCalledWith(expected: string): void {
     expect(this.searchByIdMock).toHaveBeenCalledWith(expected);
+  }
+
+  assertSearchByUsernameHasBeenCalledWith(expected: string): void {
+    expect(this.searchByUsernameMock).toHaveBeenCalledWith(expected);
+  }
+
+  updateRolesCount(): number {
+    return this.updateRolesMock.mock.calls.length;
+  }
+
+  assertRolesNotUpdated(): void {
+    expect(this.updateRolesMock).not.toHaveBeenCalled();
   }
 
   assertSearchByEmailTokenHasBeenCalledWith(

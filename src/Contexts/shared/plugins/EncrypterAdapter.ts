@@ -3,15 +3,12 @@ import { compare as bcryptCompare, hash as bcryptHash } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
 
-import { envs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
+import { getEnvs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
 import type { Nullable } from '../../../shared/domain/types/Nullable.js';
 import type { UnknownRecord } from '../../../shared/domain/types/UnknownRecord.js';
 import { isRecord } from '../../../shared/domain/utils/isRecord.js';
 import type { EncrypterTool } from './EncrypterTool.js';
 
-const JWT_SECRET = envs.JWT_SECRET;
-const SALT_ROUNDS = envs.BCRYPT_SALT_ROUNDS;
-const DEFAULT_TOKEN_DURATION = envs.JWT_DEFAULT_DURATION;
 const { sign, verify } = jwt;
 
 /**
@@ -22,7 +19,7 @@ let unusableHash: Promise<string> | undefined;
 
 export class EncrypterAdapter implements EncrypterTool {
   async hash(password: string): Promise<string> {
-    return bcryptHash(password, SALT_ROUNDS);
+    return bcryptHash(password, getEnvs().BCRYPT_SALT_ROUNDS);
   }
 
   async compare(password: string, hash: string): Promise<boolean> {
@@ -36,12 +33,12 @@ export class EncrypterAdapter implements EncrypterTool {
 
   async generateToken(
     payload: UnknownRecord,
-    duration: string = DEFAULT_TOKEN_DURATION
+    duration: string = getEnvs().JWT_DEFAULT_DURATION
   ): Promise<Nullable<string>> {
     return new Promise((resolve) => {
       sign(
         payload,
-        JWT_SECRET,
+        getEnvs().JWT_SECRET,
         { expiresIn: duration } as SignOptions,
         (err, token) => (err ? resolve(null) : resolve(token as string))
       );
@@ -50,7 +47,7 @@ export class EncrypterAdapter implements EncrypterTool {
 
   async verifyToken(token: string): Promise<Nullable<UnknownRecord>> {
     return new Promise((resolve) => {
-      verify(token, JWT_SECRET, (err, decoded) => {
+      verify(token, getEnvs().JWT_SECRET, (err, decoded) => {
         if (err || !isRecord(decoded)) {
           resolve(null);
           return;

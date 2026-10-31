@@ -1,10 +1,12 @@
 import type { Server } from 'node:http';
+import { asValue, type NameAndRegistrationPair } from 'awilix';
 import type { MongoClient } from 'mongodb';
 
 import { AgroBackApp } from '../../../../../../src/apps/agroApi/AgroBackApp.js';
 import {
   createAppContainer,
-  type AppContainer
+  type AppContainer,
+  type ContainerCradle
 } from '../../../../../../src/apps/agroApi/container.js';
 import type { AuthRepository } from '../../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
 import type {
@@ -19,8 +21,12 @@ import {
 import { UserMother } from '../../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
+import { FakeGithubIdentityProvider } from '../../shared/fakes/FakeGithubIdentityProvider.js';
+import { FakeGoogleIdTokenVerifier } from '../../shared/fakes/FakeGoogleIdTokenVerifier.js';
 import {
+  AnomalySeeder,
   FamilySeeder,
+  GardenInputSeeder,
   PlantSeeder,
   UserSeeder
 } from '../../shared/seeders/index.js';
@@ -41,6 +47,8 @@ export interface SuiteResources {
   readonly seeders: Readonly<{
     plant: ReturnType<typeof PlantSeeder>;
     family: ReturnType<typeof FamilySeeder>;
+    anomaly: ReturnType<typeof AnomalySeeder>;
+    gardenInput: ReturnType<typeof GardenInputSeeder>;
     user: ReturnType<typeof UserSeeder>;
   }>;
 }
@@ -86,10 +94,16 @@ const buildSuite = async (): Promise<SuiteResources> => {
     DBConfigFactory.createConfig()
   );
 
+  const overrides: NameAndRegistrationPair<ContainerCradle> = {
+    googleIdTokenVerifier: asValue(new FakeGoogleIdTokenVerifier()),
+    githubIdentityProvider: asValue(new FakeGithubIdentityProvider())
+  };
+
   const container = await createAppContainer({
     db: client.db(),
     client,
-    sourceRoot: SOURCE_ROOT
+    sourceRoot: SOURCE_ROOT,
+    overrides
   });
 
   const environmentArranger = container.resolve<EnvironmentArranger>(
@@ -99,7 +113,8 @@ const buildSuite = async (): Promise<SuiteResources> => {
   const app = new AgroBackApp({
     host: process.env.HOST || 'http://localhost',
     port: process.env.PORT || '0',
-    sourceRoot: SOURCE_ROOT
+    sourceRoot: SOURCE_ROOT,
+    overrides
   });
 
   await app.start(container.resolve('logger'));
@@ -138,6 +153,8 @@ const buildSuite = async (): Promise<SuiteResources> => {
     seeders: {
       family: FamilySeeder(httpServer, tokens.admin),
       plant: PlantSeeder(httpServer, tokens.admin),
+      anomaly: AnomalySeeder(httpServer, tokens.admin),
+      gardenInput: GardenInputSeeder(httpServer, tokens.admin),
       user: UserSeeder({
         authRepository: container.resolve<AuthRepository>('authRepository'),
         encrypter,

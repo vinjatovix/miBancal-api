@@ -1,4 +1,7 @@
-import { UserRoles } from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
+import {
+  USER_ROLES,
+  UserRoles
+} from '../../../../../src/Contexts/Auth/domain/value-objects/UserRoles.js';
 import { random } from '../../../shared/fixtures/index.js';
 
 export class UserRolesMother {
@@ -7,6 +10,6 @@ export class UserRolesMother {
   }
 
   static random() {
-    return this.create([`${random.arrayElement(['admin', 'user'])}`]);
+    return this.create([random.arrayElement(USER_ROLES)]);
   }
 }
