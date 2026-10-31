@@ -100,13 +100,15 @@ describe('ListPlantRelationsController', () => {
         id: sampleView.sourcePlantId!,
         name: { primary: 'tomate', aliases: ['tomatera'] },
         scientificName: 'solanum lycopersicum',
-        image: { url: 'https://example.com/tomato.jpg' }
+        image: { url: 'https://example.com/tomato.jpg' },
+        slug: 'tomate-slug'
       },
       targetPlant: {
         id: sampleView.targetPlantId!,
         name: { primary: 'albahaca' },
         scientificName: 'ocimum basilicum',
-        image: null
+        image: null,
+        slug: 'albahaca-slug'
       }
     };
     const paginatedResult = {

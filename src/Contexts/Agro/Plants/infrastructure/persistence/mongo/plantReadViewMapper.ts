@@ -73,10 +73,12 @@ const PLANT_VIEW_FIELDS: ReadViewFieldMappers<
   PlantReadView
 > = {
   id: (document) => fromMongoId(document._id),
+  slug: (document) => document.slug,
   identity: (document) => {
-    const genus = deriveGenus(document.identity.scientificName);
+    const { genus: _stored, ...rest } = document.identity;
+    const genus = deriveGenus(rest.scientificName);
 
-    return { ...document.identity, ...(genus !== undefined && { genus }) };
+    return { ...rest, ...(genus !== undefined && { genus }) };
   },
   traits: (document) => document.traits,
   phenology: (document) => document.phenology,
@@ -97,6 +99,9 @@ export const toPlantReadView = (
   id: PLANT_VIEW_FIELDS.id(document),
   version: PLANT_VIEW_FIELDS.version(document),
   likesCount: PLANT_VIEW_FIELDS.likesCount(document),
+  ...(PLANT_VIEW_FIELDS.slug(document) !== undefined
+    ? { slug: PLANT_VIEW_FIELDS.slug(document) }
+    : {}),
   identity: PLANT_VIEW_FIELDS.identity(document),
   traits: PLANT_VIEW_FIELDS.traits(document),
   phenology: PLANT_VIEW_FIELDS.phenology(document),

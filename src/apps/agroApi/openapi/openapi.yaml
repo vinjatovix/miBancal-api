@@ -1055,6 +1055,7 @@ paths:
           required: true
           schema:
             type: string
+          description: A UUID is looked up by id; anything else by slug. Trimmed.
         - $ref: '#/components/parameters/PlantFields'
         - $ref: '#/components/parameters/PlantInclude'
       responses:
@@ -3251,6 +3252,21 @@ components:
             Matches name, aliases or scientific name (any of them).
           allOf:
             - $ref: '#/components/schemas/TextFieldFilter'
+        genus:
+          description: >
+            Exact botanical genus (the `identity.genus` projection). Matching
+            is case-insensitive (collation locale "es", strength 2). Use `eq`
+            for one genus or `in` for several (union). Exactly one operator.
+            Plants with no derivable genus never match.
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          maxProperties: 1
+          properties:
+            eq:
+              type: string
+              example: Allium
+            in: { $ref: '#/components/schemas/FilterTextList' }
         family:
           description: Family id.
           type: object
@@ -3688,6 +3704,13 @@ components:
       properties:
         id:
           type: string
+
+        slug:
+          type: string
+          readOnly: true
+          description: >
+            URL-friendly identifier derived from the scientific name; absent on
+            legacy documents.
 
         version:
           type: integer
@@ -4151,11 +4174,13 @@ components:
           $ref: '#/components/schemas/RequiredShortText'
         genus:
           description: >
-            Read-only projection derived from the first word of
-            `scientificName` (capitalized). Absent when no valid genus can be
-            derived (e.g. a leading hybrid "×"). Never stored or accepted on
-            write.
-          $ref: '#/components/schemas/RequiredShortText'
+            Botanical genus: the capitalized first word of `scientificName`,
+            derived server-side with the shared rule. Read-only and never
+            accepted on write. Absent when no valid genus can be derived
+            (e.g. a leading hybrid "×"). This is the same value the
+            `filter[genus]` option matches on.
+          allOf:
+            - $ref: '#/components/schemas/RequiredShortText'
         family:
           description: >
             The family id; with `include=family`, the family summary (or the
@@ -4853,12 +4878,16 @@ components:
       additionalProperties: false
       required:
         - id
+        - slug
         - name
         - scientificName
       properties:
         id:
           type: string
           format: uuid
+        slug:
+          type: string
+          readOnly: true
         name:
           type: object
           required:
@@ -4992,9 +5021,10 @@ components:
 
     CreatePlantRelation:
       type: object
-      additionalProperties: false
       oneOf:
-        - required:
+        - type: object
+          additionalProperties: false
+          required:
             - id
             - source
             - target
@@ -5026,7 +5056,9 @@ components:
             reason:
               type: string
               minLength: 1
-        - required:
+        - type: object
+          additionalProperties: false
+          required:
             - id
             - sourcePlantId
             - targetPlantId

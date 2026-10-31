@@ -1,6 +1,7 @@
 /** The plant summary embedded with `include=sourcePlant` or `include=targetPlant`. */
 export type PlantSummaryView = {
   readonly id: string;
+  readonly slug: string;
   readonly name: {
     readonly primary: string;
     readonly aliases?: readonly string[];

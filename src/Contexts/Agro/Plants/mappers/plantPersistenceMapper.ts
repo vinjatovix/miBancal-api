@@ -89,6 +89,7 @@ export const plantPersistenceMapper: PlantPersistenceMapper = {
     return {
       _id: toMongoId(plant.id),
       identity: plant.identity.toPrimitives(),
+      slug: plant.identity.slug,
       traits: {
         lifecycle: plant.traits.lifecycle.getValue(),
         size: {

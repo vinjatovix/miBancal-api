@@ -108,6 +108,40 @@ describe('GetPlant', () => {
     await expect(getPlant.execute(plant.id, USER)).resolves.toBe(plant);
   });
 
+  describe('resolving by slug', () => {
+    it('looks up an active plant by slug when the id is not a UUID', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await expect(getPlant.execute(plant.slug!, USER)).resolves.toEqual(plant);
+
+      repository.assertFindActiveBySlugHasBeenCalledWith(plant.slug!);
+      repository.assertFindActiveByIdNotCalled();
+    });
+
+    it('looks up a deleted plant by slug for admins', async () => {
+      const plant = PlantReadViewMother.deleted();
+      repository.addToStorage(plant);
+
+      await expect(getPlant.execute(plant.slug!, ADMIN)).resolves.toEqual(
+        plant
+      );
+
+      repository.assertFindBySlugHasBeenCalledWith(plant.slug!);
+    });
+
+    it('hides a deleted plant from regular users looking up by slug', async () => {
+      const plant = PlantReadViewMother.deleted();
+      repository.addToStorage(plant);
+
+      await expect(getPlant.execute(plant.slug!, USER)).rejects.toBeInstanceOf(
+        DomainNotFoundException
+      );
+
+      repository.assertFindActiveBySlugHasBeenCalledWith(plant.slug!);
+    });
+  });
+
   describe('with a fieldset', () => {
     it('should forward the fieldset to the repository', async () => {
       const plant = PlantReadViewMother.tomato();

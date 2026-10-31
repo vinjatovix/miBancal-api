@@ -16,6 +16,7 @@ export const proximityDistanceResponseSchema = z.object({
 
 export const plantSummaryResponseSchema = z.object({
   id: z.uuid(),
+  slug: z.string(),
   name: z.object({
     primary: z.string(),
     aliases: z.array(z.string()).optional()

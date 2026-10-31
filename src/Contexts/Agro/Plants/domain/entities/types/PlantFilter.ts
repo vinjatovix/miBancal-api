@@ -10,6 +10,7 @@ export interface PlantFilter {
   bookmarked?: ExactFilter<boolean>;
   identity?: StringFilter;
   family?: ExactFilter<string>;
+  genus?: ExactFilter<string>;
   lifeCycle?: ExactFilter<PlantLifecycleValue>;
   spacingCm?: RangeFilter;
   sowingMonths?: ArrayFilter<number>;

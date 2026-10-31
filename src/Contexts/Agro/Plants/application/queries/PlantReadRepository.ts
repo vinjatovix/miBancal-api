@@ -25,6 +25,16 @@ export interface PlantReadRepository {
     id: string,
     options?: ReadOptions<PlantField>
   ): Promise<Nullable<PlantSparseView>>;
+  /** Any status, deleted plants included. */
+  findBySlug(
+    slug: string,
+    options?: ReadOptions<PlantField>
+  ): Promise<Nullable<PlantSparseView>>;
+  /** Only a plant that is not deleted. */
+  findActiveBySlug(
+    slug: string,
+    options?: ReadOptions<PlantField>
+  ): Promise<Nullable<PlantSparseView>>;
   findAll(
     options?: Omit<QueryOptions<PlantFilter, PlantField>, 'include'>
   ): Promise<PaginatedResult<PlantSparseView>>;

@@ -12,6 +12,7 @@ import { plantDomainMapper } from './plantDomainMapper.js';
  */
 export type PlantWriteResponse = Omit<PlantPrimitives, 'identity'> & {
   identity: PlantPrimitives['identity'] & { genus?: string };
+  slug?: string;
   image: PlantImagePrimitives;
   likesCount: number;
 };
@@ -33,6 +34,7 @@ export const toPlantResponse = (plant: Plant): PlantWriteResponse => {
       ...primitives.identity,
       ...(genus !== undefined && { genus })
     },
+    slug: plant.identity.slug,
     image: plant.primaryImage(),
     likesCount: plant.likesCount
   };

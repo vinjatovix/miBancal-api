@@ -165,6 +165,14 @@ export class PlantQueryMapper {
       } else if (filter.status?.in) {
         query.status = { $in: filter.status.in };
       }
+    },
+
+    (filter, { query }) => {
+      if (filter.genus?.eq !== undefined) {
+        query['identity.genus'] = filter.genus.eq;
+      } else if (filter.genus?.in !== undefined) {
+        query['identity.genus'] = { $in: filter.genus.in };
+      }
     }
   ];
 
