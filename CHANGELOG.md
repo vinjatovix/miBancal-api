@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.1.0](https://github.com/vinjatovix/miBancal-api/compare/v1.0.1...v1.1.0) (2026-10-31)
+
+
+### Features
+
+* **anomalies:** add encyclopedic content with support resources and confused-with ([72bc52b](https://github.com/vinjatovix/miBancal-api/commit/72bc52b5d9cc6a776708bdac7b8e1bbb661351c6))
+* **anomalies:** implement anomaly bounded context with CRUD ([3de9829](https://github.com/vinjatovix/miBancal-api/commit/3de9829f6eedf45d92a9de6200524df19a786017))
+* **auth:** add admin role management concurrency safeguard ([822c42f](https://github.com/vinjatovix/miBancal-api/commit/822c42fe14c091fcefd2cf7af69d147855ce1160))
+* **auth:** add admin role management with user discovery ([0354531](https://github.com/vinjatovix/miBancal-api/commit/03545312ce443d1932971141568f946d44d70f4e))
+* **auth:** add collaborator role ([9025a82](https://github.com/vinjatovix/miBancal-api/commit/9025a8233c82c3af8ea24142163bc5d98a79f43d))
+* **auth:** add GitHub OAuth login ([d284698](https://github.com/vinjatovix/miBancal-api/commit/d284698bd7fa473c259ca34b4ce6109f68ee121a))
+* **auth:** add Google OAuth login ([0c93f32](https://github.com/vinjatovix/miBancal-api/commit/0c93f3207cb91633f7f30d73fa13f66d7c4ec27a))
+* **bookmarks:** add user plant bookmarks collection ([656720a](https://github.com/vinjatovix/miBancal-api/commit/656720ad85538b1f8f5143737201bd736b576f1f))
+* **bookmarks:** enhance plant bookmark functionality with user metadata tracking ([3ce8631](https://github.com/vinjatovix/miBancal-api/commit/3ce863115e1ee069250ed4882cad2a4b5eee599a))
+* **garden-inputs:** implement garden input bounded context with CRUD and recipes ([905fe2e](https://github.com/vinjatovix/miBancal-api/commit/905fe2e84053613d405efe5cb5487a2a024da8dc))
+* **plant-relations:** implement aggregate root and mongo repository ([ae0f1a9](https://github.com/vinjatovix/miBancal-api/commit/ae0f1a9135d17dfb9c98b5ddcc4a538a7131cd0b))
+* **plant-relations:** implement CRUD use cases and API endpoints ([94388d5](https://github.com/vinjatovix/miBancal-api/commit/94388d5c0b6744b2ad3c2b0209e59675d2c5fdcc))
+* **plant-relations:** implement hierarchical and broadcast companion resolution ([65cfca9](https://github.com/vinjatovix/miBancal-api/commit/65cfca90e4295362f9a9b9d407e9e7ced28dcb04))
+* **plant:** add likes functionality with ([24f090f](https://github.com/vinjatovix/miBancal-api/commit/24f090fea5c40903cf65a769cf58087ce928aa99))
+* **plants:** implement genus-based filtering and slug lookup with data migrations ([1654dbe](https://github.com/vinjatovix/miBancal-api/commit/1654dbe442a4fb6678cf1d9d9a4c884a4784fb88))
+* **rate-limit:** implement per-user rate limiter for authenticated routes ([3e6eab1](https://github.com/vinjatovix/miBancal-api/commit/3e6eab1cfa00d6b2634ddfe5caf4ffa4af4cbb94))
+
+
+### Bug Fixes
+
+* **anomalies:** remove weeds category ([d12be57](https://github.com/vinjatovix/miBancal-api/commit/d12be577def8cf46d3d07ebe16b59e5ee8726bdc))
+* **env:** add placeholders for Google and GitHub OAuth credentials ([42227d4](https://github.com/vinjatovix/miBancal-api/commit/42227d44df8db65a0e6917c4a13a9d3ce1cefbf4))
+* **release:** add manifest file and update release-please configuration ([2067b97](https://github.com/vinjatovix/miBancal-api/commit/2067b9781e919d333143cd2e987f2db863247d02))
+* **release:** configure packages mapping and openapi extra-files path ([b08c68b](https://github.com/vinjatovix/miBancal-api/commit/b08c68b89c1a2b154849c2351199e89b9fb5f982))
+* **security:** fix client ip rate limit ([a07c819](https://github.com/vinjatovix/miBancal-api/commit/a07c819c2bb2a9bbb18c90a38124df944fe01115))
+
 ## [1.0.1](https://github.com/vinjatovix/agro-back/compare/v1.0.0...v1.0.1) (2026-10-16)
 
 
