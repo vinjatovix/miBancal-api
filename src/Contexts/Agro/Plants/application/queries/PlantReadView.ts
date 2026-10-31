@@ -45,11 +45,14 @@ export type PlantReadView = {
   /** `ACTIVE` or `DELETED`. */
   readonly status: `${PlantStatus}`;
   readonly deletedAt: string | null;
+  /** URL-friendly identifier derived from the scientific name; absent on legacy documents. */
+  readonly slug?: string;
 };
 
 /** Fields of a plant that `fields[plants]` can select; declared order is canonical. */
 export const PLANT_FIELDS = [
   'id',
+  'slug',
   'identity',
   'traits',
   'phenology',

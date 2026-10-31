@@ -478,4 +478,90 @@ describe('MongoPlantReadRepository', () => {
       expect(summaries).toEqual([]);
     });
   });
+
+  describe('genus filter (US1)', () => {
+    beforeAll(async () => {
+      await client
+        .db()
+        .collection('plants')
+        .createIndex(
+          { 'identity.genus': 1 },
+          { name: 'plants_genus_idx', collation: { locale: 'es', strength: 2 } }
+        );
+    });
+
+    beforeEach(async () => {
+      await saveAll([
+        named('Garlic', 'allium sativum'),
+        named('Onion', 'allium cepa'),
+        named('Basil', 'ocimum basilicum'),
+        PlantFactory.random({
+          identity: PlantIdentityBuilder.withScientificName('×Brassicoraphanus')
+        })
+      ]);
+    });
+
+    it('returns only plants of the requested genus (eq)', async () => {
+      const { data } = await readRepository.findAll({
+        filter: { genus: { eq: 'Allium' } }
+      });
+
+      expect(data.length).toBe(2);
+      expect(data.every((p) => p.identity?.genus === 'Allium')).toBe(true);
+    });
+
+    it('is case-insensitive: lowercase input matches Allium', async () => {
+      const { data } = await readRepository.findAll({
+        filter: { genus: { eq: 'allium' } }
+      });
+
+      expect(data.length).toBe(2);
+      expect(data.every((p) => p.identity?.genus === 'Allium')).toBe(true);
+    });
+
+    it('returns plants matching any of the listed genera (in)', async () => {
+      const { data } = await readRepository.findAll({
+        filter: { genus: { in: ['Allium', 'Ocimum'] } }
+      });
+
+      expect(data.length).toBe(3);
+      expect(
+        data.every(
+          (p) =>
+            p.identity?.genus === 'Allium' || p.identity?.genus === 'Ocimum'
+        )
+      ).toBe(true);
+    });
+
+    it('excludes hybrid plants that have no derivable genus', async () => {
+      const { data } = await readRepository.findAll({
+        filter: { genus: { eq: 'Brassicoraphanus' } }
+      });
+
+      expect(data).toHaveLength(0);
+    });
+
+    it('uses an IXSCAN on plants_genus_idx (no COLLSCAN)', async () => {
+      const collection = client.db().collection('plants');
+      const explainRaw = await collection
+        .find(
+          { 'identity.genus': 'Allium' },
+          { collation: { locale: 'es', strength: 2 } }
+        )
+        .explain('executionStats');
+      const explain = explainRaw as unknown as {
+        queryPlanner?: {
+          winningPlan?: { inputStage?: unknown; stage?: unknown };
+        };
+      };
+
+      const winningPlan =
+        explain.queryPlanner?.winningPlan?.inputStage ??
+        explain.queryPlanner?.winningPlan;
+      const planStr = JSON.stringify(winningPlan);
+
+      expect(planStr).toContain('IXSCAN');
+      expect(planStr).not.toContain('COLLSCAN');
+    });
+  });
 });

@@ -1728,3 +1728,40 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHY: Clients holding plant ID references must currently fetch individual records in N+1 requests or load full catalog pages.
   WHAT: Expose `id: identifierField()` in `listPlantsQuery` schema, allowing batch resolution via `filter[id][in]` and single lookup via `filter[id][eq]`.
   ```
+
+## Iteration 89: Promote Genus to a First-Class, Filterable Plant Field
+
+**Spec Module(s)**: [plant.md](spec/modules/plant.md), [api-layer.md](spec/modules/api-layer.md), [query.md](spec/modules/query.md), [persistence.md](spec/modules/persistence.md)
+
+- **Status**: Delivered (2026-10-31).
+- **Value delivered**: Lets the catalog be browsed by botanical genus. In the UI, a plant's genus (shown in its detail) becomes a clickable chip that lists every catalog member of that genus (e.g. from garlic's detail, jump to all _Allium_). This makes genus a real, queryable dimension of the catalog, matching the first-class genus concept the relations engine already resolves on (Iteration 87), instead of leaving it only derived for display.
+- **Definition of Done**:
+  - `identity.genus` is persisted on every plant, derived with the shared `deriveGenus` (capitalized first word of `scientificName`; a name with no derivable genus — e.g. a leading hybrid `×` — stores no genus, exactly as the relations read-side already handles), and kept in sync whenever `scientificName` changes (create and `PATCH`), so the stored genus never drifts from the scientific name.
+  - A collated index on `identity.genus` (same `es`/strength-2 collation as the scientific-name index) backs exact, case-insensitive genus lookups without a collection scan (verified with `explain`).
+  - `listPlantsQuery` exposes `genus: exactField(...)`, validating `filter[genus][eq]` and `filter[genus][in]`, translated by `PlantQueryMapper` to an exact match on `identity.genus`. The plant read view keeps exposing `genus` (already derived) so the client has the value to click.
+  - A back-fill migration populates `identity.genus` for existing plants from their `scientificName` (hybrids with no derivable genus get none), without touching `version` or audit metadata, and its `down` removes only what it wrote (`$unset identity.genus`).
+  - OpenAPI (`PlantIdentity`, `PlantListFilter`) matches.
+- **Design note — why persist (B) over a text-prefix filter (A)**: the catalog's `identity` text filter can already approximate this today via `filter[identity][startsWith]=<genus>`, with no backend change — but it matches across `name.primary`, `aliases` and `scientificName`, is a substring/prefix heuristic rather than a taxonomic concept, and cannot be indexed for an exact genus seek. A persisted, indexed `identity.genus` is exact, fast, and coherent with Iteration 87 (where genus is already a first-class scope). The cheaper regex-on-`scientificName` option (`^<genus>\b`) is rejected as a permanent solution for the same indexing/exactness reasons; it remains a valid stop-gap the frontend can use until this iteration ships.
+- **Dependencies**: Iteration 87 (genus as a first-class resolution scope), Iteration 12 (plant identity value object and listing indexes), Iteration 14 (listing query DSL).
+- **Risks**: Derived genus drifting from `scientificName` if a mutation path forgets to recompute it (mitigated by deriving inside the `PlantIdentity` value object, so create/load/update all go through one place); migration miscomputing genus for hybrid or malformed scientific names (mitigated by reusing `deriveGenus` and skipping the genus tier when none is derivable, never failing).
+- **Prompt for /speckit.specify**:
+  ```text
+  PROMOTE GENUS TO A FIRST-CLASS, FILTERABLE PLANT FIELD
+  WHY: Genus is already a first-class resolution scope for plant relations (Iteration 87) but is only derived for display in the catalog, so clients cannot browse "all plants of this genus". A text-prefix search over identity is a fragile, unindexable heuristic.
+  WHAT: Persist a derived, capitalized `identity.genus` on plants (via the shared deriveGenus, kept in sync with scientificName in the PlantIdentity value object), add a collated index, expose `genus: exactField()` in listPlantsQuery (filter[genus][eq]/[in]) translated by PlantQueryMapper, and back-fill existing plants with a migrate-mongo migration. Update plant.md, the OpenAPI schemas and the listing contract together.
+  ```
+
+## Iteration 90: Look Up a Plant by Slug
+
+**Spec Module(s)**: [plant.md](spec/modules/plant.md), [api-layer.md](spec/modules/api-layer.md), [persistence.md](spec/modules/persistence.md)
+
+- **Status**: Delivered (2026-10-31).
+- **Value delivered**: The plant detail route (`GET /plants/{idOrSlug}`) resolves a UUID by id and anything else by a stable, human-readable slug, so clients can link to a plant by name (e.g. `/plants/allium-sativum`) instead of carrying its UUID. This matches how the family, anomaly and garden-input catalogs already expose a slug lookup.
+- **Definition of Done**:
+  - Every plant carries a `slug`, derived by the `PlantIdentity` value object as the slugified `scientificName` (so it is stable and taxonomically meaningful). Like `genus`, the slug is derived output-only: it is recomputed whenever `scientificName` changes and is never read from input or storage, so it cannot drift.
+  - The slug is stored once, at the top level of the plant document (not under `identity`), matching the read, summary and lookup paths; a unique index (`plants_slug_unique`) makes slug lookups indexed and deterministic. Because scientific names are already unique (`plants_scientific_name_unique`) and the slug derives from them, a soft-deleted plant keeps its slug reserved (no partial index), consistent with the scientific-name rule.
+  - `GetPlant` dispatches on `UuidValidator.isValid`: a UUID uses `findById`/`findActiveById`, anything else uses `findBySlug`/`findActiveBySlug` (deleted plants still hidden from non-privileged readers). The `GET` param, OpenAPI and the plant response (top-level `slug`) match.
+  - Covered by unit tests (slug derivation and the id-vs-slug dispatch) and an acceptance scenario (`GET /plants/{slug}`), plus a migration test guarding the unique-index intent.
+- **Design note — why the slug is derived from `scientificName`, not the primary name**: the primary (common) name is localized and not unique, so a slug built from it would collide and drift. The scientific name is already the catalog's unique, stable key, so deriving the slug from it gives a unique, stable URL for free and reuses the existing uniqueness guarantee.
+- **Dependencies**: Iteration 12 (plant identity value object and listing indexes), Iteration 89 (genus derivation, which established the derived output-only pattern the slug reuses).
+- **Risks**: Two distinct scientific names could slugify to the same value in rare edge cases (e.g. differing only by whitespace); the unique index turns that into an explicit `409` on write rather than a silent, non-deterministic lookup.

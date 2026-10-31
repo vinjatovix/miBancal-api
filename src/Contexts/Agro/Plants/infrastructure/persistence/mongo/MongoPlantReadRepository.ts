@@ -58,6 +58,7 @@ const PRIMARY_IMAGE: ProjectionExpression = {
 
 // Contract fields only: unknown stored fields never leave the database.
 const PLANT_PROJECTION: ReadProjection = {
+  slug: 1,
   identity: 1,
   traits: 1,
   phenology: 1,
@@ -135,6 +136,22 @@ export class MongoPlantReadRepository
     );
   }
 
+  /** Any status, deleted plants included. */
+  async findBySlug(
+    slug: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    return this.findOneView({ slug }, options);
+  }
+
+  /** Only a plant that is not deleted. */
+  async findActiveBySlug(
+    slug: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    return this.findOneView({ slug, ...this.activeFilter() }, options);
+  }
+
   async findSummariesByIds(
     ids: readonly string[]
   ): Promise<readonly PlantSummary[]> {
@@ -149,6 +166,7 @@ export class MongoPlantReadRepository
       .find<StoredPlantDocument>(filter, {
         projection: {
           _id: 1,
+          slug: 1,
           'identity.name': 1,
           'identity.scientificName': 1,
           image: PRIMARY_IMAGE
@@ -158,6 +176,7 @@ export class MongoPlantReadRepository
 
     return documents.map((doc) => ({
       id: fromMongoId(doc._id),
+      slug: doc.slug ?? '',
       name: {
         primary: doc.identity.name.primary,
         ...(doc.identity.name.aliases && { aliases: doc.identity.name.aliases })

@@ -87,13 +87,15 @@ describe('GetPlantRelationByIdController', () => {
         id: '0192e200-0000-7000-8000-000000000001',
         name: { primary: 'tomate', aliases: ['tomatera'] },
         scientificName: 'solanum lycopersicum',
-        image: { url: 'https://example.com/tomato.jpg' }
+        image: { url: 'https://example.com/tomato.jpg' },
+        slug: 'tomate-slug'
       },
       targetPlant: {
         id: '0192e200-0000-7000-8000-000000000002',
         name: { primary: 'albahaca' },
         scientificName: 'ocimum basilicum',
-        image: null
+        image: null,
+        slug: 'albahaca-slug'
       }
     };
     const executeMock = jest.fn().mockResolvedValue(viewWithIncludedPlants);

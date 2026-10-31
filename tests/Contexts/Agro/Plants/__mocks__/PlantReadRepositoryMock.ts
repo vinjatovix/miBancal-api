@@ -22,9 +22,12 @@ import { PlantReadViewMother } from '../application/queries/PlantReadViewMother.
 export class PlantReadRepositoryMock implements PlantReadRepository {
   private readonly findByIdMock = jest.fn();
   private readonly findActiveByIdMock = jest.fn();
+  private readonly findBySlugMock = jest.fn();
+  private readonly findActiveBySlugMock = jest.fn();
   private readonly findAllMock = jest.fn();
   private readonly findSummariesByIdsMock = jest.fn();
   private readonly storage = new Map<string, PlantReadView>();
+  private readonly slugIndex = new Map<string, PlantReadView>();
 
   async findById(
     id: string,
@@ -44,6 +47,30 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
     this.findActiveByIdMock(id, options);
 
     const view = this.storage.get(id);
+
+    return view && view.status !== 'DELETED'
+      ? this.select(view, options)
+      : null;
+  }
+
+  async findBySlug(
+    slug: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    this.findBySlugMock(slug, options);
+
+    const view = this.slugIndex.get(slug);
+
+    return view ? this.select(view, options) : null;
+  }
+
+  async findActiveBySlug(
+    slug: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    this.findActiveBySlugMock(slug, options);
+
+    const view = this.slugIndex.get(slug);
 
     return view && view.status !== 'DELETED'
       ? this.select(view, options)
@@ -82,6 +109,7 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
       if (idSet.has(view.id) && view.status !== 'DELETED') {
         result.push({
           id: view.id,
+          slug: view.slug ?? '',
           name: {
             primary: view.identity.name.primary,
             ...(view.identity.name.aliases && {
@@ -116,6 +144,7 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
 
   addToStorage(view: PlantReadView): void {
     this.storage.set(view.id, view);
+    if (view.slug) this.slugIndex.set(view.slug, view);
   }
 
   /* ---------- assertions ---------- */
@@ -137,6 +166,17 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
 
   assertFindActiveByIdNotCalled(): void {
     expect(this.findActiveByIdMock).not.toHaveBeenCalled();
+  }
+
+  assertFindBySlugHasBeenCalledWith(slug: string, options: unknown = {}): void {
+    expect(this.findBySlugMock).toHaveBeenCalledWith(slug, options);
+  }
+
+  assertFindActiveBySlugHasBeenCalledWith(
+    slug: string,
+    options: unknown = {}
+  ): void {
+    expect(this.findActiveBySlugMock).toHaveBeenCalledWith(slug, options);
   }
 
   assertFindAllHasBeenCalledWith(options: unknown): void {

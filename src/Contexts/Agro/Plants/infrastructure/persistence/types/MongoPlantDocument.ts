@@ -35,4 +35,9 @@ export type MongoPlantDocument = {
    * feature; read as `0`. Never written by the plant write path.
    */
   likesCount?: number;
+  /**
+   * URL-friendly identifier derived from the scientific name (by PlantIdentity);
+   * used for slug-based lookups.
+   */
+  slug?: string;
 };

@@ -45,6 +45,7 @@ describe('ListPlantRelations', () => {
 
   const sampleSourceSummary: PlantSummaryView = {
     id: sampleView.sourcePlantId!,
+    slug: 'tomate-slug',
     name: { primary: 'tomate' },
     scientificName: 'solanum lycopersicum',
     image: { url: 'https://example.com/tomato.jpg' }
@@ -52,6 +53,7 @@ describe('ListPlantRelations', () => {
 
   const sampleTargetSummary: PlantSummaryView = {
     id: sampleView.targetPlantId!,
+    slug: 'albahaca-slug',
     name: { primary: 'albahaca' },
     scientificName: 'ocimum basilicum',
     image: null

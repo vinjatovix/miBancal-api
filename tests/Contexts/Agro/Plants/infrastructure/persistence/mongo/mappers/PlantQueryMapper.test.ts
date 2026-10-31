@@ -348,6 +348,22 @@ describe('PlantQueryMapper', () => {
     expect(result).toEqual(expected);
   });
 
+  describe('genus filter', () => {
+    it('should map genus.eq to identity.genus exact match', () => {
+      const filter: PlantFilter = { genus: { eq: 'Allium' } };
+      const result = plantQueryMapper.toMongo(filter);
+      expect(result).toEqual({ 'identity.genus': 'Allium' });
+    });
+
+    it('should map genus.in to identity.genus $in', () => {
+      const filter: PlantFilter = { genus: { in: ['Allium', 'Ocimum'] } };
+      const result = plantQueryMapper.toMongo(filter);
+      expect(result).toEqual({
+        'identity.genus': { $in: ['Allium', 'Ocimum'] }
+      });
+    });
+  });
+
   it('should keep both $or clauses when identity and sowingMethod in are combined', () => {
     const filter: PlantFilter = {
       identity: { startsWith: 'Tom' },

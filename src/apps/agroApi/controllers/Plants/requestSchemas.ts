@@ -16,6 +16,7 @@ import type { RequestSchemas } from '../../middlewares/validateRequest.js';
 import {
   booleanField,
   enumField,
+  exactField,
   fieldsetSchema,
   identifierField,
   includeSchema,
@@ -24,7 +25,8 @@ import {
   monthItem,
   rangeField,
   readQuerySchema,
-  textField
+  textField,
+  textItem
 } from '../../shared/listQuerySchema.js';
 import {
   boundedRecordSchema,
@@ -145,6 +147,10 @@ const propagationMethodChangesSchema = z
 
 const plantIdParams = z.object({
   id: z.uuid()
+});
+
+const plantIdOrSlugParams = z.object({
+  id: z.string().trim().min(1)
 });
 
 const createPlantBody = z.object({
@@ -367,7 +373,7 @@ const plantSelection = {
 };
 
 export const getPlantByIdRequest = {
-  params: plantIdParams,
+  params: plantIdOrSlugParams,
   query: readQuerySchema(plantSelection),
   body: emptyBody
 } satisfies RequestSchemas;
@@ -384,6 +390,7 @@ const listPlantsQuery = listQuerySchema({
   filter: {
     identity: textField(),
     family: identifierField(),
+    genus: exactField(textItem),
     lifeCycle: enumField(LIFECYCLES),
     sowingMethod: enumField(['direct', 'starter']),
     lightType: textField(),
