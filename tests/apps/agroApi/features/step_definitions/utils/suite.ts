@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 import { asValue, type NameAndRegistrationPair } from 'awilix';
-import type { MongoClient } from 'mongodb';
+import type { Binary, Db, MongoClient } from 'mongodb';
 
 import { AgroBackApp } from '../../../../../../src/apps/agroApi/AgroBackApp.js';
 import {
@@ -9,6 +9,7 @@ import {
   type ContainerCradle
 } from '../../../../../../src/apps/agroApi/container.js';
 import type { AuthRepository } from '../../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
+import { toMongoId } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import type {
   EncrypterTool,
   OneTimeTokenTool
@@ -18,7 +19,6 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../../src/shared/infrastructure/persistence/index.js';
-import { UserMother } from '../../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
 import { FakeGithubIdentityProvider } from '../../shared/fakes/FakeGithubIdentityProvider.js';
@@ -44,6 +44,7 @@ export interface SuiteResources {
   readonly environmentArranger: EnvironmentArranger;
   readonly tokens: Readonly<Record<SuiteRole, string>>;
   readonly ids: Readonly<Record<SuiteRole, string>>;
+  readonly usernames: Readonly<Record<SuiteRole, string>>;
   readonly seeders: Readonly<{
     plant: ReturnType<typeof PlantSeeder>;
     family: ReturnType<typeof FamilySeeder>;
@@ -64,13 +65,14 @@ const SUITE_USERS: Readonly<
 
 const generateTokens = async (
   encrypter: EncrypterTool,
-  ids: Readonly<Record<SuiteRole, string>>
+  ids: Readonly<Record<SuiteRole, string>>,
+  usernames: Readonly<Record<SuiteRole, string>>
 ): Promise<Record<SuiteRole, string>> => {
   const tokenFor = async (role: SuiteRole): Promise<string> => {
     const token = await encrypter.generateToken({
       id: ids[role],
       email: SUITE_USERS[role].email,
-      username: UserMother.random().username.value,
+      username: usernames[role],
       roles: SUITE_USERS[role].roles
     });
     if (!token) {
@@ -139,7 +141,14 @@ const buildSuite = async (): Promise<SuiteResources> => {
     collaborator: random.uuid()
   };
 
-  const tokens = await generateTokens(encrypter, ids);
+  const usernames: Record<SuiteRole, string> = {
+    admin: 'admin_user',
+    user: 'regular_user',
+    anotherUser: 'another_user',
+    collaborator: 'collab_user'
+  };
+
+  const tokens = await generateTokens(encrypter, ids, usernames);
 
   return {
     app,
@@ -150,6 +159,7 @@ const buildSuite = async (): Promise<SuiteResources> => {
     environmentArranger,
     tokens,
     ids,
+    usernames,
     seeders: {
       family: FamilySeeder(httpServer, tokens.admin),
       plant: PlantSeeder(httpServer, tokens.admin),
@@ -162,6 +172,43 @@ const buildSuite = async (): Promise<SuiteResources> => {
       })
     }
   };
+};
+
+type SuiteUserDoc = { _id: Binary | string } & Record<string, unknown>;
+
+export const seedSuiteUsers = async (db: Db): Promise<void> => {
+  const usersCollection = db.collection<SuiteUserDoc>('users');
+  const now = new Date();
+  const suiteRes = suite();
+  const rolesToSeed: SuiteRole[] = ['user', 'anotherUser'];
+
+  for (const role of rolesToSeed) {
+    const id = suiteRes.ids[role];
+    const username = suiteRes.usernames[role];
+    const email = SUITE_USERS[role].email;
+    const roles = SUITE_USERS[role].roles;
+
+    await usersCollection.updateOne(
+      { _id: toMongoId(id) },
+      {
+        $setOnInsert: {
+          _id: toMongoId(id),
+          email,
+          username,
+          emailValidated: true,
+          roles,
+          metadata: {
+            createdAt: now,
+            createdBy: username,
+            updatedAt: now,
+            updatedBy: username
+          },
+          version: 0
+        }
+      },
+      { upsert: true }
+    );
+  }
 };
 
 class SuiteHolder {

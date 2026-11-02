@@ -11,6 +11,7 @@ import { up as seedRolesIndexAndGuard } from '../../../../../migrations/scripts/
 import {
   AgroWorld,
   seedMockGardenInputs,
+  seedSuiteUsers,
   settledMailbox,
   startSuite,
   stopSuite,
@@ -34,6 +35,7 @@ Before(async () => {
   // (idempotent, same path as production) so revoke scenarios find it present.
   await seedRolesIndexAndGuard(suite().client.db());
   await seedMockGardenInputs(suite().client.db());
+  await seedSuiteUsers(suite().client.db());
 });
 
 AfterAll(stopSuite);

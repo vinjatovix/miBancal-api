@@ -49,6 +49,15 @@ import type {
 import type { MongoGardenInputRepository } from '../../../Contexts/Agro/GardenInputs/infrastructure/persistence/MongoGardenInputRepository.js';
 import type { GardenInputPersistenceMapper } from '../../../Contexts/Agro/GardenInputs/mappers/interfaces/GardenInputPersistenceMapper.js';
 import type {
+  CreateLocation,
+  DeleteLocation,
+  GetLocationById,
+  ListUserLocations,
+  UpdateLocation
+} from '../../../Contexts/Agro/Locations/application/useCases/index.js';
+import type { MongoLocationRepository } from '../../../Contexts/Agro/Locations/infrastructure/persistence/MongoLocationRepository.js';
+import type { LocationPersistenceMapper } from '../../../Contexts/Agro/Locations/mappers/interfaces/LocationPersistenceMapper.js';
+import type {
   GetPlantInstanceById,
   ListPlantInstances,
   PlacePlantInstance,
@@ -107,12 +116,14 @@ import type {
   AuthenticateWithGoogle,
   ChangeUserRoles,
   ForgotPassword,
+  GetUserProfile,
   LoginUserLocal,
   LookupUser,
   RefreshToken,
   RegisterUserLocal,
   ResetPassword,
-  UpdatePasswordLocal
+  UpdatePasswordLocal,
+  UpdateUserProfile
 } from '../../../Contexts/Auth/application/useCases/index.js';
 import type { MongoAuthRepository } from '../../../Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import type { CheckHealth } from '../../../Contexts/health/application/useCases/CheckHealth.js';
@@ -173,6 +184,13 @@ import type {
 } from '../controllers/GardenInputs/index.js';
 import type { HealthController } from '../controllers/health/HealthController.js';
 import type {
+  CreateLocationController,
+  DeleteLocationController,
+  GetLocationByIdController,
+  GetUserLocationsController,
+  UpdateLocationController
+} from '../controllers/Locations/index.js';
+import type {
   GetPlantInstanceByIdController,
   ListPlantInstancesController,
   PlacePlantInstanceController,
@@ -200,7 +218,9 @@ import type {
 } from '../controllers/Plants/index.js';
 import type {
   ChangeUserRolesController,
-  LookupUserController
+  GetUserProfileController,
+  LookupUserController,
+  UpdateUserProfileController
 } from '../controllers/Users/index.js';
 
 export type ContainerCradle = {
@@ -213,6 +233,7 @@ export type ContainerCradle = {
   familyPersistenceMapper: FamilyPersistenceMapper;
   anomalyPersistenceMapper: AnomalyPersistenceMapper;
   gardenInputPersistenceMapper: GardenInputPersistenceMapper;
+  locationPersistenceMapper: LocationPersistenceMapper;
   plantPersistenceMapper: PlantPersistenceMapper;
   plantInstancePersistenceMapper: PlantInstancePersistenceMapper;
   userBookmarksPersistenceMapper: UserBookmarksPersistenceMapper;
@@ -247,6 +268,7 @@ export type ContainerCradle = {
   anomalyReadRepository: AnomalyReadRepository;
   gardenInputRepository: MongoGardenInputRepository;
   gardenInputReadRepository: GardenInputReadRepository;
+  locationRepository: MongoLocationRepository;
   plantRepository: MongoPlantRepository;
   plantReadRepository: PlantReadRepository;
   bedRepository: MongoBedRepository;
@@ -271,7 +293,9 @@ export type ContainerCradle = {
   refreshToken: RefreshToken;
   updatePasswordLocal: UpdatePasswordLocal;
   changeUserRoles: ChangeUserRoles;
+  getUserProfile: GetUserProfile;
   lookupUser: LookupUser;
+  updateUserProfile: UpdateUserProfile;
   createFamily: CreateFamily;
   getFamilyById: GetFamilyById;
   getFamilyBySlug: GetFamilyBySlug;
@@ -287,6 +311,11 @@ export type ContainerCradle = {
   createGardenInput: CreateGardenInput;
   updateGardenInput: UpdateGardenInput;
   deleteGardenInput: DeleteGardenInput;
+  createLocation: CreateLocation;
+  listUserLocations: ListUserLocations;
+  getLocationById: GetLocationById;
+  updateLocation: UpdateLocation;
+  deleteLocation: DeleteLocation;
   createPlant: CreatePlant;
   getPlant: GetPlant;
   listPlants: ListPlants;
@@ -327,7 +356,9 @@ export type ContainerCradle = {
   refreshTokenController: RefreshTokenController;
   updatePasswordLocalController: UpdatePasswordLocalController;
   changeUserRolesController: ChangeUserRolesController;
+  getUserProfileController: GetUserProfileController;
   lookupUserController: LookupUserController;
+  updateUserProfileController: UpdateUserProfileController;
   createFamilyController: CreateFamilyController;
   getAllFamiliesController: GetAllFamiliesController;
   getFamilyBySlugController: GetFamilyBySlugController;
@@ -342,6 +373,11 @@ export type ContainerCradle = {
   createGardenInputController: CreateGardenInputController;
   updateGardenInputController: UpdateGardenInputController;
   deleteGardenInputController: DeleteGardenInputController;
+  createLocationController: CreateLocationController;
+  getUserLocationsController: GetUserLocationsController;
+  getLocationByIdController: GetLocationByIdController;
+  updateLocationController: UpdateLocationController;
+  deleteLocationController: DeleteLocationController;
   createPlantController: CreatePlantController;
   getAllPlantsController: GetAllPlantsController;
   getPlantByIdController: GetPlantByIdController;

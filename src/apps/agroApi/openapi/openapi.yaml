@@ -27,6 +27,8 @@ tags:
     description: Endpoints for managing plant data.
   - name: Beds
     description: Endpoints for managing garden beds.
+  - name: Locations
+    description: Endpoints for managing a user's growing locations (geographic context).
   - name: PlantInstances
     description: Endpoints for managing crop instances in beds.
   - name: Users
@@ -1325,6 +1327,178 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/locations:
+    get:
+      tags: [Locations]
+      summary: List owner's locations
+      description: >
+        Owner-scoped, active locations only. Paginated; sortable by `name`
+        (under the `es`/strength-1 collation) and `createdAt`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: sort
+          description: Declared sort keys only, `asc` or `desc`.
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/LocationListSort'
+        - in: query
+          name: pagination
+          style: deepObject
+          explode: true
+          schema:
+            $ref: '#/components/schemas/ListPagination'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, pagination]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Location'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Locations]
+      summary: Create location
+      description: >
+        Owner-scoped. The name must be unique (case/accent-insensitively)
+        among the owner's active locations; a duplicate → 409.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocation'
+      responses:
+        '201':
+          description: Location created
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/locations/{id}:
+    get:
+      tags: [Locations]
+      summary: Get location by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LocationId'
+      responses:
+        '200':
+          description: Location
+          headers:
+            ETag:
+              $ref: '#/components/headers/ReadETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags: [Locations]
+      summary: Update location
+      description: Check order — authentication, If-Match, then request validation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LocationId'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLocation'
+      responses:
+        '200':
+          description: Updated location
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Locations]
+      summary: Delete location (soft delete)
+      description: >
+        Check order — authentication, If-Match, then request validation. No
+        query, no body. The name is reusable afterwards.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LocationId'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/plant-instances:
     post:
       tags: [PlantInstances]
@@ -1531,6 +1705,69 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/users/profile:
+    get:
+      tags: [Users]
+      summary: Retrieve authenticated user profile (identity and roles)
+      description: >
+        Returns the authenticated user's identity and roles only. Geographic
+        preferences live on the Locations context (see `/locations`). Emits
+        strong ETag for concurrency.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile successfully retrieved.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ReadETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileView'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags: [Users]
+      summary: Confirm the profile version precondition (no editable fields yet)
+      description: >
+        No editable field remains on the profile (geography moved to
+        Locations); `{}` is the only accepted body. Mandatory If-Match
+        header; the version precondition still applies.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully; returns updated view with bumped ETag.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ReadETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileView'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '412':
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
@@ -2315,6 +2552,15 @@ components:
         type: string
         format: uuid
 
+    LocationId:
+      name: id
+      in: path
+      required: true
+      description: Location identifier (UUID).
+      schema:
+        type: string
+        format: uuid
+
     BedInclude:
       in: query
       name: include
@@ -2439,6 +2685,147 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Role'
+
+    Hemisphere:
+      type: string
+      enum: [north, south]
+
+    Location:
+      type: object
+      required: [id, name, createdAt, createdBy, updatedAt, updatedBy]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        postalCode:
+          type: string
+          description: Trimmed, 1-20 chars (omitted when unconfigured).
+        country:
+          type: string
+          description: Trimmed, 1-100 chars (omitted when unconfigured).
+        timezone:
+          type: string
+          description: >
+            Canonical IANA timezone identifier (`Area/Location`, case-sensitive)
+            or the literal `UTC` (omitted when unconfigured).
+          example: Europe/Madrid
+        hemisphere:
+          $ref: '#/components/schemas/Hemisphere'
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+        version:
+          type: integer
+          minimum: 0
+          readOnly: true
+
+    CreateLocation:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        postalCode:
+          type: string
+          minLength: 1
+          maxLength: 20
+        country:
+          type: string
+          minLength: 1
+          maxLength: 100
+        timezone:
+          type: string
+          description: >
+            Canonical IANA timezone identifier (`Area/Location`, case-sensitive,
+            e.g. `Europe/Madrid`, `Atlantic/Canary`,
+            `America/Argentina/Buenos_Aires`) or the literal `UTC`. Abbreviations
+            (`EST`), UTC offsets (`UTC+2`) and lowercase or otherwise non-canonical
+            spellings (`utc`, `europe/madrid`) are rejected (400). The `pattern`
+            checks the shape; the identifier must also be one the server resolves.
+          pattern: '^(UTC|[A-Z][A-Za-z0-9+_-]*(?:/[A-Z][A-Za-z0-9+_-]*)+)$'
+          example: Europe/Madrid
+        hemisphere:
+          $ref: '#/components/schemas/Hemisphere'
+
+    UpdateLocation:
+      description: >
+        Partial update (JSON Merge Patch). `name` cannot be cleared (`null` →
+        400); geographic fields accept `null` to unset. `{}` is a no-op: 200,
+        version unchanged. Renaming to a duplicate active name → 409.
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          $ref: '#/components/schemas/RequiredShortText'
+        postalCode:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 20
+        country:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 100
+        timezone:
+          type: string
+          nullable: true
+          description: >
+            Canonical IANA timezone identifier (`Area/Location`, case-sensitive,
+            e.g. `Europe/Madrid`, `America/Argentina/Buenos_Aires`) or the literal
+            `UTC`; `null` unsets it. Abbreviations (`EST`), UTC offsets (`UTC+2`)
+            and lowercase or otherwise non-canonical spellings (`utc`,
+            `europe/madrid`) are rejected (400). The `pattern` checks the shape;
+            the identifier must also be one the server resolves.
+          pattern: '^(UTC|[A-Z][A-Za-z0-9+_-]*(?:/[A-Z][A-Za-z0-9+_-]*)+)$'
+          example: Europe/Madrid
+        hemisphere:
+          oneOf:
+            - $ref: '#/components/schemas/Hemisphere'
+            - type: 'null'
+
+    UserProfileView:
+      type: object
+      description: >
+        Authenticated user profile: identity and roles only. Geographic
+        preferences moved to the Locations context (see `/locations`).
+      required: [id, username, email, roles, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        version:
+          type: integer
+          minimum: 0
+
+    UpdateUserProfileRequest:
+      type: object
+      additionalProperties: false
+      description: >
+        No editable field remains on the profile; `{}` is the only accepted
+        body. Kept for future non-geographic editable fields.
 
     Metadata:
       type: object
@@ -3238,6 +3625,13 @@ components:
         name: { $ref: '#/components/schemas/SortDirection' }
         slug: { $ref: '#/components/schemas/SortDirection' }
         category: { $ref: '#/components/schemas/SortDirection' }
+
+    LocationListSort:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { $ref: '#/components/schemas/SortDirection' }
+        createdAt: { $ref: '#/components/schemas/SortDirection' }
 
     # ---------- Plants ----------
 
@@ -4533,6 +4927,23 @@ components:
           $ref: '#/components/schemas/BedDimension'
         depth:
           $ref: '#/components/schemas/BedDimension'
+        postalCode:
+          type: string
+          description: >
+            Postal code snapshotted from the referenced location at
+            create/update time (omitted when no location was resolved).
+        country:
+          type: string
+          description: >
+            Country snapshotted from the referenced location at
+            create/update time (omitted when no location was resolved).
+        timezone:
+          type: string
+          description: >
+            IANA timezone identifier snapshotted from the referenced location
+            at create/update time (omitted when no location was resolved).
+        hemisphere:
+          $ref: '#/components/schemas/Hemisphere'
         plantInstances:
           description: >
             Flat array of active crop UUIDs by default; full PlantInstance objects
@@ -4577,12 +4988,22 @@ components:
           $ref: '#/components/schemas/BedDimension'
         depth:
           $ref: '#/components/schemas/BedDimension'
+        locationId:
+          type: string
+          format: uuid
+          description: >
+            Resolved to an owned active location whose provided geographic
+            fields are copied into the bed as a static snapshot. Unknown or
+            non-owned id → 404 before the bed is persisted. Absent → no
+            geographic context.
 
     UpdateBed:
       description: >
-        Partial update. Every field is optional and none can be cleared
-        (`null` → 400). `{}` is a no-op: 200, version unchanged. Plants are
-        never placed by patching the bed.
+        Partial update. `name`/dimensions are optional and none can be
+        cleared (`null` → 400). `{}` is a no-op: 200, version unchanged.
+        `locationId` re-snapshots (uuid), clears the snapshot (`null`) or
+        leaves it unchanged (omitted). Raw geographic fields are never
+        accepted here. Plants are never placed by patching the bed.
       type: object
       additionalProperties: false
       properties:
@@ -4594,6 +5015,13 @@ components:
           $ref: '#/components/schemas/BedDimension'
         depth:
           $ref: '#/components/schemas/BedDimension'
+        locationId:
+          type: string
+          nullable: true
+          format: uuid
+          description: >
+            A uuid re-snapshots from that owned location (replace); `null`
+            clears the snapshot; omitted leaves it unchanged.
 
     #  ================= PLANT INSTANCES =================
 

@@ -296,4 +296,54 @@ describe('Bed (unit)', () => {
       }
     );
   });
+
+  describe('applyLocationSnapshot', () => {
+    it('sets all provided fields from the snapshot', () => {
+      bed.applyLocationSnapshot(
+        { country: 'Argentina', hemisphere: 'south' },
+        'gardener'
+      );
+
+      expect(bed.country).toBe('Argentina');
+      expect(bed.hemisphere).toBe('south');
+      expect(bed.postalCode).toBeUndefined();
+    });
+
+    it('replaces a previous snapshot entirely', () => {
+      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+
+      bed.applyLocationSnapshot({ postalCode: '28001' }, 'gardener');
+
+      expect(bed.postalCode).toBe('28001');
+      expect(bed.country).toBeUndefined();
+    });
+
+    it('clears the snapshot with null', () => {
+      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+
+      bed.applyLocationSnapshot(null, 'gardener');
+
+      expect(bed.country).toBeUndefined();
+      expect(bed.postalCode).toBeUndefined();
+      expect(bed.timezone).toBeUndefined();
+      expect(bed.hemisphere).toBeUndefined();
+    });
+
+    it('is a no-op when the resolved snapshot does not change', () => {
+      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+      const metadata = bed.metadata;
+
+      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+
+      expect(bed.metadata).toBe(metadata);
+    });
+
+    it('rejects changing the snapshot of a deleted bed', () => {
+      bed.markAsDeleted('gardener');
+
+      expect(() =>
+        bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener')
+      ).toThrow(DomainConflictException);
+    });
+  });
 });

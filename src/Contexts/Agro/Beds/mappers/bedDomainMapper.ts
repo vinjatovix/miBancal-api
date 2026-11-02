@@ -18,6 +18,10 @@ export const bedDomainMapper: BedDomainMapper = {
       width: bed.width.value,
       height: bed.height.value,
       depth: bed.depth.value,
+      ...(bed.postalCode !== undefined && { postalCode: bed.postalCode }),
+      ...(bed.country !== undefined && { country: bed.country }),
+      ...(bed.timezone !== undefined && { timezone: bed.timezone }),
+      ...(bed.hemisphere !== undefined && { hemisphere: bed.hemisphere }),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),
@@ -33,6 +37,18 @@ export const bedDomainMapper: BedDomainMapper = {
       width: PositiveNumber.create(primitives.width),
       height: PositiveNumber.create(primitives.height),
       depth: PositiveNumber.create(primitives.depth),
+      ...(primitives.postalCode !== undefined && {
+        postalCode: primitives.postalCode
+      }),
+      ...(primitives.country !== undefined && {
+        country: primitives.country
+      }),
+      ...(primitives.timezone !== undefined && {
+        timezone: primitives.timezone
+      }),
+      ...(primitives.hemisphere !== undefined && {
+        hemisphere: primitives.hemisphere
+      }),
       deleted: primitives.deleted,
       ...(primitives.deletedAt && {
         deletedAt: new Date(primitives.deletedAt)

@@ -1,11 +1,17 @@
 import { CreateBed } from '../../../../../../src/Contexts/Agro/Beds/application/useCases/CreateBed.js';
 import { bedInputMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedInputMapper.js';
-import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  DomainNotFoundException
+} from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { LocationRepositoryMock } from '../../../Locations/__mocks__/LocationRepositoryMock.js';
+import { LocationFactory } from '../../../Locations/domain/mothers/LocationFactory.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
 
 describe('CreateBed', () => {
   let repository: BedRepositoryMock;
+  let locationRepository: LocationRepositoryMock;
   let useCase: CreateBed;
   const USER_NAME = random.name();
   const USER_ID = random.uuid();
@@ -23,7 +29,11 @@ describe('CreateBed', () => {
 
   beforeEach((): void => {
     repository = new BedRepositoryMock();
-    useCase = new CreateBed({ bedRepository: repository });
+    locationRepository = new LocationRepositoryMock();
+    useCase = new CreateBed({
+      bedRepository: repository,
+      locationRepository
+    });
   });
 
   it('should throw conflict if bed already exists', async () => {
@@ -53,7 +63,75 @@ describe('CreateBed', () => {
     expect(result.depth.value).toBe(input.depth);
   });
 
-  it('should call exists before anything else', async () => {
+  it('should have no geographic context when no locationId is given', async () => {
+    const result = await useCase.execute(input, USER_NAME);
+
+    expect(result.postalCode).toBeUndefined();
+    expect(result.country).toBeUndefined();
+    expect(result.timezone).toBeUndefined();
+    expect(result.hemisphere).toBeUndefined();
+  });
+
+  it('should snapshot the resolved location geographic fields', async () => {
+    const location = LocationFactory.domainBase({
+      postalCode: 'C1001',
+      country: 'Argentina',
+      timezone: 'America/Argentina/Buenos_Aires',
+      hemisphere: 'south'
+    });
+    locationRepository.addToStorage(location);
+
+    const result = await useCase.execute(
+      { ...input, userId: location.userId, locationId: location.id },
+      USER_NAME
+    );
+
+    expect(result.postalCode).toBe('C1001');
+    expect(result.country).toBe('Argentina');
+    expect(result.timezone).toBe('America/Argentina/Buenos_Aires');
+    expect(result.hemisphere).toBe('south');
+  });
+
+  it('should snapshot only the fields the location provides', async () => {
+    const location = LocationFactory.domainBase({ name: 'Solo nombre' });
+    locationRepository.addToStorage(location);
+
+    const result = await useCase.execute(
+      { ...input, userId: location.userId, locationId: location.id },
+      USER_NAME
+    );
+
+    expect(result.postalCode).toBeUndefined();
+    expect(result.country).toBeUndefined();
+    expect(result.timezone).toBeUndefined();
+    expect(result.hemisphere).toBeUndefined();
+  });
+
+  it('should reject an unknown locationId before persisting the bed', async () => {
+    const unknownLocationId = random.uuid();
+
+    await expect(
+      useCase.execute({ ...input, locationId: unknownLocationId }, USER_NAME)
+    ).rejects.toThrow(DomainNotFoundException);
+
+    repository.assertSaveNotCalled();
+  });
+
+  it('should reject a non-owned locationId before persisting the bed', async () => {
+    const location = LocationFactory.domainBase({});
+    locationRepository.addToStorage(location);
+
+    await expect(
+      useCase.execute(
+        { ...input, userId: random.uuid(), locationId: location.id },
+        USER_NAME
+      )
+    ).rejects.toThrow(DomainNotFoundException);
+
+    repository.assertSaveNotCalled();
+  });
+
+  it('should call exists with the bed id', async () => {
     await useCase.execute(input, USER_NAME);
 
     repository.assertExistsCalledWith(input.id);

@@ -43,6 +43,38 @@ describe('bedInputMapper', () => {
         bedInputMapper.fromCreateInputToDomain(input, 'tester')
       ).toThrow();
     });
+
+    it('should map creator geographic snapshot when provided', () => {
+      const input = CreateBedInputMother.random();
+      const geoSnapshot = {
+        postalCode: 'C1001',
+        country: 'Argentina',
+        timezone: 'America/Argentina/Buenos_Aires',
+        hemisphere: 'south' as const
+      };
+
+      const bed = bedInputMapper.fromCreateInputToDomain(
+        input,
+        'tester',
+        geoSnapshot
+      );
+
+      expect(bed.postalCode).toBe('C1001');
+      expect(bed.country).toBe('Argentina');
+      expect(bed.timezone).toBe('America/Argentina/Buenos_Aires');
+      expect(bed.hemisphere).toBe('south');
+    });
+
+    it('should leave geographic fields undefined when snapshot is omitted', () => {
+      const input = CreateBedInputMother.random();
+
+      const bed = bedInputMapper.fromCreateInputToDomain(input, 'tester');
+
+      expect(bed.postalCode).toBeUndefined();
+      expect(bed.country).toBeUndefined();
+      expect(bed.timezone).toBeUndefined();
+      expect(bed.hemisphere).toBeUndefined();
+    });
   });
 
   describe('toChanges', () => {

@@ -11,6 +11,8 @@ import {
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { Metadata } from '../../../../../../src/Contexts/shared/domain/valueObject/Metadata.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { LocationRepositoryMock } from '../../../Locations/__mocks__/LocationRepositoryMock.js';
+import { LocationFactory } from '../../../Locations/domain/mothers/LocationFactory.js';
 import { PlantInstanceRepositoryMock } from '../../../PlantInstances/__mocks__/PlantInstanceRepositoryMock.js';
 import { PlantInstanceMother } from '../../../PlantInstances/domain/mothers/PlantInstanceMother.js';
 import { BedRepositoryMock } from '../../__mocks__/BedRepositoryMock.js';
@@ -20,6 +22,7 @@ describe('UpdateBed', () => {
   const CURRENT_VERSION = 0;
   let repository: BedRepositoryMock;
   let plantInstanceRepository: PlantInstanceRepositoryMock;
+  let locationRepository: LocationRepositoryMock;
   let useCase: UpdateBed;
   const USER: UserSessionInfo = {
     username: 'test-user',
@@ -33,9 +36,11 @@ describe('UpdateBed', () => {
     repository = new BedRepositoryMock();
     repository.addToStorage(bed);
     plantInstanceRepository = new PlantInstanceRepositoryMock();
+    locationRepository = new LocationRepositoryMock();
     useCase = new UpdateBed({
       bedRepository: repository,
-      plantInstanceRepository
+      plantInstanceRepository,
+      locationRepository
     });
   });
 
@@ -492,6 +497,111 @@ describe('UpdateBed', () => {
       );
 
       await expect(update).rejects.toBeInstanceOf(DomainNotFoundException);
+    });
+  });
+
+  describe('locationId snapshot', () => {
+    it('should set the snapshot from an owned active location', async () => {
+      const location = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        country: 'Argentina',
+        hemisphere: 'south'
+      });
+      locationRepository.addToStorage(location);
+
+      const { bed: updated } = await useCase.execute(
+        { id: bed.id, locationId: location.id },
+        USER,
+        [bed.version]
+      );
+
+      expect(updated.country).toBe('Argentina');
+      expect(updated.hemisphere).toBe('south');
+    });
+
+    it('should replace the snapshot with a different locationId', async () => {
+      const first = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        country: 'Argentina'
+      });
+      const second = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        country: 'Spain'
+      });
+      locationRepository.addToStorage(first);
+      locationRepository.addToStorage(second);
+
+      await useCase.execute({ id: bed.id, locationId: first.id }, USER, [
+        bed.version
+      ]);
+      const { bed: updated } = await useCase.execute(
+        { id: bed.id, locationId: second.id },
+        USER,
+        [bed.version + 1]
+      );
+
+      expect(updated.country).toBe('Spain');
+    });
+
+    it('should clear the snapshot when locationId is null', async () => {
+      const location = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        country: 'Argentina'
+      });
+      locationRepository.addToStorage(location);
+      await useCase.execute({ id: bed.id, locationId: location.id }, USER, [
+        bed.version
+      ]);
+
+      const { bed: updated } = await useCase.execute(
+        { id: bed.id, locationId: null },
+        USER,
+        [bed.version + 1]
+      );
+
+      expect(updated.country).toBeUndefined();
+    });
+
+    it('should leave the snapshot unchanged when locationId is omitted', async () => {
+      const location = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        country: 'Argentina'
+      });
+      locationRepository.addToStorage(location);
+      await useCase.execute({ id: bed.id, locationId: location.id }, USER, [
+        bed.version
+      ]);
+
+      const { bed: updated } = await useCase.execute(
+        { id: bed.id, name: 'Renamed' },
+        USER,
+        [bed.version + 1]
+      );
+
+      expect(updated.country).toBe('Argentina');
+    });
+
+    it('should reject an unknown locationId and leave the snapshot unchanged', async () => {
+      await expect(
+        useCase.execute({ id: bed.id, locationId: random.uuid() }, USER, [
+          bed.version
+        ])
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
+
+      expect(repository.getStored(bed.id)?.country).toBeUndefined();
+    });
+
+    it('should reject a non-owned locationId', async () => {
+      const otherOwnersLocation = LocationFactory.domainBase({});
+      locationRepository.addToStorage(otherOwnersLocation);
+
+      await expect(
+        useCase.execute(
+          { id: bed.id, locationId: otherOwnersLocation.id },
+          USER,
+          [bed.version]
+        )
+      ).rejects.toBeInstanceOf(DomainNotFoundException);
     });
   });
 });

@@ -180,6 +180,15 @@ export const UserSeeder = ({
     return { user };
   };
 
+  const buildSeedDefaults = (
+    options: UserSeedOptions
+  ): Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>> => ({
+    id: options.id ?? random.uuid(),
+    username: options.username ?? random.word({ min: 8, max: 20 }),
+    email: options.email ?? `${random.word({ min: 8, max: 20 })}@seeded.com`,
+    password: options.password ?? SEEDED_PASSWORD
+  });
+
   /** Issues a reset token as the given time ago and returns it in plain. */
   const issueResetToken = (user: User, issued: SeededResetToken): string => {
     const now = new Date();
@@ -195,13 +204,7 @@ export const UserSeeder = ({
 
   return {
     async create(options: UserSeedOptions = {}): Promise<SeededUser> {
-      const seed = {
-        id: options.id ?? random.uuid(),
-        username: options.username ?? random.word({ min: 8, max: 20 }),
-        email:
-          options.email ?? `${random.word({ min: 8, max: 20 })}@seeded.com`,
-        password: options.password ?? SEEDED_PASSWORD
-      };
+      const seed = buildSeedDefaults(options);
       const { user, activationToken } = await build(seed, options);
       const resetToken =
         options.resetToken === undefined

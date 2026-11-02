@@ -2,7 +2,9 @@ import type { Router } from 'express';
 
 import {
   changeUserRolesRequest,
-  lookupUserRequest
+  getUserProfileRequest,
+  lookupUserRequest,
+  updateUserProfileRequest
 } from '../../controllers/Users/requestSchemas.js';
 import {
   auth,
@@ -17,13 +19,29 @@ import { userApiInvoker } from './userApiInvoker.js';
 const prefix = API_PREFIXES.users;
 
 export const registerRoutes: RegisterRoutes = (router: Router): void => {
-  // Registered before `/:userId/roles` so `lookup` is never captured as a id.
+  // Registered before `/:userId/roles` so fixed path segments (`lookup`,
+  // `profile`) are never captured as a `:userId`.
   router.get(
     `${prefix}/lookup`,
     auth,
     isAdmin,
     validateRequest(lookupUserRequest),
     userApiInvoker('lookupUser')
+  );
+
+  router.get(
+    `${prefix}/profile`,
+    auth,
+    validateRequest(getUserProfileRequest),
+    userApiInvoker('getUserProfile')
+  );
+
+  router.patch(
+    `${prefix}/profile`,
+    auth,
+    requireIfMatch,
+    validateRequest(updateUserProfileRequest),
+    userApiInvoker('updateUserProfile')
   );
 
   router.patch(

@@ -118,11 +118,34 @@ export class MongoAuthRepository
   }
 
   /**
-   * Version-guarded role change: writes the diff of two full states plus
-   * `$inc: { version: 1 }`, matching only `_id` + the read version. A write
-   * that matches nothing is disambiguated into 412 (stale) or 404 (missing).
+   * Version-guarded role change. See `versionGuardedWrite` for the write
+   * contract (`$inc` on `_id` + read version, 412/404 disambiguation).
    */
   async updateRoles(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome> {
+    return this.versionGuardedWrite(before, after);
+  }
+
+  /**
+   * Version-guarded profile change. See `versionGuardedWrite` for the write
+   * contract (`$inc` on `_id` + read version, 412/404 disambiguation).
+   */
+  async updateProfile(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome> {
+    return this.versionGuardedWrite(before, after);
+  }
+
+  /**
+   * Writes the diff of two full states plus `$inc: { version: 1 }`, matching
+   * only `_id` + the read version. A write that matches nothing is
+   * disambiguated into 412 (stale) or 404 (missing); an empty diff over a
+   * matching document is a confirmed `unchanged` no-op.
+   */
+  private async versionGuardedWrite(
     before: UserPrimitives,
     after: UserPrimitives
   ): Promise<WriteOutcome> {
@@ -143,7 +166,7 @@ export class MongoAuthRepository
 
       if (matches > 0) return 'unchanged';
 
-      return this.throwFailedRoleWrite(before.id);
+      return this.throwFailedVersionedWrite(before.id);
     }
 
     const result = await this.handleMongoError(() =>
@@ -160,7 +183,7 @@ export class MongoAuthRepository
 
     if (result.matchedCount > 0) return 'written';
 
-    return this.throwFailedRoleWrite(before.id);
+    return this.throwFailedVersionedWrite(before.id);
   }
 
   async searchByUsername(username: string): Promise<Nullable<User>> {
@@ -285,10 +308,10 @@ export class MongoAuthRepository
   }
 
   /**
-   * After a failed conditional role write or no-op confirmation, tells a stale
-   * version (412) from a missing document (404).
+   * After a failed conditional version-guarded write or no-op confirmation,
+   * tells a stale version (412) from a missing document (404).
    */
-  private async throwFailedRoleWrite(id: string): Promise<never> {
+  private async throwFailedVersionedWrite(id: string): Promise<never> {
     const exists =
       (await this.collection().countDocuments(
         { _id: toMongoId(id) },
