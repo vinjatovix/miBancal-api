@@ -361,14 +361,12 @@ Rules:
 
 - local and OAuth providers
 - lightweight JWT contracts
-- user profile location and hemisphere resolution
 - user roles and authorization boundaries
-- low-latency Redis caching policies for geographic context
 
 Rules:
 
 - session and JWT payload MUST NOT contain business state (e.g. hemisphere)
-- profile attributes and location configurations are queried dynamically under-the-hood
+- the `User` aggregate carries no geography; see **3.x Locations** (location.md) for per-user growing sites
 
 ---
 
@@ -445,6 +443,23 @@ Rules:
 - Purely an application/infrastructure integration module for domain decouplings.
 - Handlers MUST be strictly idempotent, tracking processed events to prevent duplicates.
 - Message ordering is guaranteed via dynamic partitioning keys (`plantInstanceId` or `bedId`).
+
+---
+
+### 3.22 Locations System `[DELIVERED (spec 049, Iteration 29)]`
+
+```sh
+/modules/location.md
+```
+
+- Per-user `Location` aggregate (collection `locations`): owner-scoped CRUD, optional geography (`postalCode`, `country`, `timezone`, `hemisphere`), soft delete.
+- Single source of truth for geography; `User` carries none.
+- Source of the immutable geographic snapshot copied into a `Bed` via `locationId` (see §5.9).
+
+Rules:
+
+- Active-name uniqueness per owner, case/accent-insensitive (`es` collation, strength 1); freed on soft delete.
+- Cross-owner access answers `404` without disclosure.
 
 ---
 
@@ -561,9 +576,9 @@ No mutation allowed
 
 ---
 
-### 5.9 Bed/PlantInstance ↔ Auth (Geographic Context Inheritance)
+### 5.9 Bed ↔ Location (Geographic Snapshot Inheritance)
 
-- Beds and PlantInstances inherit geographic setting boundaries (like hemisphere) from the owning User's profile configuration defined in Auth module.
+- A Bed optionally references a `Location` (owned by the same user) at creation/update time; the location's provided geographic fields (`postalCode`, `country`, `timezone`, `hemisphere`) are copied into the Bed as a static, immutable snapshot. The `User` aggregate carries no geography.
 
 ---
 

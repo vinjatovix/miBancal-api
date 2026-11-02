@@ -18,6 +18,14 @@ export type UserLookupView = {
   roles: string[];
 };
 
+export type UserProfileView = {
+  id: string;
+  username: string;
+  email: string;
+  roles: string[];
+  version: number;
+};
+
 export const toUserRolesView = (user: UserPrimitives): UserRolesView => ({
   id: user.id,
   roles: user.roles,
@@ -29,4 +37,12 @@ export const toUserLookupView = (user: UserPrimitives): UserLookupView => ({
   username: user.username,
   email: user.email,
   roles: user.roles
+});
+
+export const toUserProfileView = (user: UserPrimitives): UserProfileView => ({
+  id: user.id,
+  username: user.username,
+  email: user.email,
+  roles: user.roles,
+  version: user.version ?? 0
 });

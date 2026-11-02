@@ -723,19 +723,24 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHAT: Integrate GitHub OAuth login: exchange the authorization code (with PKCE) server-side, require a primary verified email, and link it to a unified User account through a user-resolution step shared with Google that applies the account pre-hijacking rules.
   ```
 
-## Iteration 29: Add Geographic Fields to User Profile and Bed Aggregate
+## Iteration 29: User Locations Aggregate and Bed Climate Snapshot
 
-**Spec Module(s)**: [auth.md](spec/modules/auth.md), [bed.md](spec/modules/bed.md), [domain-core.md](spec/modules/domain-core.md)
+**Spec Module(s)**: [location.md](spec/modules/location.md), [bed.md](spec/modules/bed.md), [modules-map.md](spec/modules/modules-map.md)
 
-- **Value delivered**: Sets the schema and inheritance foundation for localized, climate-aware agricultural rules.
-- **Definition of Done**: User profile stores `postalCode`, `country`, `timezone`, and `hemisphere`. Additionally, Bed aggregate and MongoDB schema are updated to support `postalCode`, `country`, `timezone`, and `hemisphere`. The `CreateBed` usecase is refactored to fetch the User profile (or Redis cache) and copy/persist these fields as static, immutable properties inside the Bed document upon creation.
+- **Status**: Completed (2026-11-02, spec `specs/049-user-locations/`). Supersedes the original "Add Geographic Fields to User Profile and Bed Aggregate" scope (see the decision note below). Branch `048-add-geographic-fields` is superseded by this model: the geographic fields it added to the `User` profile are removed, `Hemisphere`/`isValidIanaTimezone` relocated to the `Locations` context, and its `GetUserProfile`/`UpdateUserProfile` plumbing is kept (identity/roles only).
+- **Value delivered**: Sets the schema foundation for localized, climate-aware rules while letting one user keep several growing sites (e.g. a year-round home garden and a seasonal holiday plot).
+- **Definition of Done**:
+  - A new per-user `Location` aggregate (collection `locations`, one document per location) stores a `name` plus optional `postalCode`, `country`, `timezone` and `hemisphere` — every geographic field optional. CRUD is scoped to the owner, mirroring the existing per-user Bookmarks aggregate.
+  - Geographic fields do **not** live on the `User` profile: `Location` is the single source of truth. The `User` aggregate keeps only auth/identity state.
+  - `CreateBed` accepts an optional `locationId`. When present, it snapshots that location's geographic fields as static, immutable properties inside the Bed document on creation (immutable climate-context history: editing or moving the `Location` afterwards never changes existing beds). Without a `locationId` the bed has no geographic context.
+- **Decision (2026-11-02)**: the original model stored a single geographic context on the `User` profile and copied it into each Bed. It cannot represent a user with gardens in different places. It is replaced by a first-class, per-user `Location` aggregate; beds reference a location at creation time and snapshot its geography. Snapshot (not a live reference) is kept so a bed's climate-context history stays immutable, preserving the original iteration's intent. Geographic fields are removed from the `User` profile accordingly.
 - **Dependencies**: None.
-- **Risks**: Overlooking Bed aggregate schema changes during profile model updates.
+- **Risks**: Leaving the geographic fields already added to the `User` profile on branch `048` orphaned instead of removing/relocating them; the Bed snapshot drifting from the `Location` shape.
 - **Prompt for /speckit.specify**:
   ```text
-  ADD GEOGRAPHIC FIELDS TO USER PROFILE AND BED AGGREGATE
-  WHY: Storing geographic context in JWTs bloats headers. We need these fields on the User document and copied statically inside Bed documents on creation to guarantee immutable climate context history.
-  WHAT: Add postalCode, country, timezone, and hemisphere to both User and Bed aggregates/schemas. Update CreateBed usecase to copy these fields.
+  USER LOCATIONS AGGREGATE AND BED CLIMATE SNAPSHOT
+  WHY: A user can grow in several places (a year-round home garden, a seasonal holiday plot), so a single geographic context on the profile cannot represent them, and geography is fully optional.
+  WHAT: Add a per-user Location aggregate (collection `locations`) holding a name plus optional postalCode, country, timezone and hemisphere, with owner-scoped CRUD. Remove the geographic fields from the User profile; Location is the single source of truth. CreateBed accepts an optional locationId and snapshots that location's geographic fields as static, immutable properties inside the Bed document on creation; without a locationId the bed has no geographic context.
   ```
 
 ## Iteration 30: Build Redis Cache Repository with Memory Fallback
@@ -743,6 +748,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [auth.md](spec/modules/auth.md), [persistence.md](spec/modules/persistence.md)
 
 - **Value delivered**: Enables rapid access to geographic contexts without database bottlenecks.
+- **Note (2026-11-02, from the Iteration 29 re-spec)**: the "geographic context" cached here is now the user's `Location` documents (potentially several), not a single profile context. What is cached changes; the Redis + local-memory-fallback mechanism does not.
 - **Definition of Done**: `RedisCacheRepository` implemented with immediate local memory fallback for resilience.
 - **Dependencies**: Iteration 29.
 - **Risks**: Redis connection drops causing hangs.
@@ -877,7 +883,8 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [plant-instance.md](spec/modules/plant-instance.md), [bed.md](spec/modules/bed.md), [plant.md](spec/modules/plant.md)
 
 - **Value delivered**: Ensures global users receive accurate planting calendars without duplicating catalog data.
-- **Definition of Done**: If user profile hemisphere is `'south'`, crop calendars shift by 6 months dynamically in-memory.
+- **Definition of Done**: If the applicable hemisphere is `'south'`, crop calendars shift by 6 months dynamically in-memory.
+- **Note (2026-11-02, from the Iteration 29 re-spec)**: the hemisphere driving the shift comes from the bed's snapshotted geography (the `Location` chosen at creation), not the `User` profile, which no longer holds geographic fields. A calendar previewed without a bed uses a chosen `Location`.
 - **Dependencies**: Iteration 29.
 - **Risks**: Calculation errors in circular modular arithmetic.
 - **Prompt for /speckit.specify**:
@@ -1765,3 +1772,54 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Design note — why the slug is derived from `scientificName`, not the primary name**: the primary (common) name is localized and not unique, so a slug built from it would collide and drift. The scientific name is already the catalog's unique, stable key, so deriving the slug from it gives a unique, stable URL for free and reuses the existing uniqueness guarantee.
 - **Dependencies**: Iteration 12 (plant identity value object and listing indexes), Iteration 89 (genus derivation, which established the derived output-only pattern the slug reuses).
 - **Risks**: Two distinct scientific names could slugify to the same value in rare edge cases (e.g. differing only by whitespace); the unique index turns that into an explicit `409` on write rather than a silent, non-deterministic lookup.
+
+## Iteration 91: Implement Account Deletion & Right to be Forgotten (GDPR)
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md)
+
+- **Status**: Not started.
+- **Value delivered**: Lets a user permanently erase their account and all personal data, closing the legal gap identified before taking the product to production (GDPR Art. 17 / LOPDGDD, since the app targets users in the EU). Today there is no `DELETE` path for a user account anywhere in the API.
+- **Definition of Done**: matches auth.md §7.1 "Account Deletion & Right to be Forgotten (GDPR) `[TARGET STATE]`" exactly:
+  - `DELETE /api/v1/users/me` (authenticated) sets the caller's `User.status` to `pending_deletion` and immediately deletes all of that user's `RefreshToken` documents, so their session dies within the access token's TTL (no Redis blacklist needed).
+  - A background worker (Kafka consumer or scheduled job) picks up `pending_deletion` users and hard-deletes their owned `Bed`, `PlantInstance`, `Event`, `SeedBatch` and `Reminder` documents in bounded sequential batches (e.g. 100 per transaction), publishing a `Deleted` domain event per aggregate type so other consumers (reminders, analytics) stay synchronized.
+  - Once every dependency is cleared, the worker hard-deletes the `User` document itself.
+  - `canStartSession()` (and login/refresh) reject a `pending_deletion` user with the same uniform `401` used for other blocked states, so a deletion in flight cannot be used to re-authenticate.
+  - Access token TTL is confirmed to be short-lived (≈15 min) so a token issued just before deletion cannot outlive the cascade by much.
+  - Covered by: a unit test per new `User`/worker method, an ATDD scenario for `DELETE /api/v1/users/me` (200, token immediately rejected afterwards), and a worker test asserting the batched cascade and the final hard delete, using a fake collection like the existing migration tests.
+- **Out of scope here**: anonymizing instead of hard-deleting, admin-triggered deletion of another user's account, and the data-export feature (see Iteration 92).
+- **Dependencies**: Iteration 8 (User aggregate/metadata conventions), existing Kafka outbox/consumer infrastructure (Iteration 76/80 cascades are the closest prior art for batched Kafka-driven deletion).
+- **Risks**: a crashed worker mid-cascade leaving a user `pending_deletion` with partially deleted data — needs the batch job to be safely resumable/idempotent per aggregate type; a race between a legitimate in-flight request and the cascade starting.
+- **Prompt for /speckit.specify**:
+  ```text
+  IMPLEMENT ACCOUNT DELETION & RIGHT TO BE FORGOTTEN (GDPR)
+  WHY: The app will have real users in the EU before launch and currently has no way to delete an
+  account or its personal data, which is a GDPR Article 17 obligation, not an optional nicety.
+  WHAT: Add `DELETE /api/v1/users/me` that marks the user `pending_deletion` and immediately revokes
+  all of their refresh tokens. Add a background worker that hard-deletes all of that user's owned
+  data (Beds, PlantInstances, Events, SeedBatches, Reminders) in bounded batches, publishing a
+  `Deleted` Kafka event per aggregate type, and finally hard-deletes the User document. Reject login
+  and token refresh for `pending_deletion` users. Follow auth.md §7.1 exactly for the design.
+  ```
+
+## Iteration 92: Implement Personal Data Export (GDPR Right to Portability)
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md)
+
+- **Status**: Not started.
+- **Value delivered**: Lets a user download the personal data the app holds about them in a structured, machine-readable format, satisfying GDPR Article 20 (data portability) alongside Iteration 91's deletion flow.
+- **Definition of Done**:
+  - `GET /api/v1/users/me/export` (authenticated) returns a single JSON document with the account's own fields (`email`, `username`, linked SSO providers, `createdAt`) and, inline or as a signed download link, the user's owned `Bed`, `PlantInstance`, `Event`, `SeedBatch` and `Reminder` records.
+  - No other user's data, and no internal-only fields (password hash, refresh tokens, internal status), is ever included in the export.
+  - Large accounts are handled without blocking the request thread for an unbounded time (stream the response or cap/paginate collections consistently with existing list endpoints).
+  - Covered by a unit test per mapper and an ATDD scenario asserting the export's shape and that sensitive fields are absent.
+- **Dependencies**: None beyond the existing per-aggregate repositories; independent of Iteration 91 (can ship before or after it).
+- **Risks**: accidentally leaking another user's data through a missed `userId` filter on one of the five aggregate types; response size growing unbounded for power users.
+- **Prompt for /speckit.specify**:
+  ```text
+  IMPLEMENT PERSONAL DATA EXPORT (GDPR RIGHT TO PORTABILITY)
+  WHY: Users have a legal right to receive a copy of their personal data in a portable format, and
+  the app currently has no such endpoint.
+  WHAT: Add `GET /api/v1/users/me/export` that returns the authenticated user's own account fields
+  plus all of their owned Beds, PlantInstances, Events, SeedBatches and Reminders as structured JSON,
+  explicitly excluding internal-only fields (password hash, refresh tokens, status).
+  ```

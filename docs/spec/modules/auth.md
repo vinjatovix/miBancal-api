@@ -177,37 +177,13 @@ res.locals.user = {
 
 ---
 
-## 5. LOCATION & HEMISPHERE CONFIGURATION (USER PROFILE) `[TARGET STATE (Pending [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate))]`
+## 5. LOCATION & HEMISPHERE CONFIGURATION — MOVED TO THE `Location` MODULE _(CURRENTLY IMPLEMENTED)_
 
-_Note: The current User aggregate root and database schema do NOT yet support these fields. This entire geographic configuration is planned for [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate)._
+As of [Iteration 29](../../roadmap.md#iteration-29-user-locations-aggregate-and-bed-climate-snapshot), the `User` aggregate carries **no geographic state**: no `postalCode`, `country`, `timezone` or `hemisphere` field, getter, or resolution logic. A user can own several named `Location` documents (collection `locations`), each with its own optional geography; see **Module: Location (location.md)** for the aggregate, CRUD contract and uniqueness rules.
 
-To support geographic-specific sowing calendars, local time scheduling, and meteorological watering adjustments without compromising user privacy, the User profile will support the following location configurations:
+`GetUserProfile`/`UpdateUserProfile` and their `/users/profile` routes are retained, but expose/accept identity and roles only (`id`, `username`, `email`, `roles`). `UpdateUserProfile` currently has no editable field (the body is always `{}`); the plumbing stays so a future non-geographic field has somewhere to land.
 
-- `postalCode` (string, optional)
-- `country` (string, optional, e.g., "Spain", "Argentina")
-- `hemisphere` (enum: `'north'` | `'south'`, defaults to `'north'`)
-- `timezone` (string, optional, IANA timezone format e.g., `'Europe/Madrid'`, defaults to `'UTC'`)
-
-### 5.1 Resolution Flow `[TARGET STATE (Pending [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate))]`
-
-1. When a user updates their profile (by submitting geolocation parameters), if `postalCode` and `country` are provided, the backend initiates geolocation resolution (via an offline ZIP-to-lat database or Open-Meteo Geocoding API).
-2. If geolocation succeeds, the backend stores the resolved `latitude`/`longitude` in the database and automatically extracts/computes the `hemisphere` (`latitude >= 0 ? 'north' : 'south'`) and the exact IANA `timezone`.
-3. If geolocation fails, is empty, or is skipped for privacy, the backend honors any manual `hemisphere` override or `timezone` sent by the user frontend (e.g., captured via `Intl.DateTimeFormat().resolvedOptions().timeZone` in the browser). If none is provided, it defaults to `'north'` and `'UTC'`.
-
-### 5.2 Low-Latency Redis Caching `[TARGET STATE (Pending [Iteration 30](../../roadmap.md#iteration-30-build-redis-cache-repository-with-memory-fallback))]`
-
-All technical caching specifications (including TTLs, Redis configuration, and local in-memory backup fallbacks) are defined centrally in **Module: Persistence (persistence.md)** to prevent specification redundancies.
-
-### 5.3 Context Resolution & Immutability Flow (Backend) `[TARGET STATE (Pending Iterations [29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate), [30](../../roadmap.md#iteration-30-build-redis-cache-repository-with-memory-fallback) & [33](../../roadmap.md#iteration-33-implement-private-user-bookmarks-collection))]`
-
-When a protected use case requires geographic or user-specific configuration details:
-
-1. The endpoint controller receives the request with the JWT validated.
-2. The use case is executed, receiving the `userId` (`id` from `res.locals.user`).
-3. **`[TARGET STATE (Pending [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate))]` Bed Creation (Snapshotting):** When creating new physical structures like a `Bed`, the usecase queries the `User` aggregate (or the fast Redis cache) to retrieve the profile's `postalCode`, `country`, and `hemisphere` on-the-fly. **These values are then explicitly copied and persisted into the newly created `Bed` document**. This ensures that the historical climate context of a physical location remains permanently immutable, even if the user moves to another continent years later.
-4. **`[TARGET STATE (Pending [Iteration 33](../../roadmap.md#iteration-33-implement-private-user-bookmarks-collection))]`** User-level dynamic states, such as bookmarked plants, are still queried dynamically from the independent `user_bookmarks` collection because they are not tied to historical physics.
-
-This hybrid flow guarantees that layout-dependent physics (climates, seasons) are historically preserved, while purely operational states remain 100% fresh and independent of token lifecycles.
+`CreateBed` accepts an optional `locationId`: when present, it resolves an owned active `Location` and copies its provided geographic fields into the `Bed` document as a static, immutable snapshot (see **Module: Bed (bed.md)**). The `User` aggregate is never consulted for this — `Location` is the single source of truth.
 
 ---
 
@@ -223,7 +199,7 @@ This hybrid flow guarantees that layout-dependent physics (climates, seasons) ar
 
 ## 7. BOUNDARY RULES
 
-- **No Shared State:** The authentication session state (specifically, the JWT payload) MUST NOT carry any business-oriented or operational properties (e.g., `postalCode`, `country`, `latitude`, `longitude`, or `hemisphere`).
+- **No Shared State:** The authentication session state (specifically, the JWT payload) MUST NOT carry any business-oriented or operational properties (e.g., `postalCode`, `country`, `latitude`, `longitude`, or `hemisphere`) — geography lives on `Location` (see location.md), never on `User` or the token.
 - **No Direct Domain Exposure:** Authentication primitives are mapped to domain-specific Value Objects and branded types (`Email`, `UserId`, etc.) only at the boundary level.
 - **Audit Metadata Ownership:** every User change goes through a `User` method (`register`, `activate`, `issueEmailToken`, `changePassword`, `linkProvider`) that refreshes `updatedAt`/`updatedBy` in memory with one timestamp, the actor being the account's own username. `UserPatch` was removed. The use case keeps `before = user.toPrimitives()`, calls the method and passes both states to `AuthRepository.update(before, after)`, which writes the top-level diff (`$set`, `$unset` for removed fields, `metadata` field by field as given) and never adds audit data (persistence.md, Metadata Ownership).
 - **Concurrent writes without a version:** User has no `version` / `If-Match`. `update(before, after)` is a compare-and-set: it only matches while every changed field (except `metadata`) still holds its `before` value (`$exists: false` when it was absent), and answers `written`, `unchanged` or `stale`. Two activations with the same token: the first writes, the second is `stale` and gets the uniform `400`.

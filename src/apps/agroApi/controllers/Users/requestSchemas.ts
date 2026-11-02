@@ -64,3 +64,18 @@ export const lookupUserRequest = {
   query: lookupUserQuery,
   body: emptyBody
 } satisfies RequestSchemas;
+
+export const getUserProfileRequest = {
+  query: emptyQuery,
+  body: emptyBody
+} satisfies RequestSchemas;
+
+// No editable field remains on the profile (geography moved to Locations;
+// identity/roles are managed elsewhere) — `{}` is the only accepted body
+// (research.md Decision 4: "effectively a no-op surface").
+const updateUserProfileBody = z.object({}).strict();
+
+export const updateUserProfileRequest = {
+  query: emptyQuery,
+  body: updateUserProfileBody
+} satisfies RequestSchemas;

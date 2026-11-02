@@ -84,7 +84,7 @@ export class User
     emailTokens?: EmailToken[];
     roles: UserRoles;
     metadata: Metadata;
-    version?: number;
+    version?: number | undefined;
   }) {
     super(id);
     const normalizedAuthMethods = User.normalizeAuthMethods({
@@ -98,17 +98,54 @@ export class User
     const tokens = emailTokens ? [...emailTokens] : [];
     User.ensureOneTokenPerPurpose(tokens);
 
-    this.state = Object.freeze({
+    this.state = Object.freeze(
+      User.buildInitialState({
+        email,
+        username,
+        localPassword,
+        emailValidated,
+        authMethods: normalizedAuthMethods,
+        tokens,
+        roles,
+        metadata,
+        version
+      })
+    );
+  }
+
+  private static buildInitialState({
+    email,
+    username,
+    localPassword,
+    emailValidated,
+    authMethods,
+    tokens,
+    roles,
+    metadata,
+    version
+  }: {
+    email: Email;
+    username: Username;
+    localPassword?: PasswordHash | undefined;
+    emailValidated: boolean;
+    authMethods: UserAuthMethod[];
+    tokens: EmailToken[];
+    roles: UserRoles;
+    metadata: Metadata;
+    version?: number | undefined;
+  }): UserState {
+    const state: UserState = {
       email,
       username,
-      ...(localPassword !== undefined && { password: localPassword }),
       emailValidated,
-      authMethods: normalizedAuthMethods,
+      authMethods,
       emailTokens: tokens,
       roles,
       metadata,
       version: version ?? 0
-    });
+    };
+    if (localPassword !== undefined) state.password = localPassword;
+    return state;
   }
 
   /** A new PENDING account with its local password and one activation token. */
@@ -201,7 +238,7 @@ export class User
     emailTokens?: EmailTokenPrimitives[];
     roles: string[];
     metadata: MetadataPrimitives;
-    version?: number;
+    version?: number | undefined;
   }): User {
     return new User({
       id: createUserId(id),

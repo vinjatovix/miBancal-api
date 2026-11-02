@@ -45,6 +45,33 @@ describe('bedPersistenceMapper', () => {
 
       expect(document.deletedAt).toBeUndefined();
     });
+
+    it('should include geographic fields when present', () => {
+      const bed = BedFactory.create({
+        postalCode: 'C1001',
+        country: 'Argentina',
+        timezone: 'America/Argentina/Buenos_Aires',
+        hemisphere: 'south'
+      });
+
+      const document = bedPersistenceMapper.toMongoDocument(bed);
+
+      expect(document.postalCode).toBe('C1001');
+      expect(document.country).toBe('Argentina');
+      expect(document.timezone).toBe('America/Argentina/Buenos_Aires');
+      expect(document.hemisphere).toBe('south');
+    });
+
+    it('should omit geographic fields when absent', () => {
+      const bed = BedFactory.create();
+
+      const document = bedPersistenceMapper.toMongoDocument(bed);
+
+      expect(document.postalCode).toBeUndefined();
+      expect(document.country).toBeUndefined();
+      expect(document.timezone).toBeUndefined();
+      expect(document.hemisphere).toBeUndefined();
+    });
   });
 
   describe('fromMongoDocument', () => {
@@ -65,6 +92,35 @@ describe('bedPersistenceMapper', () => {
       expect(bed.depth.value).toBe(original.depth.value);
 
       expect(bed.isDeleted).toBe(original.isDeleted);
+    });
+
+    it('should map geographic fields from mongo document correctly', () => {
+      const original = BedFactory.create({
+        postalCode: 'C1001',
+        country: 'Argentina',
+        timezone: 'America/Argentina/Buenos_Aires',
+        hemisphere: 'south'
+      });
+
+      const document = bedPersistenceMapper.toMongoDocument(original);
+      const bed = bedPersistenceMapper.fromMongoDocument(document);
+
+      expect(bed.postalCode).toBe('C1001');
+      expect(bed.country).toBe('Argentina');
+      expect(bed.timezone).toBe('America/Argentina/Buenos_Aires');
+      expect(bed.hemisphere).toBe('south');
+    });
+
+    it('should leave geographic fields undefined when absent in mongo document', () => {
+      const original = BedFactory.create();
+
+      const document = bedPersistenceMapper.toMongoDocument(original);
+      const bed = bedPersistenceMapper.fromMongoDocument(document);
+
+      expect(bed.postalCode).toBeUndefined();
+      expect(bed.country).toBeUndefined();
+      expect(bed.timezone).toBeUndefined();
+      expect(bed.hemisphere).toBeUndefined();
     });
 
     it('should round-trip the version', () => {

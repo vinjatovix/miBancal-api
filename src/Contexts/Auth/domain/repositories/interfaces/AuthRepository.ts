@@ -53,6 +53,18 @@ export interface AuthRepository {
     after: UserPrimitives
   ): Promise<WriteOutcome>;
 
+  /**
+   * Version-guarded profile change. Writes the diff of two full states plus
+   * `$inc: { version: 1 }`, matching only while `_id` and the read `version`
+   * still hold. A conditional write that matches nothing throws
+   * `DomainStaleVersionException` (412) or `DomainNotFoundException` (404)
+   * after disambiguation. Returns `written` or `unchanged` (confirmed no-op).
+   */
+  updateProfile(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome>;
+
   /** Exact-equality lookup served by `users_username_unique`. */
   searchByUsername(username: string): Promise<Nullable<User>>;
 

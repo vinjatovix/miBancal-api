@@ -8,6 +8,10 @@ export type MongoBedDocument = {
   width: number;
   height: number;
   depth: number;
+  postalCode?: string;
+  country?: string;
+  timezone?: string;
+  hemisphere?: 'north' | 'south';
   metadata: BedPrimitives['metadata'];
   deleted: boolean;
   deletedAt?: string;

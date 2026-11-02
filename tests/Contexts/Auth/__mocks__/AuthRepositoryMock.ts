@@ -40,6 +40,10 @@ export class AuthRepositoryMock implements AuthRepository {
     Promise<WriteOutcome>,
     [UserPrimitives, UserPrimitives]
   >();
+  private readonly updateProfileMock = jest.fn<
+    Promise<WriteOutcome>,
+    [UserPrimitives, UserPrimitives]
+  >();
   private readonly searchByUsernameMock = jest.fn<Nullable<User>, [string]>();
   private readonly countByRoleMock = jest.fn<Promise<number>, [UserRole]>();
   private readonly reserveMinimumHolderGuardMock = jest.fn<
@@ -72,6 +76,7 @@ export class AuthRepositoryMock implements AuthRepository {
     this.createMock.mockResolvedValue('created');
     this.updateMock.mockResolvedValue('written');
     this.updateRolesMock.mockResolvedValue('written');
+    this.updateProfileMock.mockResolvedValue('written');
     this.countByRoleMock.mockResolvedValue(2);
     this.reserveMinimumHolderGuardMock.mockResolvedValue(undefined);
     this.deleteIfReplaceableMock.mockResolvedValue(true);
@@ -135,6 +140,13 @@ export class AuthRepositoryMock implements AuthRepository {
     after: UserPrimitives
   ): Promise<WriteOutcome> {
     return this.updateRolesMock(before, after);
+  }
+
+  updateProfile(
+    before: UserPrimitives,
+    after: UserPrimitives
+  ): Promise<WriteOutcome> {
+    return this.updateProfileMock(before, after);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -209,6 +221,10 @@ export class AuthRepositoryMock implements AuthRepository {
 
   setUpdateRolesOutcome(outcome: WriteOutcome): void {
     this.updateRolesMock.mockResolvedValue(outcome);
+  }
+
+  setUpdateProfileOutcome(outcome: WriteOutcome): void {
+    this.updateProfileMock.mockResolvedValue(outcome);
   }
 
   setCountByRole(count: number): void {

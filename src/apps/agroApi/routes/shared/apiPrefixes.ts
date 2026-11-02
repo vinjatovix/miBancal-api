@@ -10,5 +10,6 @@ export const API_PREFIXES = {
   plantInstances: '/api/v1/plant-instances',
   users: '/api/v1/users',
   bookmarks: '/api/v1/bookmarks',
-  plantRelations: '/api/v1/plant-relations'
+  plantRelations: '/api/v1/plant-relations',
+  locations: '/api/v1/locations'
 } as const;

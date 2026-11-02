@@ -14,6 +14,7 @@ import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNu
 import type { BedId } from '../BedId.js';
 import { BedName } from '../BedName.js';
 import type { BedDimensionsChanges } from './types/BedDimensionsChanges.js';
+import type { BedGeographicSnapshot } from './types/BedGeographicSnapshot.js';
 import type { BedProps } from './types/BedProps.js';
 
 type BedState = BedProps & { version: number };
@@ -44,6 +45,22 @@ export class Bed extends AggregateRoot<BedId> {
 
   get depth(): PositiveNumber {
     return this.props.depth;
+  }
+
+  get postalCode(): string | undefined {
+    return this.props.postalCode;
+  }
+
+  get country(): string | undefined {
+    return this.props.country;
+  }
+
+  get timezone(): string | undefined {
+    return this.props.timezone;
+  }
+
+  get hemisphere(): 'north' | 'south' | undefined {
+    return this.props.hemisphere;
   }
 
   get metadata(): Metadata {
@@ -121,6 +138,51 @@ export class Bed extends AggregateRoot<BedId> {
     if (!hasStateChanged(before, after)) return;
 
     this.commit({ width, height, depth }, user, at);
+  }
+
+  /**
+   * Sets/replaces the geographic snapshot (`geo`) or clears it (`null`),
+   * mirroring `rename`/`resize`: a value sets all four fields (fields the
+   * source omitted stay absent, no synthetic defaults), `null` unsets every
+   * one. No-op when the resolved snapshot does not change.
+   */
+  applyLocationSnapshot(
+    geo: BedGeographicSnapshot | null,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    if (this.isDeleted) {
+      throw new DomainConflictException(
+        'Cannot change the location snapshot of a deleted bed'
+      );
+    }
+
+    const before = {
+      postalCode: this.props.postalCode,
+      country: this.props.country,
+      timezone: this.props.timezone,
+      hemisphere: this.props.hemisphere
+    };
+    const after = geo ?? {};
+
+    if (!hasStateChanged(before, after)) return;
+
+    const nextProps: BedState = {
+      ...this.props,
+      metadata: Metadata.update(this.props.metadata, user, at)
+    };
+
+    delete nextProps.postalCode;
+    delete nextProps.country;
+    delete nextProps.timezone;
+    delete nextProps.hemisphere;
+
+    if (after.postalCode !== undefined) nextProps.postalCode = after.postalCode;
+    if (after.country !== undefined) nextProps.country = after.country;
+    if (after.timezone !== undefined) nextProps.timezone = after.timezone;
+    if (after.hemisphere !== undefined) nextProps.hemisphere = after.hemisphere;
+
+    this.props = Object.freeze(nextProps);
   }
 
   markAsDeleted(user: string, at: Date = new Date()): void {

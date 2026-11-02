@@ -7,5 +7,7 @@ export * from './ResetPassword.js';
 export * from './LoginUserLocal.js';
 export * from './AuthenticateWithGithub.js';
 export * from './AuthenticateWithGoogle.js';
+export * from './GetUserProfile.js';
 export * from './RefreshToken.js';
 export * from './UpdatePasswordLocal.js';
+export * from './UpdateUserProfile.js';

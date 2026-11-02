@@ -24,7 +24,11 @@ const createBedBody = z.object({
   name: requiredShortTextSchema,
   width: dimensionSchema,
   height: dimensionSchema,
-  depth: dimensionSchema
+  depth: dimensionSchema,
+  // Resolved to an owned active location whose provided geographic fields
+  // are copied into the bed as a static snapshot; raw geographic fields are
+  // never accepted here.
+  locationId: z.uuid().exactOptional()
 });
 
 export const createBedRequest = {
@@ -53,7 +57,11 @@ const updateBedBody = z.object({
   name: requiredShortTextSchema.exactOptional(),
   width: dimensionSchema.exactOptional(),
   height: dimensionSchema.exactOptional(),
-  depth: dimensionSchema.exactOptional()
+  depth: dimensionSchema.exactOptional(),
+  // A uuid re-snapshots from that owned location (replace); `null` clears
+  // the snapshot; omitted leaves it unchanged. Raw geographic fields remain
+  // absent from this schema, so sending them is a 400.
+  locationId: z.uuid().nullable().exactOptional()
 });
 
 export const updateBedRequest = {
