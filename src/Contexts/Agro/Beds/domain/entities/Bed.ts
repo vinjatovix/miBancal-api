@@ -47,20 +47,12 @@ export class Bed extends AggregateRoot<BedId> {
     return this.props.depth;
   }
 
-  get postalCode(): string | undefined {
-    return this.props.postalCode;
+  get latitude(): number | undefined {
+    return this.props.latitude;
   }
 
-  get country(): string | undefined {
-    return this.props.country;
-  }
-
-  get timezone(): string | undefined {
-    return this.props.timezone;
-  }
-
-  get hemisphere(): 'north' | 'south' | undefined {
-    return this.props.hemisphere;
+  get longitude(): number | undefined {
+    return this.props.longitude;
   }
 
   get metadata(): Metadata {
@@ -141,10 +133,8 @@ export class Bed extends AggregateRoot<BedId> {
   }
 
   /**
-   * Sets/replaces the geographic snapshot (`geo`) or clears it (`null`),
-   * mirroring `rename`/`resize`: a value sets all four fields (fields the
-   * source omitted stay absent, no synthetic defaults), `null` unsets every
-   * one. No-op when the resolved snapshot does not change.
+   * Sets/replaces the geographic coordinates snapshot (`geo`) or clears it (`null`),
+   * mirroring `rename`/`resize`. No-op when the resolved snapshot does not change.
    */
   applyLocationSnapshot(
     geo: BedGeographicSnapshot | null,
@@ -158,12 +148,10 @@ export class Bed extends AggregateRoot<BedId> {
     }
 
     const before = {
-      postalCode: this.props.postalCode,
-      country: this.props.country,
-      timezone: this.props.timezone,
-      hemisphere: this.props.hemisphere
+      latitude: this.props.latitude,
+      longitude: this.props.longitude
     };
-    const after = geo ?? {};
+    const after: Partial<BedGeographicSnapshot> = geo ?? {};
 
     if (!hasStateChanged(before, after)) return;
 
@@ -172,15 +160,11 @@ export class Bed extends AggregateRoot<BedId> {
       metadata: Metadata.update(this.props.metadata, user, at)
     };
 
-    delete nextProps.postalCode;
-    delete nextProps.country;
-    delete nextProps.timezone;
-    delete nextProps.hemisphere;
+    delete nextProps.latitude;
+    delete nextProps.longitude;
 
-    if (after.postalCode !== undefined) nextProps.postalCode = after.postalCode;
-    if (after.country !== undefined) nextProps.country = after.country;
-    if (after.timezone !== undefined) nextProps.timezone = after.timezone;
-    if (after.hemisphere !== undefined) nextProps.hemisphere = after.hemisphere;
+    if (after.latitude !== undefined) nextProps.latitude = after.latitude;
+    if (after.longitude !== undefined) nextProps.longitude = after.longitude;
 
     this.props = Object.freeze(nextProps);
   }

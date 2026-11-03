@@ -48,18 +48,14 @@ describe('bedPersistenceMapper', () => {
 
     it('should include geographic fields when present', () => {
       const bed = BedFactory.create({
-        postalCode: 'C1001',
-        country: 'Argentina',
-        timezone: 'America/Argentina/Buenos_Aires',
-        hemisphere: 'south'
+        latitude: 40.4168,
+        longitude: -3.7038
       });
 
       const document = bedPersistenceMapper.toMongoDocument(bed);
 
-      expect(document.postalCode).toBe('C1001');
-      expect(document.country).toBe('Argentina');
-      expect(document.timezone).toBe('America/Argentina/Buenos_Aires');
-      expect(document.hemisphere).toBe('south');
+      expect(document.latitude).toBe(40.4168);
+      expect(document.longitude).toBe(-3.7038);
     });
 
     it('should omit geographic fields when absent', () => {
@@ -67,10 +63,8 @@ describe('bedPersistenceMapper', () => {
 
       const document = bedPersistenceMapper.toMongoDocument(bed);
 
-      expect(document.postalCode).toBeUndefined();
-      expect(document.country).toBeUndefined();
-      expect(document.timezone).toBeUndefined();
-      expect(document.hemisphere).toBeUndefined();
+      expect(document.latitude).toBeUndefined();
+      expect(document.longitude).toBeUndefined();
     });
   });
 
@@ -96,19 +90,15 @@ describe('bedPersistenceMapper', () => {
 
     it('should map geographic fields from mongo document correctly', () => {
       const original = BedFactory.create({
-        postalCode: 'C1001',
-        country: 'Argentina',
-        timezone: 'America/Argentina/Buenos_Aires',
-        hemisphere: 'south'
+        latitude: 40.4168,
+        longitude: -3.7038
       });
 
       const document = bedPersistenceMapper.toMongoDocument(original);
       const bed = bedPersistenceMapper.fromMongoDocument(document);
 
-      expect(bed.postalCode).toBe('C1001');
-      expect(bed.country).toBe('Argentina');
-      expect(bed.timezone).toBe('America/Argentina/Buenos_Aires');
-      expect(bed.hemisphere).toBe('south');
+      expect(bed.latitude).toBe(40.4168);
+      expect(bed.longitude).toBe(-3.7038);
     });
 
     it('should leave geographic fields undefined when absent in mongo document', () => {
@@ -117,10 +107,8 @@ describe('bedPersistenceMapper', () => {
       const document = bedPersistenceMapper.toMongoDocument(original);
       const bed = bedPersistenceMapper.fromMongoDocument(document);
 
-      expect(bed.postalCode).toBeUndefined();
-      expect(bed.country).toBeUndefined();
-      expect(bed.timezone).toBeUndefined();
-      expect(bed.hemisphere).toBeUndefined();
+      expect(bed.latitude).toBeUndefined();
+      expect(bed.longitude).toBeUndefined();
     });
 
     it('should round-trip the version', () => {

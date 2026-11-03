@@ -21,17 +21,11 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
       width: PositiveNumber.create(document.width),
       height: PositiveNumber.create(document.height),
       depth: PositiveNumber.create(document.depth),
-      ...(document.postalCode !== undefined && {
-        postalCode: document.postalCode
+      ...(document.latitude !== undefined && {
+        latitude: document.latitude
       }),
-      ...(document.country !== undefined && {
-        country: document.country
-      }),
-      ...(document.timezone !== undefined && {
-        timezone: document.timezone
-      }),
-      ...(document.hemisphere !== undefined && {
-        hemisphere: document.hemisphere
+      ...(document.longitude !== undefined && {
+        longitude: document.longitude
       }),
       metadata: Metadata.fromPrimitives(document.metadata),
       deleted: document.deleted,
@@ -48,10 +42,8 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
       width: bed.width.value,
       height: bed.height.value,
       depth: bed.depth.value,
-      ...(bed.postalCode !== undefined && { postalCode: bed.postalCode }),
-      ...(bed.country !== undefined && { country: bed.country }),
-      ...(bed.timezone !== undefined && { timezone: bed.timezone }),
-      ...(bed.hemisphere !== undefined && { hemisphere: bed.hemisphere }),
+      ...(bed.latitude !== undefined && { latitude: bed.latitude }),
+      ...(bed.longitude !== undefined && { longitude: bed.longitude }),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),

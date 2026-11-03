@@ -11,16 +11,8 @@ export const locationDomainMapper: LocationDomainMapper = {
       id: location.id,
       userId: location.userId,
       name: location.name,
-      ...(location.postalCode !== undefined && {
-        postalCode: location.postalCode
-      }),
-      ...(location.country !== undefined && { country: location.country }),
-      ...(location.timezone !== undefined && {
-        timezone: location.timezone
-      }),
-      ...(location.hemisphere !== undefined && {
-        hemisphere: location.hemisphere
-      }),
+      latitude: location.latitude,
+      longitude: location.longitude,
       status: location.status,
       ...(location.deletedAt && {
         deletedAt: location.deletedAt.toISOString()
@@ -35,18 +27,8 @@ export const locationDomainMapper: LocationDomainMapper = {
       id: createLocationId(primitives.id),
       userId: createUserId(primitives.userId),
       name: primitives.name,
-      ...(primitives.postalCode !== undefined && {
-        postalCode: primitives.postalCode
-      }),
-      ...(primitives.country !== undefined && {
-        country: primitives.country
-      }),
-      ...(primitives.timezone !== undefined && {
-        timezone: primitives.timezone
-      }),
-      ...(primitives.hemisphere !== undefined && {
-        hemisphere: primitives.hemisphere
-      }),
+      latitude: primitives.latitude,
+      longitude: primitives.longitude,
       status: primitives.status,
       ...(primitives.deletedAt !== undefined && {
         deletedAt: new Date(primitives.deletedAt)

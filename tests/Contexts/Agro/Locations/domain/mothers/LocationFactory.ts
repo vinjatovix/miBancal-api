@@ -12,6 +12,8 @@ export const LocationFactory = {
     id: randomLocationId(),
     userId: randomUserId(),
     name: 'Huerto trasero',
+    latitude: 40.4168,
+    longitude: -3.7038,
     metadata: Metadata.create(USER),
     ...overrides
   }),

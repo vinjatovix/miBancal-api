@@ -11,10 +11,8 @@ Feature: Expose Frozen Climate Context on Bed Inspection
             {
                 "id": "b1c2d3e4-1b6a-4f3c-9a8b-2e0d4f6a8b01",
                 "name": "Finca de inspeccion",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
         Then the response status code should be 201
@@ -36,10 +34,8 @@ Feature: Expose Frozen Climate Context on Bed Inspection
             """
             {
                 "id": "f5a9c3e2-1b6a-4f3c-9a8b-2e0d4f6a8b01",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
 
@@ -49,10 +45,8 @@ Feature: Expose Frozen Climate Context on Bed Inspection
             {
                 "id": "b1c2d3e4-1b6a-4f3c-9a8b-2e0d4f6a8b02",
                 "name": "Finca de coleccion",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
         Then the response status code should be 201
@@ -76,10 +70,8 @@ Feature: Expose Frozen Climate Context on Bed Inspection
             [
                 {
                     "id": "f5a9c3e2-1b6a-4f3c-9a8b-2e0d4f6a8b02",
-                    "hemisphere": "south",
-                    "timezone": "America/Argentina/Buenos_Aires",
-                    "country": "Argentina",
-                    "postalCode": "C1001"
+                    "latitude": -34.6037,
+                    "longitude": -58.3816
                 }
             ]
             """
@@ -90,10 +82,8 @@ Feature: Expose Frozen Climate Context on Bed Inspection
             {
                 "id": "b1c2d3e4-1b6a-4f3c-9a8b-2e0d4f6a8b03",
                 "name": "Finca inmutable",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
         Then the response status code should be 201
@@ -113,27 +103,21 @@ Feature: Expose Frozen Climate Context on Bed Inspection
         And I send a PATCH user request to "/api/v1/beds/f5a9c3e2-1b6a-4f3c-9a8b-2e0d4f6a8b03" with body
             """
             {
-                "hemisphere": "north",
-                "timezone": "Europe/Madrid",
-                "country": "Spain",
-                "postalCode": "28001"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 400
         And the bed "f5a9c3e2-1b6a-4f3c-9a8b-2e0d4f6a8b03" in database should retain geographic attributes:
-            | hemisphere | south                          |
-            | timezone   | America/Argentina/Buenos_Aires |
-            | country    | Argentina                      |
-            | postalCode | C1001                          |
+            | latitude  | -34.6037 |
+            | longitude | -58.3816 |
         When I send a GET user request to "/api/v1/beds/f5a9c3e2-1b6a-4f3c-9a8b-2e0d4f6a8b03"
         Then the response status code should be 200
         And the response body should contain
             """
             {
                 "id": "f5a9c3e2-1b6a-4f3c-9a8b-2e0d4f6a8b03",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """

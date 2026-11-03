@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import {
   DomainConflictException,
   InvalidArgumentException
@@ -8,13 +9,18 @@ const USER = 'grower';
 
 describe('Location aggregate', () => {
   describe('create', () => {
-    it('starts active at version 0 with no deletedAt', () => {
-      const location = LocationFactory.domainBase();
+    it('starts active at version 0 with no deletedAt and assigned coordinates', () => {
+      const location = LocationFactory.domainBase({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
 
       expect(location.status).toBe('active');
       expect(location.version).toBe(0);
       expect(location.isDeleted()).toBe(false);
       expect(location.deletedAt).toBeUndefined();
+      expect(location.latitude).toBe(40.4168);
+      expect(location.longitude).toBe(-3.7038);
     });
 
     it('trims the name', () => {
@@ -26,58 +32,46 @@ describe('Location aggregate', () => {
     it.each(['', '   ', 'a'.repeat(101)])(
       'rejects a name outside 1..100 characters (%s)',
       (name) => {
-        expect(() => LocationFactory.domainBase({ name })).toThrow(
-          InvalidArgumentException
-        );
+        const createLocation = () => LocationFactory.domainBase({ name });
+
+        expect(createLocation).toThrow(InvalidArgumentException);
       }
     );
 
-    it('rejects a postalCode outside 1..20 characters', () => {
-      expect(() =>
-        LocationFactory.domainBase({ postalCode: 'a'.repeat(21) })
-      ).toThrow(InvalidArgumentException);
-    });
+    it.each([-90.0001, -91, 90.0001, 91, Number.NaN, Number.POSITIVE_INFINITY])(
+      'rejects invalid latitude %p',
+      (latitude) => {
+        const createLocation = () => LocationFactory.domainBase({ latitude });
 
-    it('rejects a country outside 1..100 characters', () => {
-      expect(() =>
-        LocationFactory.domainBase({ country: 'a'.repeat(101) })
-      ).toThrow(InvalidArgumentException);
-    });
-
-    it('accepts a canonical IANA timezone or UTC', () => {
-      expect(() =>
-        LocationFactory.domainBase({ timezone: 'UTC' })
-      ).not.toThrow();
-      expect(() =>
-        LocationFactory.domainBase({
-          timezone: 'America/Argentina/Buenos_Aires'
-        })
-      ).not.toThrow();
-    });
-
-    it('rejects an invalid timezone', () => {
-      expect(() =>
-        LocationFactory.domainBase({ timezone: 'Not/A_Timezone' })
-      ).toThrow(InvalidArgumentException);
-    });
-
-    it.each(['north', 'south'] as const)(
-      'accepts hemisphere %s',
-      (hemisphere) => {
-        expect(() => LocationFactory.domainBase({ hemisphere })).not.toThrow();
+        expect(createLocation).toThrow(InvalidArgumentException);
       }
     );
+
+    it.each([
+      -180.0001,
+      -181,
+      180.0001,
+      181,
+      Number.NaN,
+      Number.NEGATIVE_INFINITY
+    ])('rejects invalid longitude %p', (longitude) => {
+      const createLocation = () => LocationFactory.domainBase({ longitude });
+
+      expect(createLocation).toThrow(InvalidArgumentException);
+    });
 
     it('rejects an active location with deletedAt', () => {
-      expect(() =>
-        LocationFactory.domainBase({ status: 'active', deletedAt: new Date() })
-      ).toThrow(InvalidArgumentException);
+      const createLocation = () =>
+        LocationFactory.domainBase({ status: 'active', deletedAt: new Date() });
+
+      expect(createLocation).toThrow(InvalidArgumentException);
     });
 
     it('rejects a deleted location without deletedAt', () => {
-      expect(() => LocationFactory.domainBase({ status: 'deleted' })).toThrow(
-        InvalidArgumentException
-      );
+      const createLocation = () =>
+        LocationFactory.domainBase({ status: 'deleted' });
+
+      expect(createLocation).toThrow(InvalidArgumentException);
     });
   });
 
@@ -103,46 +97,110 @@ describe('Location aggregate', () => {
 
       expect(location.metadata.updatedAt).toEqual(before);
     });
+
+    it.each(['', '   ', 'a'.repeat(101)])(
+      'rejects a replacement name outside 1..100 characters (%s)',
+      (invalidName) => {
+        const location = LocationFactory.domainBase({ name: 'Huerto' });
+
+        const renameAction = () =>
+          location.rename(invalidName, USER, new Date());
+
+        expect(renameAction).toThrow(InvalidArgumentException);
+      }
+    );
+
+    it('rejects renaming an already-deleted location', () => {
+      const location = LocationFactory.deleted();
+
+      const renameAction = () =>
+        location.rename('Nuevo nombre', USER, new Date());
+
+      expect(renameAction).toThrow(DomainConflictException);
+    });
   });
 
-  describe('updateGeography', () => {
-    it('sets a provided field', () => {
-      const location = LocationFactory.domainBase({});
+  describe('updateCoordinates', () => {
+    it('updates latitude and longitude and updates audit metadata', () => {
+      const location = LocationFactory.domainBase({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
+      const before = location.metadata.updatedAt;
+      const updateTime = new Date(before.getTime() + 1000);
 
-      location.updateGeography({ country: 'Argentina' }, USER, new Date());
+      location.updateCoordinates(
+        { latitude: 41.3879, longitude: 2.1699 },
+        USER,
+        updateTime
+      );
 
-      expect(location.country).toBe('Argentina');
+      expect(location.latitude).toBe(41.3879);
+      expect(location.longitude).toBe(2.1699);
+      expect(location.metadata.updatedBy).toBe(USER);
+      expect(location.metadata.updatedAt).toEqual(updateTime);
     });
 
-    it('unsets a field with null', () => {
-      const location = LocationFactory.domainBase({ country: 'Argentina' });
-
-      location.updateGeography({ country: null }, USER, new Date());
-
-      expect(location.country).toBeUndefined();
-    });
-
-    it('leaves an omitted field unchanged', () => {
-      const location = LocationFactory.domainBase({ country: 'Argentina' });
-
-      location.updateGeography({ postalCode: '5500' }, USER, new Date());
-
-      expect(location.country).toBe('Argentina');
-      expect(location.postalCode).toBe('5500');
-    });
-
-    it('is a no-op when nothing resolves to a different value', () => {
-      const location = LocationFactory.domainBase({ country: 'Argentina' });
+    it('is a no-op when coordinates do not change', () => {
+      const location = LocationFactory.domainBase({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
       const before = location.metadata.updatedAt;
 
-      location.updateGeography(
-        { country: 'Argentina' },
+      location.updateCoordinates(
+        { latitude: 40.4168, longitude: -3.7038 },
         USER,
         new Date(before.getTime() + 1000)
       );
 
       expect(location.metadata.updatedAt).toEqual(before);
     });
+
+    it('rejects updating coordinates on an already-deleted location', () => {
+      const location = LocationFactory.deleted();
+
+      const updateAction = () =>
+        location.updateCoordinates(
+          { latitude: 41.3879, longitude: 2.1699 },
+          USER,
+          new Date()
+        );
+
+      expect(updateAction).toThrow(DomainConflictException);
+    });
+
+    it.each([-90.0001, -91, 90.0001, 91, Number.NaN])(
+      'rejects invalid replacement latitude %p',
+      (invalidLatitude) => {
+        const location = LocationFactory.domainBase({});
+
+        const updateAction = () =>
+          location.updateCoordinates(
+            { latitude: invalidLatitude, longitude: 0 },
+            USER,
+            new Date()
+          );
+
+        expect(updateAction).toThrow(InvalidArgumentException);
+      }
+    );
+
+    it.each([-180.0001, -181, 180.0001, 181, Number.NaN])(
+      'rejects invalid replacement longitude %p',
+      (invalidLongitude) => {
+        const location = LocationFactory.domainBase({});
+
+        const updateAction = () =>
+          location.updateCoordinates(
+            { latitude: 0, longitude: invalidLongitude },
+            USER,
+            new Date()
+          );
+
+        expect(updateAction).toThrow(InvalidArgumentException);
+      }
+    );
   });
 
   describe('markAsDeleted', () => {
@@ -160,9 +218,9 @@ describe('Location aggregate', () => {
     it('rejects deleting an already-deleted location', () => {
       const location = LocationFactory.deleted();
 
-      expect(() => location.markAsDeleted(USER, new Date())).toThrow(
-        DomainConflictException
-      );
+      const deleteAction = () => location.markAsDeleted(USER, new Date());
+
+      expect(deleteAction).toThrow(DomainConflictException);
     });
   });
 

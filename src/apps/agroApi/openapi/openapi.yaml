@@ -2686,33 +2686,43 @@ components:
           items:
             $ref: '#/components/schemas/Role'
 
-    Hemisphere:
-      type: string
-      enum: [north, south]
+    Latitude:
+      type: number
+      description: Geographic latitude in decimal degrees (WGS84).
+      minimum: -90.0
+      maximum: 90.0
+      example: 40.4168
+
+    Longitude:
+      type: number
+      description: Geographic longitude in decimal degrees (WGS84).
+      minimum: -180.0
+      maximum: 180.0
+      example: -3.7038
 
     Location:
       type: object
-      required: [id, name, createdAt, createdBy, updatedAt, updatedBy]
+      required:
+        [
+          id,
+          name,
+          latitude,
+          longitude,
+          createdAt,
+          createdBy,
+          updatedAt,
+          updatedBy
+        ]
       properties:
         id:
           type: string
           format: uuid
         name:
           $ref: '#/components/schemas/RequiredShortText'
-        postalCode:
-          type: string
-          description: Trimmed, 1-20 chars (omitted when unconfigured).
-        country:
-          type: string
-          description: Trimmed, 1-100 chars (omitted when unconfigured).
-        timezone:
-          type: string
-          description: >
-            Canonical IANA timezone identifier (`Area/Location`, case-sensitive)
-            or the literal `UTC` (omitted when unconfigured).
-          example: Europe/Madrid
-        hemisphere:
-          $ref: '#/components/schemas/Hemisphere'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
         createdAt:
           type: string
           format: date-time
@@ -2731,71 +2741,32 @@ components:
     CreateLocation:
       type: object
       additionalProperties: false
-      required: [id, name]
+      required: [id, name, latitude, longitude]
       properties:
         id:
           type: string
           format: uuid
         name:
           $ref: '#/components/schemas/RequiredShortText'
-        postalCode:
-          type: string
-          minLength: 1
-          maxLength: 20
-        country:
-          type: string
-          minLength: 1
-          maxLength: 100
-        timezone:
-          type: string
-          description: >
-            Canonical IANA timezone identifier (`Area/Location`, case-sensitive,
-            e.g. `Europe/Madrid`, `Atlantic/Canary`,
-            `America/Argentina/Buenos_Aires`) or the literal `UTC`. Abbreviations
-            (`EST`), UTC offsets (`UTC+2`) and lowercase or otherwise non-canonical
-            spellings (`utc`, `europe/madrid`) are rejected (400). The `pattern`
-            checks the shape; the identifier must also be one the server resolves.
-          pattern: '^(UTC|[A-Z][A-Za-z0-9+_-]*(?:/[A-Z][A-Za-z0-9+_-]*)+)$'
-          example: Europe/Madrid
-        hemisphere:
-          $ref: '#/components/schemas/Hemisphere'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
 
     UpdateLocation:
       description: >
-        Partial update (JSON Merge Patch). `name` cannot be cleared (`null` →
-        400); geographic fields accept `null` to unset. `{}` is a no-op: 200,
-        version unchanged. Renaming to a duplicate active name → 409.
+        Partial update (JSON Merge Patch). `name` cannot be null. If coordinates
+        are updated, both `latitude` and `longitude` must be provided together.
+        Legacy fields (postalCode, country, timezone, hemisphere) are rejected.
       type: object
       additionalProperties: false
       properties:
         name:
           $ref: '#/components/schemas/RequiredShortText'
-        postalCode:
-          type: string
-          nullable: true
-          minLength: 1
-          maxLength: 20
-        country:
-          type: string
-          nullable: true
-          minLength: 1
-          maxLength: 100
-        timezone:
-          type: string
-          nullable: true
-          description: >
-            Canonical IANA timezone identifier (`Area/Location`, case-sensitive,
-            e.g. `Europe/Madrid`, `America/Argentina/Buenos_Aires`) or the literal
-            `UTC`; `null` unsets it. Abbreviations (`EST`), UTC offsets (`UTC+2`)
-            and lowercase or otherwise non-canonical spellings (`utc`,
-            `europe/madrid`) are rejected (400). The `pattern` checks the shape;
-            the identifier must also be one the server resolves.
-          pattern: '^(UTC|[A-Z][A-Za-z0-9+_-]*(?:/[A-Z][A-Za-z0-9+_-]*)+)$'
-          example: Europe/Madrid
-        hemisphere:
-          oneOf:
-            - $ref: '#/components/schemas/Hemisphere'
-            - type: 'null'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+        longitude:
+          $ref: '#/components/schemas/Longitude'
 
     UserProfileView:
       type: object
@@ -4927,23 +4898,12 @@ components:
           $ref: '#/components/schemas/BedDimension'
         depth:
           $ref: '#/components/schemas/BedDimension'
-        postalCode:
-          type: string
-          description: >
-            Postal code snapshotted from the referenced location at
-            create/update time (omitted when no location was resolved).
-        country:
-          type: string
-          description: >
-            Country snapshotted from the referenced location at
-            create/update time (omitted when no location was resolved).
-        timezone:
-          type: string
-          description: >
-            IANA timezone identifier snapshotted from the referenced location
-            at create/update time (omitted when no location was resolved).
-        hemisphere:
-          $ref: '#/components/schemas/Hemisphere'
+        latitude:
+          $ref: '#/components/schemas/Latitude'
+          description: Snapshotted latitude from the referenced location at create/update time.
+        longitude:
+          $ref: '#/components/schemas/Longitude'
+          description: Snapshotted longitude from the referenced location at create/update time.
         plantInstances:
           description: >
             Flat array of active crop UUIDs by default; full PlantInstance objects

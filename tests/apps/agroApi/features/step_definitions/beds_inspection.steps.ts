@@ -11,17 +11,11 @@ Then(
     const doc = await rawCollection('beds').findOne({ _id: toMongoId(bedId) });
     assert.isNotNull(doc, `Bed ${bedId} not found in database`);
 
-    if (expected.hemisphere) {
-      assert.strictEqual(doc?.hemisphere, expected.hemisphere);
+    if (expected.latitude !== undefined) {
+      assert.strictEqual(doc?.latitude, Number(expected.latitude));
     }
-    if (expected.timezone) {
-      assert.strictEqual(doc?.timezone, expected.timezone);
-    }
-    if (expected.country) {
-      assert.strictEqual(doc?.country, expected.country);
-    }
-    if (expected.postalCode) {
-      assert.strictEqual(doc?.postalCode, expected.postalCode);
+    if (expected.longitude !== undefined) {
+      assert.strictEqual(doc?.longitude, Number(expected.longitude));
     }
   }
 );

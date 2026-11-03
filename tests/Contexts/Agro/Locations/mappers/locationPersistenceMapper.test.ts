@@ -1,30 +1,33 @@
+import { describe, expect, it } from '@jest/globals';
 import { locationPersistenceMapper } from '../../../../../src/Contexts/Agro/Locations/mappers/locationPersistenceMapper.js';
 import { LocationFactory } from '../domain/mothers/LocationFactory.js';
 
 describe('locationPersistenceMapper', () => {
-  it('omits absent optional fields in the stored document', () => {
-    const location = LocationFactory.domainBase({});
+  it('maps flat coordinates in the stored document', () => {
+    const location = LocationFactory.domainBase({
+      latitude: 40.4168,
+      longitude: -3.7038
+    });
 
     const document = locationPersistenceMapper.toMongoDocument(location);
 
-    expect('postalCode' in document).toBe(false);
-    expect('country' in document).toBe(false);
-    expect('timezone' in document).toBe(false);
-    expect('hemisphere' in document).toBe(false);
+    expect(document.latitude).toBe(40.4168);
+    expect(document.longitude).toBe(-3.7038);
     expect('deletedAt' in document).toBe(false);
   });
 
-  it('round-trips a document with geographic fields', () => {
+  it('round-trips a document with coordinates', () => {
     const location = LocationFactory.domainBase({
-      postalCode: 'C1001',
-      country: 'Argentina'
+      latitude: 41.3879,
+      longitude: 2.1699
     });
 
-    const roundTripped = locationPersistenceMapper.fromMongoDocument(
-      locationPersistenceMapper.toMongoDocument(location)
-    );
+    const document = locationPersistenceMapper.toMongoDocument(location);
+    const roundTripped = locationPersistenceMapper.fromMongoDocument(document);
 
-    expect(roundTripped.postalCode).toBe('C1001');
-    expect(roundTripped.country).toBe('Argentina');
+    expect(roundTripped.id).toBe(location.id);
+    expect(roundTripped.name).toBe(location.name);
+    expect(roundTripped.latitude).toBe(41.3879);
+    expect(roundTripped.longitude).toBe(2.1699);
   });
 });

@@ -47,10 +47,8 @@ describe('bedInputMapper', () => {
     it('should map creator geographic snapshot when provided', () => {
       const input = CreateBedInputMother.random();
       const geoSnapshot = {
-        postalCode: 'C1001',
-        country: 'Argentina',
-        timezone: 'America/Argentina/Buenos_Aires',
-        hemisphere: 'south' as const
+        latitude: 40.4168,
+        longitude: -3.7038
       };
 
       const bed = bedInputMapper.fromCreateInputToDomain(
@@ -59,10 +57,8 @@ describe('bedInputMapper', () => {
         geoSnapshot
       );
 
-      expect(bed.postalCode).toBe('C1001');
-      expect(bed.country).toBe('Argentina');
-      expect(bed.timezone).toBe('America/Argentina/Buenos_Aires');
-      expect(bed.hemisphere).toBe('south');
+      expect(bed.latitude).toBe(40.4168);
+      expect(bed.longitude).toBe(-3.7038);
     });
 
     it('should leave geographic fields undefined when snapshot is omitted', () => {
@@ -70,10 +66,8 @@ describe('bedInputMapper', () => {
 
       const bed = bedInputMapper.fromCreateInputToDomain(input, 'tester');
 
-      expect(bed.postalCode).toBeUndefined();
-      expect(bed.country).toBeUndefined();
-      expect(bed.timezone).toBeUndefined();
-      expect(bed.hemisphere).toBeUndefined();
+      expect(bed.latitude).toBeUndefined();
+      expect(bed.longitude).toBeUndefined();
     });
   });
 

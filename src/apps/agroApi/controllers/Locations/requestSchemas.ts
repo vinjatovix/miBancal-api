@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { isValidIanaTimezone } from '../../../../Contexts/Agro/Locations/domain/utils/timezoneValidation.js';
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
 import { listQuerySchema } from '../../shared/listQuerySchema.js';
 import {
@@ -12,37 +11,39 @@ const locationIdParams = z.object({
   id: z.uuid()
 });
 
-const postalCodeSchema = z.string().trim().min(1).max(20);
-const countrySchema = z.string().trim().min(1).max(100);
-const timezoneSchema = z.string().trim().refine(isValidIanaTimezone, {
-  message: 'Invalid IANA timezone identifier'
-});
-const hemisphereSchema = z.enum(['north', 'south']);
+const latitudeSchema = z.number().finite().min(-90).max(90);
+const longitudeSchema = z.number().finite().min(-180).max(180);
 
-const createLocationBody = z.object({
-  id: z.uuid(),
-  name: requiredShortTextSchema,
-  postalCode: postalCodeSchema.exactOptional(),
-  country: countrySchema.exactOptional(),
-  timezone: timezoneSchema.exactOptional(),
-  hemisphere: hemisphereSchema.exactOptional()
-});
+const createLocationBody = z
+  .object({
+    id: z.uuid(),
+    name: requiredShortTextSchema,
+    latitude: latitudeSchema,
+    longitude: longitudeSchema
+  })
+  .strict();
 
 export const createLocationRequest = {
   body: createLocationBody
 } satisfies RequestSchemas;
 
-// JSON Merge Patch: `{}` accepted (no-op); geographic fields accept `null`
-// to unset. Name stays required-shaped (never `null`) when sent.
+// JSON Merge Patch: `{}` accepted (no-op). If coordinates are updated,
+// both latitude and longitude must be provided together.
 const updateLocationBody = z
   .object({
     name: requiredShortTextSchema.exactOptional(),
-    postalCode: postalCodeSchema.nullable().exactOptional(),
-    country: countrySchema.nullable().exactOptional(),
-    timezone: timezoneSchema.nullable().exactOptional(),
-    hemisphere: hemisphereSchema.nullable().exactOptional()
+    latitude: latitudeSchema.exactOptional(),
+    longitude: longitudeSchema.exactOptional()
   })
-  .strict();
+  .strict()
+  .refine(
+    (data) =>
+      (data.latitude === undefined && data.longitude === undefined) ||
+      (data.latitude !== undefined && data.longitude !== undefined),
+    {
+      message: 'Both latitude and longitude must be provided together'
+    }
+  );
 
 export const updateLocationRequest = {
   params: locationIdParams,

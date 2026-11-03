@@ -16,12 +16,7 @@ Feature: Correct a Bed's Location Snapshot After Creation
             }
             """
         Then the response status code should be 201
-        And the response body should not contain
-            """
-            {
-                "hemisphere": "south"
-            }
-            """
+        And the response body should not have the fields "latitude,longitude"
 
     Scenario: Setting a locationId on an existing bed via PATCH adds the snapshot
         Given a POST user request to "/api/v1/locations" with body
@@ -29,8 +24,8 @@ Feature: Correct a Bed's Location Snapshot After Creation
             {
                 "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c02",
                 "name": "Finca a asignar",
-                "country": "Argentina",
-                "hemisphere": "south"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
@@ -56,8 +51,8 @@ Feature: Correct a Bed's Location Snapshot After Creation
         And the response body should contain
             """
             {
-                "country": "Argentina",
-                "hemisphere": "south"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
 
@@ -67,7 +62,8 @@ Feature: Correct a Bed's Location Snapshot After Creation
             {
                 "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c03",
                 "name": "Finca origen",
-                "country": "Argentina"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
@@ -76,7 +72,8 @@ Feature: Correct a Bed's Location Snapshot After Creation
             {
                 "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c04",
                 "name": "Finca destino",
-                "country": "Spain"
+                "latitude": 41.3879,
+                "longitude": 2.1699
             }
             """
         Then the response status code should be 201
@@ -103,13 +100,15 @@ Feature: Correct a Bed's Location Snapshot After Creation
         And the response body should contain
             """
             {
-                "country": "Spain"
+                "latitude": 41.3879,
+                "longitude": 2.1699
             }
             """
         And the response body should not contain
             """
             {
-                "country": "Argentina"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
 
@@ -119,7 +118,8 @@ Feature: Correct a Bed's Location Snapshot After Creation
             {
                 "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c05",
                 "name": "Finca a quitar",
-                "country": "Argentina"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
@@ -143,12 +143,7 @@ Feature: Correct a Bed's Location Snapshot After Creation
             }
             """
         Then the response status code should be 200
-        And the response body should not contain
-            """
-            {
-                "country": "Argentina"
-            }
-            """
+        And the response body should not have the fields "latitude,longitude"
 
     Scenario: Sending a raw geographic field on bed update is rejected
         And a POST user request to "/api/v1/beds" with body
@@ -166,7 +161,7 @@ Feature: Correct a Bed's Location Snapshot After Creation
         And I send a PATCH user request to "/api/v1/beds/c1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c05" with body
             """
             {
-                "country": "Argentina"
+                "latitude": 40.4168
             }
             """
         Then the response status code should be 400
