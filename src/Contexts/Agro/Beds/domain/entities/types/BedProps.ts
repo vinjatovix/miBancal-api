@@ -11,10 +11,8 @@ export type BedProps = {
   width: PositiveNumber;
   height: PositiveNumber;
   depth: PositiveNumber;
-  postalCode?: string;
-  country?: string;
-  timezone?: string;
-  hemisphere?: 'north' | 'south';
+  latitude?: number;
+  longitude?: number;
   metadata: Metadata;
   deleted: boolean;
   deletedAt?: Date;

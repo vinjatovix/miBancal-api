@@ -66,18 +66,14 @@ describe('CreateBed', () => {
   it('should have no geographic context when no locationId is given', async () => {
     const result = await useCase.execute(input, USER_NAME);
 
-    expect(result.postalCode).toBeUndefined();
-    expect(result.country).toBeUndefined();
-    expect(result.timezone).toBeUndefined();
-    expect(result.hemisphere).toBeUndefined();
+    expect(result.latitude).toBeUndefined();
+    expect(result.longitude).toBeUndefined();
   });
 
-  it('should snapshot the resolved location geographic fields', async () => {
+  it('should snapshot the resolved location coordinates', async () => {
     const location = LocationFactory.domainBase({
-      postalCode: 'C1001',
-      country: 'Argentina',
-      timezone: 'America/Argentina/Buenos_Aires',
-      hemisphere: 'south'
+      latitude: 40.4168,
+      longitude: -3.7038
     });
     locationRepository.addToStorage(location);
 
@@ -86,25 +82,8 @@ describe('CreateBed', () => {
       USER_NAME
     );
 
-    expect(result.postalCode).toBe('C1001');
-    expect(result.country).toBe('Argentina');
-    expect(result.timezone).toBe('America/Argentina/Buenos_Aires');
-    expect(result.hemisphere).toBe('south');
-  });
-
-  it('should snapshot only the fields the location provides', async () => {
-    const location = LocationFactory.domainBase({ name: 'Solo nombre' });
-    locationRepository.addToStorage(location);
-
-    const result = await useCase.execute(
-      { ...input, userId: location.userId, locationId: location.id },
-      USER_NAME
-    );
-
-    expect(result.postalCode).toBeUndefined();
-    expect(result.country).toBeUndefined();
-    expect(result.timezone).toBeUndefined();
-    expect(result.hemisphere).toBeUndefined();
+    expect(result.latitude).toBe(40.4168);
+    expect(result.longitude).toBe(-3.7038);
   });
 
   it('should reject an unknown locationId before persisting the bed', async () => {

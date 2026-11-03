@@ -206,12 +206,15 @@ describe('MongoLocationRepository', () => {
 
   describe('updateWithDiff', () => {
     it('applies the diff and bumps the stored version', async () => {
-      const location = LocationFactory.domainBase({});
+      const location = LocationFactory.domainBase({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
       await repository.create(location);
 
       const before = locationDomainMapper.toPrimitives(location);
-      location.updateGeography(
-        { country: 'Argentina' },
+      location.updateCoordinates(
+        { latitude: 41.3879, longitude: 2.1699 },
         'gardener',
         new Date()
       );
@@ -224,7 +227,8 @@ describe('MongoLocationRepository', () => {
         location.id,
         location.userId
       );
-      expect(stored?.country).toBe('Argentina');
+      expect(stored?.latitude).toBe(41.3879);
+      expect(stored?.longitude).toBe(2.1699);
       expect(stored?.version).toBe(1);
     });
 

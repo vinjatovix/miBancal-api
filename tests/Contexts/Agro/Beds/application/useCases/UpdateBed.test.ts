@@ -504,8 +504,8 @@ describe('UpdateBed', () => {
     it('should set the snapshot from an owned active location', async () => {
       const location = LocationFactory.domainBase({
         userId: createUserId(USER.id),
-        country: 'Argentina',
-        hemisphere: 'south'
+        latitude: 40.4168,
+        longitude: -3.7038
       });
       locationRepository.addToStorage(location);
 
@@ -515,18 +515,20 @@ describe('UpdateBed', () => {
         [bed.version]
       );
 
-      expect(updated.country).toBe('Argentina');
-      expect(updated.hemisphere).toBe('south');
+      expect(updated.latitude).toBe(40.4168);
+      expect(updated.longitude).toBe(-3.7038);
     });
 
     it('should replace the snapshot with a different locationId', async () => {
       const first = LocationFactory.domainBase({
         userId: createUserId(USER.id),
-        country: 'Argentina'
+        latitude: 40.4168,
+        longitude: -3.7038
       });
       const second = LocationFactory.domainBase({
         userId: createUserId(USER.id),
-        country: 'Spain'
+        latitude: 41.3879,
+        longitude: 2.1699
       });
       locationRepository.addToStorage(first);
       locationRepository.addToStorage(second);
@@ -540,13 +542,15 @@ describe('UpdateBed', () => {
         [bed.version + 1]
       );
 
-      expect(updated.country).toBe('Spain');
+      expect(updated.latitude).toBe(41.3879);
+      expect(updated.longitude).toBe(2.1699);
     });
 
     it('should clear the snapshot when locationId is null', async () => {
       const location = LocationFactory.domainBase({
         userId: createUserId(USER.id),
-        country: 'Argentina'
+        latitude: 40.4168,
+        longitude: -3.7038
       });
       locationRepository.addToStorage(location);
       await useCase.execute({ id: bed.id, locationId: location.id }, USER, [
@@ -559,13 +563,15 @@ describe('UpdateBed', () => {
         [bed.version + 1]
       );
 
-      expect(updated.country).toBeUndefined();
+      expect(updated.latitude).toBeUndefined();
+      expect(updated.longitude).toBeUndefined();
     });
 
     it('should leave the snapshot unchanged when locationId is omitted', async () => {
       const location = LocationFactory.domainBase({
         userId: createUserId(USER.id),
-        country: 'Argentina'
+        latitude: 40.4168,
+        longitude: -3.7038
       });
       locationRepository.addToStorage(location);
       await useCase.execute({ id: bed.id, locationId: location.id }, USER, [
@@ -578,7 +584,8 @@ describe('UpdateBed', () => {
         [bed.version + 1]
       );
 
-      expect(updated.country).toBe('Argentina');
+      expect(updated.latitude).toBe(40.4168);
+      expect(updated.longitude).toBe(-3.7038);
     });
 
     it('should reject an unknown locationId and leave the snapshot unchanged', async () => {
@@ -588,7 +595,8 @@ describe('UpdateBed', () => {
         ])
       ).rejects.toBeInstanceOf(DomainNotFoundException);
 
-      expect(repository.getStored(bed.id)?.country).toBeUndefined();
+      expect(repository.getStored(bed.id)?.latitude).toBeUndefined();
+      expect(repository.getStored(bed.id)?.longitude).toBeUndefined();
     });
 
     it('should reject a non-owned locationId', async () => {

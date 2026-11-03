@@ -298,42 +298,54 @@ describe('Bed (unit)', () => {
   });
 
   describe('applyLocationSnapshot', () => {
-    it('sets all provided fields from the snapshot', () => {
+    it('sets coordinates from the snapshot', () => {
       bed.applyLocationSnapshot(
-        { country: 'Argentina', hemisphere: 'south' },
+        { latitude: 40.4168, longitude: -3.7038 },
         'gardener'
       );
 
-      expect(bed.country).toBe('Argentina');
-      expect(bed.hemisphere).toBe('south');
-      expect(bed.postalCode).toBeUndefined();
+      expect(bed.latitude).toBe(40.4168);
+      expect(bed.longitude).toBe(-3.7038);
     });
 
     it('replaces a previous snapshot entirely', () => {
-      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
 
-      bed.applyLocationSnapshot({ postalCode: '28001' }, 'gardener');
+      bed.applyLocationSnapshot(
+        { latitude: 41.3879, longitude: 2.1699 },
+        'gardener'
+      );
 
-      expect(bed.postalCode).toBe('28001');
-      expect(bed.country).toBeUndefined();
+      expect(bed.latitude).toBe(41.3879);
+      expect(bed.longitude).toBe(2.1699);
     });
 
     it('clears the snapshot with null', () => {
-      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
 
       bed.applyLocationSnapshot(null, 'gardener');
 
-      expect(bed.country).toBeUndefined();
-      expect(bed.postalCode).toBeUndefined();
-      expect(bed.timezone).toBeUndefined();
-      expect(bed.hemisphere).toBeUndefined();
+      expect(bed.latitude).toBeUndefined();
+      expect(bed.longitude).toBeUndefined();
     });
 
     it('is a no-op when the resolved snapshot does not change', () => {
-      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
       const metadata = bed.metadata;
 
-      bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener');
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
 
       expect(bed.metadata).toBe(metadata);
     });
@@ -342,7 +354,10 @@ describe('Bed (unit)', () => {
       bed.markAsDeleted('gardener');
 
       expect(() =>
-        bed.applyLocationSnapshot({ country: 'Argentina' }, 'gardener')
+        bed.applyLocationSnapshot(
+          { latitude: 40.4168, longitude: -3.7038 },
+          'gardener'
+        )
       ).toThrow(DomainConflictException);
     });
   });

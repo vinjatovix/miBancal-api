@@ -1,6 +1,9 @@
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
-import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  InvalidArgumentException
+} from '../../../../shared/domain/errors/index.js';
 import type { Location } from '../../domain/entities/Location.js';
 import type { LocationRepository } from '../../domain/repositories/interfaces/LocationRepository.js';
 import { locationDomainMapper } from '../../mappers/locationDomainMapper.js';
@@ -42,7 +45,19 @@ export class UpdateLocation {
     if (changes.name !== undefined) {
       location.rename(changes.name, user, at);
     }
-    location.updateGeography(changes, user, at);
+
+    if (changes.latitude !== undefined || changes.longitude !== undefined) {
+      if (changes.latitude === undefined || changes.longitude === undefined) {
+        throw new InvalidArgumentException(
+          'Both latitude and longitude must be provided together'
+        );
+      }
+      location.updateCoordinates(
+        { latitude: changes.latitude, longitude: changes.longitude },
+        user,
+        at
+      );
+    }
 
     const after = locationDomainMapper.toPrimitives(location);
 

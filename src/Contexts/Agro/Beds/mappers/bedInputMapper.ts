@@ -28,10 +28,8 @@ export const bedInputMapper: BedInputMapper = {
       width: PositiveNumber.create(input.width),
       height: PositiveNumber.create(input.height),
       depth: PositiveNumber.create(input.depth),
-      ...(geo?.postalCode !== undefined && { postalCode: geo.postalCode }),
-      ...(geo?.country !== undefined && { country: geo.country }),
-      ...(geo?.timezone !== undefined && { timezone: geo.timezone }),
-      ...(geo?.hemisphere !== undefined && { hemisphere: geo.hemisphere }),
+      ...(geo?.latitude !== undefined && { latitude: geo.latitude }),
+      ...(geo?.longitude !== undefined && { longitude: geo.longitude }),
       metadata: Metadata.create(user),
       deleted: false
     });

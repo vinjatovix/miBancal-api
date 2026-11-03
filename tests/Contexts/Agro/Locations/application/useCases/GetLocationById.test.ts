@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { GetLocationById } from '../../../../../../src/Contexts/Agro/Locations/application/useCases/GetLocationById.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
 import { random } from '../../../../shared/fixtures/random.js';
@@ -13,13 +14,18 @@ describe('GetLocationById', () => {
     useCase = new GetLocationById({ locationRepository: repository });
   });
 
-  it('returns the owned active location', async () => {
-    const location = LocationFactory.domainBase({});
+  it('returns the owned active location with coordinates', async () => {
+    const location = LocationFactory.domainBase({
+      latitude: 40.4168,
+      longitude: -3.7038
+    });
     repository.addToStorage(location);
 
     const result = await useCase.execute(location.id, location.userId);
 
     expect(result.id).toBe(location.id);
+    expect(result.latitude).toBe(40.4168);
+    expect(result.longitude).toBe(-3.7038);
   });
 
   it('throws 404 for an unknown id', async () => {

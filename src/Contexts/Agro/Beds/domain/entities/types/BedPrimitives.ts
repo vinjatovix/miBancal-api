@@ -7,10 +7,8 @@ export type BedPrimitives = {
   width: number;
   height: number;
   depth: number;
-  postalCode?: string;
-  country?: string;
-  timezone?: string;
-  hemisphere?: 'north' | 'south';
+  latitude?: number;
+  longitude?: number;
   metadata: MetadataPrimitives;
   deleted: boolean;
   deletedAt?: string;

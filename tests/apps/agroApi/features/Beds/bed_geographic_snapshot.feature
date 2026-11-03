@@ -1,7 +1,7 @@
 @beds @geographic-snapshot
 Feature: Bed Geographic Snapshot on Creation
     As a registered gardener
-    I want newly created beds to capture an immutable snapshot of a location's geographic context
+    I want newly created beds to capture an immutable snapshot of a location's geographic coordinates
     So that localized growing calendars and climate calculations remain stable over time
 
     Scenario: Creating a bed from a location captures its geographic snapshot
@@ -10,10 +10,8 @@ Feature: Bed Geographic Snapshot on Creation
             {
                 "id": "a1b2c3d4-0c5a-4e2b-8a7f-1d9c3e5b7a90",
                 "name": "Finca del Sur",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
         Then the response status code should be 201
@@ -34,10 +32,8 @@ Feature: Bed Geographic Snapshot on Creation
             {
                 "id": "e4f8b2d1-0c5a-4e2b-8a7f-1d9c3e5b7a90",
                 "name": "Raised Bed #1",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
 
@@ -53,24 +49,7 @@ Feature: Bed Geographic Snapshot on Creation
             }
             """
         Then the response status code should be 201
-        And the response body should not contain
-            """
-            {
-                "hemisphere": "north"
-            }
-            """
-        And the response body should not contain
-            """
-            {
-                "hemisphere": "south"
-            }
-            """
-        And the response body should not contain
-            """
-            {
-                "timezone": "UTC"
-            }
-            """
+        And the response body should not have the fields "latitude,longitude"
 
     Scenario: Editing the source location does not alter an existing bed's snapshot
         Given a POST user request to "/api/v1/locations" with body
@@ -78,10 +57,8 @@ Feature: Bed Geographic Snapshot on Creation
             {
                 "id": "a1b2c3d4-0c5a-4e2b-8a7f-1d9c3e5b7a92",
                 "name": "Finca estable",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
         Then the response status code should be 201
@@ -101,10 +78,8 @@ Feature: Bed Geographic Snapshot on Creation
         And I send a PATCH user request to "/api/v1/locations/a1b2c3d4-0c5a-4e2b-8a7f-1d9c3e5b7a92" with body
             """
             {
-                "hemisphere": "north",
-                "timezone": "Europe/Madrid",
-                "country": "Spain",
-                "postalCode": "28001"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 200
@@ -115,10 +90,8 @@ Feature: Bed Geographic Snapshot on Creation
             {
                 "id": "e4f8b2d1-0c5a-4e2b-8a7f-1d9c3e5b7a92",
                 "name": "Stable Climate Bed",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
 
@@ -128,10 +101,8 @@ Feature: Bed Geographic Snapshot on Creation
             {
                 "id": "a1b2c3d4-0c5a-4e2b-8a7f-1d9c3e5b7a93",
                 "name": "Finca a borrar",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
         Then the response status code should be 201
@@ -157,10 +128,8 @@ Feature: Bed Geographic Snapshot on Creation
             {
                 "id": "e4f8b2d1-0c5a-4e2b-8a7f-1d9c3e5b7a93",
                 "name": "Surviving Climate Bed",
-                "hemisphere": "south",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "country": "Argentina",
-                "postalCode": "C1001"
+                "latitude": -34.6037,
+                "longitude": -58.3816
             }
             """
 

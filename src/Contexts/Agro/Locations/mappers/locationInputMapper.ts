@@ -13,14 +13,8 @@ export const locationInputMapper: LocationInputMapper = {
       id: createLocationId(input.id),
       userId: createUserId(input.userId),
       name: input.name,
-      ...(input.postalCode !== undefined && {
-        postalCode: input.postalCode
-      }),
-      ...(input.country !== undefined && { country: input.country }),
-      ...(input.timezone !== undefined && { timezone: input.timezone }),
-      ...(input.hemisphere !== undefined && {
-        hemisphere: input.hemisphere
-      }),
+      latitude: input.latitude,
+      longitude: input.longitude,
       metadata: Metadata.create(user)
     });
   },
@@ -28,14 +22,8 @@ export const locationInputMapper: LocationInputMapper = {
   toChanges(input: UpdateLocationInput): LocationChanges {
     return {
       ...(input.name !== undefined && { name: input.name }),
-      ...(input.postalCode !== undefined && {
-        postalCode: input.postalCode
-      }),
-      ...(input.country !== undefined && { country: input.country }),
-      ...(input.timezone !== undefined && { timezone: input.timezone }),
-      ...(input.hemisphere !== undefined && {
-        hemisphere: input.hemisphere
-      })
+      ...(input.latitude !== undefined && { latitude: input.latitude }),
+      ...(input.longitude !== undefined && { longitude: input.longitude })
     };
   }
 };

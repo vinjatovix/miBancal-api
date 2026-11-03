@@ -1,19 +1,17 @@
 @locations
 Feature: User Locations
     As a registered gardener
-    I want to keep several named growing locations with optional geographic context
+    I want to keep several named growing locations with mandatory geographic coordinates
     So that I can apply the right climate context to different beds
 
-    Scenario: Create a location with geography and read it back
+    Scenario: Create a location with coordinates and read it back
         When a POST user request to "/api/v1/locations" with body
             """
             {
                 "id": "11111111-1111-4111-8111-111111111101",
                 "name": "Huerto trasero",
-                "postalCode": "C1001",
-                "country": "Argentina",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "hemisphere": "south"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
@@ -23,10 +21,8 @@ Feature: User Locations
             {
                 "id": "11111111-1111-4111-8111-111111111101",
                 "name": "Huerto trasero",
-                "postalCode": "C1001",
-                "country": "Argentina",
-                "timezone": "America/Argentina/Buenos_Aires",
-                "hemisphere": "south"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         When I send a GET user request to "/api/v1/locations/11111111-1111-4111-8111-111111111101"
@@ -35,38 +31,55 @@ Feature: User Locations
             """
             {
                 "id": "11111111-1111-4111-8111-111111111101",
-                "name": "Huerto trasero"
+                "name": "Huerto trasero",
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
 
-    Scenario: Create a location with only a name omits every geographic field
+    Scenario: Creating a location without coordinates is rejected
         When a POST user request to "/api/v1/locations" with body
             """
             {
                 "id": "11111111-1111-4111-8111-111111111102",
-                "name": "Solo nombre"
+                "name": "Sin coordenadas"
             }
             """
-        Then the response status code should be 201
-        And the response body should not contain
-            """
-            {
-                "hemisphere": "north"
-            }
-            """
-        And the response body should not contain
-            """
-            {
-                "hemisphere": "south"
-            }
-            """
+        Then the response status code should be 400
 
-    Scenario: Listing locations returns the owner's active locations
-        Given a POST user request to "/api/v1/locations" with body
+    Scenario: Creating a location with out-of-range coordinates is rejected
+        When a POST user request to "/api/v1/locations" with body
             """
             {
                 "id": "11111111-1111-4111-8111-111111111103",
-                "name": "Mi parcela"
+                "name": "Coordenadas invalidas",
+                "latitude": 95.0,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 400
+
+    Scenario: Creating a location with legacy geographic fields is rejected
+        When a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111104",
+                "name": "Huerto con legado",
+                "latitude": 40.4168,
+                "longitude": -3.7038,
+                "country": "Argentina"
+            }
+            """
+        Then the response status code should be 400
+
+    Scenario: Listing locations returns the owner's active locations with coordinates
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111105",
+                "name": "Mi parcela",
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
@@ -77,28 +90,32 @@ Feature: User Locations
             """
             {
                 "data": [
-                    { "id": "11111111-1111-4111-8111-111111111103" }
+                    {
+                        "id": "11111111-1111-4111-8111-111111111105",
+                        "latitude": 40.4168,
+                        "longitude": -3.7038
+                    }
                 ]
             }
             """
 
-    Scenario: Updating a location's geography persists and bumps the version
+    Scenario: Updating a location coordinates persists and bumps the version
         Given a POST user request to "/api/v1/locations" with body
             """
             {
-                "id": "11111111-1111-4111-8111-111111111104",
+                "id": "11111111-1111-4111-8111-111111111106",
                 "name": "Parcela a editar",
-                "country": "Argentina"
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
         When I use If-Match '"0"'
-        And I send a PATCH user request to "/api/v1/locations/11111111-1111-4111-8111-111111111104" with body
+        And I send a PATCH user request to "/api/v1/locations/11111111-1111-4111-8111-111111111106" with body
             """
             {
-                "country": null,
-                "timezone": "Europe/Madrid",
-                "hemisphere": "north"
+                "latitude": 41.3879,
+                "longitude": 2.1699
             }
             """
         Then the response status code should be 200
@@ -106,31 +123,69 @@ Feature: User Locations
         And the response body should contain
             """
             {
-                "timezone": "Europe/Madrid",
-                "hemisphere": "north"
+                "latitude": 41.3879,
+                "longitude": 2.1699
             }
             """
-        And the response body should not contain
+
+    Scenario: Updating a location with partial coordinates is rejected
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111107",
+                "name": "Parcela parcial",
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
+        When I use If-Match '"0"'
+        And I send a PATCH user request to "/api/v1/locations/11111111-1111-4111-8111-111111111107" with body
+            """
+            {
+                "latitude": 41.3879
+            }
+            """
+        Then the response status code should be 400
+
+    Scenario: Updating a location with legacy fields is rejected
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111108",
+                "name": "Parcela rechazo legado",
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
+        When I use If-Match '"0"'
+        And I send a PATCH user request to "/api/v1/locations/11111111-1111-4111-8111-111111111108" with body
             """
             {
                 "country": "Argentina"
             }
             """
+        Then the response status code should be 400
 
     Scenario: Creating a second location with a duplicate active name is rejected
         Given a POST user request to "/api/v1/locations" with body
             """
             {
-                "id": "11111111-1111-4111-8111-111111111105",
-                "name": "Nombre duplicado"
+                "id": "11111111-1111-4111-8111-111111111109",
+                "name": "Nombre duplicado",
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
         When a POST user request to "/api/v1/locations" with body
             """
             {
-                "id": "11111111-1111-4111-8111-111111111106",
-                "name": "nombre duplicado"
+                "id": "11111111-1111-4111-8111-111111111110",
+                "name": "nombre duplicado",
+                "latitude": 41.3879,
+                "longitude": 2.1699
             }
             """
         Then the response status code should be 409
@@ -139,21 +194,25 @@ Feature: User Locations
         Given a POST user request to "/api/v1/locations" with body
             """
             {
-                "id": "11111111-1111-4111-8111-111111111107",
-                "name": "Nombre reutilizable"
+                "id": "11111111-1111-4111-8111-111111111111",
+                "name": "Nombre reutilizable",
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
         When I use If-Match '"0"'
-        And I send a DELETE user request to "/api/v1/locations/11111111-1111-4111-8111-111111111107"
+        And I send a DELETE user request to "/api/v1/locations/11111111-1111-4111-8111-111111111111"
         Then the response status code should be 204
-        When I send a GET user request to "/api/v1/locations/11111111-1111-4111-8111-111111111107"
+        When I send a GET user request to "/api/v1/locations/11111111-1111-4111-8111-111111111111"
         Then the response status code should be 404
         And a POST user request to "/api/v1/locations" with body
             """
             {
-                "id": "11111111-1111-4111-8111-111111111108",
-                "name": "Nombre reutilizable"
+                "id": "11111111-1111-4111-8111-111111111112",
+                "name": "Nombre reutilizable",
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
@@ -162,9 +221,11 @@ Feature: User Locations
         Given a POST user request to "/api/v1/locations" with body
             """
             {
-                "id": "11111111-1111-4111-8111-111111111109",
-                "name": "Finca privada"
+                "id": "11111111-1111-4111-8111-111111111113",
+                "name": "Finca privada",
+                "latitude": 40.4168,
+                "longitude": -3.7038
             }
             """
         Then the response status code should be 201
-        Then a GET collaborator request to "/api/v1/locations/11111111-1111-4111-8111-111111111109" should return status 404
+        Then a GET collaborator request to "/api/v1/locations/11111111-1111-4111-8111-111111111113" should return status 404

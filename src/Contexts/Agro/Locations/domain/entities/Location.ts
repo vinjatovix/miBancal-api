@@ -10,9 +10,8 @@ import {
 } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import type { LocationId } from '../LocationId.js';
-import { isValidIanaTimezone } from '../utils/timezoneValidation.js';
-import type { Hemisphere } from './types/Hemisphere.js';
-import type { LocationChanges } from './types/LocationChanges.js';
+import { Latitude } from '../value-objects/Latitude.js';
+import { Longitude } from '../value-objects/Longitude.js';
 import type { LocationProps } from './types/LocationProps.js';
 import type { LocationStatus } from './types/LocationStatus.js';
 
@@ -31,78 +30,10 @@ const resolveName = (value: string): string => {
   return trimmed;
 };
 
-const resolvePostalCode = (
-  value: string | null | undefined,
-  current?: string
-): string | undefined => {
-  if (value === undefined) return current;
-  if (value === null) return undefined;
-
-  const trimmed = value.trim();
-  if (trimmed.length < 1 || trimmed.length > 20) {
-    throw new InvalidArgumentException(
-      '<Location.postalCode> must be between 1 and 20 characters'
-    );
-  }
-
-  return trimmed;
-};
-
-const resolveCountry = (
-  value: string | null | undefined,
-  current?: string
-): string | undefined => {
-  if (value === undefined) return current;
-  if (value === null) return undefined;
-
-  const trimmed = value.trim();
-  if (trimmed.length < 1 || trimmed.length > 100) {
-    throw new InvalidArgumentException(
-      '<Location.country> must be between 1 and 100 characters'
-    );
-  }
-
-  return trimmed;
-};
-
-const resolveTimezone = (
-  value: string | null | undefined,
-  current?: string
-): string | undefined => {
-  if (value === undefined) return current;
-  if (value === null) return undefined;
-
-  const trimmed = value.trim();
-  if (!isValidIanaTimezone(trimmed)) {
-    throw new InvalidArgumentException(
-      '<Location.timezone> must be a canonical IANA identifier or UTC'
-    );
-  }
-
-  return trimmed;
-};
-
-const resolveHemisphere = (
-  value: Hemisphere | null | undefined,
-  current?: Hemisphere
-): Hemisphere | undefined => {
-  if (value === undefined) return current;
-  if (value === null) return undefined;
-
-  if (value !== 'north' && value !== 'south') {
-    throw new InvalidArgumentException(
-      '<Location.hemisphere> must be either "north" or "south"'
-    );
-  }
-
-  return value;
-};
-
 /**
  * A per-user growing site: a required `name`, unique (case/accent
- * insensitively) among the owner's active locations, plus optional
- * geographic context. Soft-deleted via `status`, mirroring
- * `GardenInput.assertSoftDeleteConsistency`.
+ * insensitively) among the owner's active locations, plus mandatory
+ * geographic coordinates (latitude and longitude). Soft-deleted via `status`.
  */
 export class Location extends AggregateRoot<LocationId> {
   private props: Readonly<LocationState>;
@@ -111,18 +42,14 @@ export class Location extends AggregateRoot<LocationId> {
     super(props.id);
     Location.assertSoftDeleteConsistency(props);
 
-    const postalCode = resolvePostalCode(props.postalCode, undefined);
-    const country = resolveCountry(props.country, undefined);
-    const timezone = resolveTimezone(props.timezone, undefined);
-    const hemisphere = resolveHemisphere(props.hemisphere, undefined);
+    new Latitude(props.latitude);
+    new Longitude(props.longitude);
 
     this.props = Object.freeze({
       ...props,
       name: resolveName(props.name),
-      ...(postalCode !== undefined && { postalCode }),
-      ...(country !== undefined && { country }),
-      ...(timezone !== undefined && { timezone }),
-      ...(hemisphere !== undefined && { hemisphere }),
+      latitude: props.latitude,
+      longitude: props.longitude,
       status: props.status ?? 'active',
       version: props.version ?? 0
     });
@@ -136,20 +63,12 @@ export class Location extends AggregateRoot<LocationId> {
     return this.props.name;
   }
 
-  get postalCode(): string | undefined {
-    return this.props.postalCode;
+  get latitude(): number {
+    return this.props.latitude;
   }
 
-  get country(): string | undefined {
-    return this.props.country;
-  }
-
-  get timezone(): string | undefined {
-    return this.props.timezone;
-  }
-
-  get hemisphere(): Hemisphere | undefined {
-    return this.props.hemisphere;
+  get longitude(): number {
+    return this.props.longitude;
   }
 
   get status(): LocationStatus {
@@ -177,6 +96,8 @@ export class Location extends AggregateRoot<LocationId> {
   }
 
   rename(name: string, actor: string, at: Date): void {
+    this.assertActive();
+
     const nextName = resolveName(name);
     if (nextName === this.props.name) return;
 
@@ -184,49 +105,34 @@ export class Location extends AggregateRoot<LocationId> {
   }
 
   /**
-   * Applies partial geographic changes: a value sets, `null` unsets, an
-   * omitted (`undefined`) field is left unchanged. A no-op leaves audit
-   * metadata untouched.
+   * Updates geographic coordinates atomically. Coordinates must be valid
+   * numbers within range. A no-op leaves audit metadata untouched.
    */
-  updateGeography(changes: LocationChanges, actor: string, at: Date): void {
-    const nextPostalCode = resolvePostalCode(
-      changes.postalCode,
-      this.props.postalCode
-    );
-    const nextCountry = resolveCountry(changes.country, this.props.country);
-    const nextTimezone = resolveTimezone(changes.timezone, this.props.timezone);
-    const nextHemisphere = resolveHemisphere(
-      changes.hemisphere,
-      this.props.hemisphere
-    );
+  updateCoordinates(
+    coords: { latitude: number; longitude: number },
+    actor: string,
+    at: Date
+  ): void {
+    this.assertActive();
+
+    new Latitude(coords.latitude);
+    new Longitude(coords.longitude);
 
     if (
-      nextPostalCode === this.props.postalCode &&
-      nextCountry === this.props.country &&
-      nextTimezone === this.props.timezone &&
-      nextHemisphere === this.props.hemisphere
+      this.props.latitude === coords.latitude &&
+      this.props.longitude === coords.longitude
     ) {
       return;
     }
 
-    const nextProps: LocationState = {
-      ...this.props,
-      metadata: Metadata.update(this.props.metadata, actor, at)
-    };
-
-    if (nextPostalCode !== undefined) nextProps.postalCode = nextPostalCode;
-    else delete nextProps.postalCode;
-
-    if (nextCountry !== undefined) nextProps.country = nextCountry;
-    else delete nextProps.country;
-
-    if (nextTimezone !== undefined) nextProps.timezone = nextTimezone;
-    else delete nextProps.timezone;
-
-    if (nextHemisphere !== undefined) nextProps.hemisphere = nextHemisphere;
-    else delete nextProps.hemisphere;
-
-    this.props = Object.freeze(nextProps);
+    this.commit(
+      {
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      },
+      actor,
+      at
+    );
   }
 
   markAsDeleted(actor: string, at: Date): void {
@@ -242,6 +148,12 @@ export class Location extends AggregateRoot<LocationId> {
       ...this.props,
       version: versionAfter(this.props.version, outcome)
     });
+  }
+
+  private assertActive(): void {
+    if (this.isDeleted()) {
+      throw new DomainConflictException('Cannot mutate a deleted location');
+    }
   }
 
   private commit(
