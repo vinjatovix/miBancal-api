@@ -117,8 +117,13 @@ Then(
 
 Then('the list should be empty', async function (this: AgroWorld) {
   const response = (await currentResponse(this)) as {
-    body: { data: unknown[] };
+    body: unknown[] | { data: unknown[] };
   };
+
+  if (Array.isArray(response.body)) {
+    assert.lengthOf(response.body, 0);
+    return;
+  }
 
   assert.isArray(response.body.data);
   assert.lengthOf(response.body.data, 0);

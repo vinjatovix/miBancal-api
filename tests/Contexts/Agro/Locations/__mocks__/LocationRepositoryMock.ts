@@ -48,6 +48,19 @@ export class LocationRepositoryMock
     return match ? this.toDomain(this.toPrimitives(match)) : null;
   }
 
+  async findActiveByIdsForOwner(
+    ids: string[],
+    userId: string
+  ): Promise<Location[]> {
+    const idSet = new Set(ids);
+    return Array.from(this.storage.values()).filter(
+      (location) =>
+        idSet.has(location.id) &&
+        location.userId === userId &&
+        this.isActive(location)
+    );
+  }
+
   findByUserId(userId: string): Promise<Location[]> {
     return Promise.resolve(
       Array.from(this.storage.values()).filter(

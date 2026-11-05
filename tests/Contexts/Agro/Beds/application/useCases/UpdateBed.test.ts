@@ -546,7 +546,7 @@ describe('UpdateBed', () => {
       expect(updated.longitude).toBe(2.1699);
     });
 
-    it('should clear the snapshot when locationId is null', async () => {
+    it('should reject unlinking with locationId null', async () => {
       const location = LocationFactory.domainBase({
         userId: createUserId(USER.id),
         latitude: 40.4168,
@@ -557,14 +557,32 @@ describe('UpdateBed', () => {
         bed.version
       ]);
 
+      await expect(
+        useCase.execute(
+          { id: bed.id, locationId: null as unknown as string },
+          USER,
+          [bed.version + 1]
+        )
+      ).rejects.toThrow(InvalidArgumentException);
+    });
+
+    it('relocates to new location and updates locationId on the bed', async () => {
+      const newLocation = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        latitude: 41.3879,
+        longitude: 2.1699
+      });
+      locationRepository.addToStorage(newLocation);
+
       const { bed: updated } = await useCase.execute(
-        { id: bed.id, locationId: null },
+        { id: bed.id, locationId: newLocation.id },
         USER,
-        [bed.version + 1]
+        [bed.version]
       );
 
-      expect(updated.latitude).toBeUndefined();
-      expect(updated.longitude).toBeUndefined();
+      expect(updated.locationId).toBe(newLocation.id);
+      expect(updated.latitude).toBe(41.3879);
+      expect(updated.longitude).toBe(2.1699);
     });
 
     it('should leave the snapshot unchanged when locationId is omitted', async () => {

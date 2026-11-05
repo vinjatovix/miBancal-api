@@ -23,6 +23,36 @@ describe('Location aggregate', () => {
       expect(location.longitude).toBe(-3.7038);
     });
 
+    it('creates a location without coordinates', () => {
+      const location = LocationFactory.domainBase({
+        latitude: undefined,
+        longitude: undefined
+      });
+
+      expect(location.latitude).toBeUndefined();
+      expect(location.longitude).toBeUndefined();
+    });
+
+    it('rejects partial coordinates when only latitude is provided', () => {
+      const createLocation = () =>
+        LocationFactory.domainBase({
+          latitude: 40.4168,
+          longitude: undefined
+        });
+
+      expect(createLocation).toThrow(InvalidArgumentException);
+    });
+
+    it('rejects partial coordinates when only longitude is provided', () => {
+      const createLocation = () =>
+        LocationFactory.domainBase({
+          latitude: undefined,
+          longitude: -3.7038
+        });
+
+      expect(createLocation).toThrow(InvalidArgumentException);
+    });
+
     it('trims the name', () => {
       const location = LocationFactory.domainBase({ name: '  Huerto  ' });
 
@@ -139,6 +169,74 @@ describe('Location aggregate', () => {
       expect(location.longitude).toBe(2.1699);
       expect(location.metadata.updatedBy).toBe(USER);
       expect(location.metadata.updatedAt).toEqual(updateTime);
+    });
+
+    it('clears coordinates when null is provided for both', () => {
+      const location = LocationFactory.domainBase({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
+      const before = location.metadata.updatedAt;
+      const updateTime = new Date(before.getTime() + 1000);
+
+      location.updateCoordinates(
+        { latitude: null, longitude: null },
+        USER,
+        updateTime
+      );
+
+      expect(location.latitude).toBeUndefined();
+      expect(location.longitude).toBeUndefined();
+      expect(location.metadata.updatedBy).toBe(USER);
+      expect(location.metadata.updatedAt).toEqual(updateTime);
+    });
+
+    it('is a no-op when clearing already-cleared coordinates', () => {
+      const location = LocationFactory.domainBase({
+        latitude: undefined,
+        longitude: undefined
+      });
+      const before = location.metadata.updatedAt;
+
+      location.updateCoordinates(
+        { latitude: null, longitude: null },
+        USER,
+        new Date(before.getTime() + 1000)
+      );
+
+      expect(location.metadata.updatedAt).toEqual(before);
+    });
+
+    it('rejects partial coordinates with null latitude and numeric longitude', () => {
+      const location = LocationFactory.domainBase({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
+
+      const updateAction = () =>
+        location.updateCoordinates(
+          { latitude: null, longitude: 2.1699 },
+          USER,
+          new Date()
+        );
+
+      expect(updateAction).toThrow(InvalidArgumentException);
+    });
+
+    it('rejects partial coordinates with numeric latitude and null longitude', () => {
+      const location = LocationFactory.domainBase({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
+
+      const updateAction = () =>
+        location.updateCoordinates(
+          { latitude: 41.3879, longitude: null },
+          USER,
+          new Date()
+        );
+
+      expect(updateAction).toThrow(InvalidArgumentException);
     });
 
     it('is a no-op when coordinates do not change', () => {

@@ -3,6 +3,7 @@ import type { MetadataPrimitives } from '../../../../../shared/domain/MetadataPr
 export type BedPrimitives = {
   id: string;
   userId: string;
+  locationId: string | null;
   name: string;
   width: number;
   height: number;

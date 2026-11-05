@@ -4,28 +4,53 @@ Feature: Correct a Bed's Location Snapshot After Creation
     I want to create beds without a location and set, replace or clear their snapshot later
     So that I can correct the climate context of a bed without recreating it
 
-    Scenario: Creating a bed with no location omits geographic fields
+    Scenario: Creating a bed with a coordinate-less location omits geographic fields
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c01",
+                "name": "Finca sin coordenadas"
+            }
+            """
+        Then the response status code should be 201
         When a POST user request to "/api/v1/beds" with body
             """
             {
                 "id": "c1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c01",
-                "name": "No Location Bed",
+                "name": "Bed With Coordinate-less Location",
                 "width": 100,
                 "height": 200,
-                "depth": 25
+                "depth": 25,
+                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c01"
             }
             """
         Then the response status code should be 201
         And the response body should not have the fields "latitude,longitude"
+        And the response body should contain
+            """
+            {
+                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c01"
+            }
+            """
 
-    Scenario: Setting a locationId on an existing bed via PATCH adds the snapshot
+    Scenario: Relocating a bed to another location via PATCH updates locationId and snapshot
         Given a POST user request to "/api/v1/locations" with body
             """
             {
                 "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c02",
-                "name": "Finca a asignar",
+                "name": "Finca inicial",
                 "latitude": 40.4168,
                 "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
+        And a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c99",
+                "name": "Finca nueva",
+                "latitude": 41.3879,
+                "longitude": 2.1699
             }
             """
         Then the response status code should be 201
@@ -33,10 +58,11 @@ Feature: Correct a Bed's Location Snapshot After Creation
             """
             {
                 "id": "c1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c02",
-                "name": "Bed To Assign",
+                "name": "Bed To Relocate",
                 "width": 100,
                 "height": 200,
-                "depth": 25
+                "depth": 25,
+                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c02"
             }
             """
         Then the response status code should be 201
@@ -44,15 +70,16 @@ Feature: Correct a Bed's Location Snapshot After Creation
         And I send a PATCH user request to "/api/v1/beds/c1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c02" with body
             """
             {
-                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c02"
+                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c99"
             }
             """
         Then the response status code should be 200
         And the response body should contain
             """
             {
-                "latitude": 40.4168,
-                "longitude": -3.7038
+                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c99",
+                "latitude": 41.3879,
+                "longitude": 2.1699
             }
             """
 
@@ -112,12 +139,12 @@ Feature: Correct a Bed's Location Snapshot After Creation
             }
             """
 
-    Scenario: Clearing the locationId with null removes the snapshot
+    Scenario: Attempting to unlink a bed with locationId null is rejected with 400
         Given a POST user request to "/api/v1/locations" with body
             """
             {
                 "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c05",
-                "name": "Finca a quitar",
+                "name": "Finca a no desvincular",
                 "latitude": 40.4168,
                 "longitude": -3.7038
             }
@@ -127,7 +154,7 @@ Feature: Correct a Bed's Location Snapshot After Creation
             """
             {
                 "id": "c1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c04",
-                "name": "Bed To Clear",
+                "name": "Bed Not To Unlink",
                 "width": 100,
                 "height": 200,
                 "depth": 25,
@@ -142,10 +169,19 @@ Feature: Correct a Bed's Location Snapshot After Creation
                 "locationId": null
             }
             """
-        Then the response status code should be 200
-        And the response body should not have the fields "latitude,longitude"
+        Then the response status code should be 400
 
     Scenario: Sending a raw geographic field on bed update is rejected
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c06",
+                "name": "Finca protegida",
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
         And a POST user request to "/api/v1/beds" with body
             """
             {
@@ -153,7 +189,8 @@ Feature: Correct a Bed's Location Snapshot After Creation
                 "name": "Protected Bed",
                 "width": 100,
                 "height": 200,
-                "depth": 25
+                "depth": 25,
+                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c06"
             }
             """
         Then the response status code should be 201
@@ -167,6 +204,16 @@ Feature: Correct a Bed's Location Snapshot After Creation
         Then the response status code should be 400
 
     Scenario: Updating with a non-owned locationId is rejected and the snapshot is unchanged
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c07",
+                "name": "Finca guardada",
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
         And a POST user request to "/api/v1/beds" with body
             """
             {
@@ -174,7 +221,8 @@ Feature: Correct a Bed's Location Snapshot After Creation
                 "name": "Guarded Bed",
                 "width": 100,
                 "height": 200,
-                "depth": 25
+                "depth": 25,
+                "locationId": "d1c2d3e4-2b6a-4f3c-9a8b-2e0d4f6a8c07"
             }
             """
         Then the response status code should be 201

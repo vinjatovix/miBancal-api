@@ -96,6 +96,24 @@ export class MongoLocationRepository
     });
   }
 
+  async findActiveByIdsForOwner(
+    ids: string[],
+    userId: string
+  ): Promise<Location[]> {
+    if (ids.length === 0) return [];
+
+    const documents = await this.collection()
+      .find<MongoLocationDocument>({
+        _id: { $in: ids.map((id) => toMongoId(id)) },
+        userId: toMongoId(userId),
+        ...this.activeFilter()
+      })
+      .collation(NAME_COLLATION)
+      .toArray();
+
+    return documents.map((document) => this.toDomain(document));
+  }
+
   // Equality under the `es`/strength-1 collation (case/accent-insensitive),
   // never a regex: served by the partial unique index on { userId, name }.
   async findActiveByNameForOwner(

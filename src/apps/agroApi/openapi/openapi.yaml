@@ -1172,11 +1172,23 @@ paths:
       tags: [Beds]
       summary: Get user beds
       description: >
-        List of beds. Unknown query parameters are rejected (400).
-        With `include=plantInstances`, full crops are embedded; otherwise a UUID array.
+        Returns list of beds belonging to the authenticated user.
+        Supports filtering by locationId and eager embedding of plantInstances and location.
       security:
         - bearerAuth: []
       parameters:
+        - in: query
+          name: filter[locationId]
+          description: Filter beds located at this Location UUID. Non-matching or foreign UUID returns [].
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: filter[locationId][eq]
+          description: Canonical filter syntax for filtering beds by location UUID.
+          schema:
+            type: string
+            format: uuid
         - $ref: '#/components/parameters/BedInclude'
       responses:
         '200':
@@ -1199,7 +1211,7 @@ paths:
       summary: Create bed
       description: >
         No query parameters are accepted. Unknown body fields (`userId`,
-        `plantInstances`…) → 400.
+        `plantInstances`…) → 400. `locationId` is mandatory and must reference an existing active location owned by user.
       security:
         - bearerAuth: []
       requestBody:
@@ -1222,6 +1234,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
         '500':
@@ -1231,6 +1245,8 @@ paths:
     get:
       tags: [Beds]
       summary: Get bed by id
+      description: >
+        Bed details. ETag is omitted when `include` is present.
       security:
         - bearerAuth: []
       parameters:
@@ -1261,7 +1277,9 @@ paths:
     patch:
       tags: [Beds]
       summary: Update bed
-      description: Check order — authentication, If-Match, then request validation.
+      description: >
+        Partial update. Check order — authentication, If-Match, then request validation.
+        `locationId` can be replaced with another valid location UUID, but setting `locationId: null` is rejected (400).
       security:
         - bearerAuth: []
       parameters:
@@ -2566,12 +2584,18 @@ components:
       name: include
       description: >
         JSON:API include, comma-separated. `plantInstances` embeds active crops in full
-        instead of UUIDs. Any other relation or empty string answers 400.
+        instead of UUIDs; `location` embeds the LocationSummary. Valid combinations:
+        `plantInstances`, `location`, `plantInstances,location`, `location,plantInstances`.
+        Any other relation or empty string answers 400.
         When present, the response carries no ETag and never answers 304.
       required: false
       schema:
         type: string
-        enum: [plantInstances]
+        enum:
+          - plantInstances
+          - location
+          - 'plantInstances,location'
+          - 'location,plantInstances'
 
     IfMatch:
       name: If-Match
@@ -2700,19 +2724,25 @@ components:
       maximum: 180.0
       example: -3.7038
 
+    LocationSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+
     Location:
       type: object
-      required:
-        [
-          id,
-          name,
-          latitude,
-          longitude,
-          createdAt,
-          createdBy,
-          updatedAt,
-          updatedBy
-        ]
+      required: [id, name, createdAt, createdBy, updatedAt, updatedBy]
       properties:
         id:
           type: string
@@ -2720,9 +2750,15 @@ components:
         name:
           $ref: '#/components/schemas/RequiredShortText'
         latitude:
-          $ref: '#/components/schemas/Latitude'
+          type: number
+          nullable: true
+          minimum: -90.0
+          maximum: 90.0
         longitude:
-          $ref: '#/components/schemas/Longitude'
+          type: number
+          nullable: true
+          minimum: -180.0
+          maximum: 180.0
         createdAt:
           type: string
           format: date-time
@@ -2741,7 +2777,7 @@ components:
     CreateLocation:
       type: object
       additionalProperties: false
-      required: [id, name, latitude, longitude]
+      required: [id, name]
       properties:
         id:
           type: string
@@ -2755,8 +2791,8 @@ components:
 
     UpdateLocation:
       description: >
-        Partial update (JSON Merge Patch). `name` cannot be null. If coordinates
-        are updated, both `latitude` and `longitude` must be provided together.
+        Partial update (JSON Merge Patch). `name` cannot be null. Coordinates can
+        be updated as a pair or cleared by setting both latitude and longitude to null.
         Legacy fields (postalCode, country, timezone, hemisphere) are rejected.
       type: object
       additionalProperties: false
@@ -2764,9 +2800,15 @@ components:
         name:
           $ref: '#/components/schemas/RequiredShortText'
         latitude:
-          $ref: '#/components/schemas/Latitude'
+          type: number
+          nullable: true
+          minimum: -90.0
+          maximum: 90.0
         longitude:
-          $ref: '#/components/schemas/Longitude'
+          type: number
+          nullable: true
+          minimum: -180.0
+          maximum: 180.0
 
     UserProfileView:
       type: object
@@ -4875,6 +4917,7 @@ components:
         [
           id,
           userId,
+          locationId,
           name,
           width,
           height,
@@ -4890,6 +4933,11 @@ components:
           format: uuid
         userId:
           type: string
+        locationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Associated location UUID (null only for legacy unlinked beds).
         name:
           $ref: '#/components/schemas/RequiredShortText'
         width:
@@ -4914,6 +4962,10 @@ components:
               - type: string
                 format: uuid
               - $ref: '#/components/schemas/PlantInstanceResponse'
+        location:
+          $ref: '#/components/schemas/LocationSummary'
+          nullable: true
+          description: Present only when `include=location` is requested. Null if associated location was soft-deleted or locationId is null.
         metadata:
           $ref: '#/components/schemas/Metadata'
         deleted:
@@ -4935,7 +4987,7 @@ components:
     CreateBed:
       type: object
       additionalProperties: false
-      required: [id, name, width, height, depth]
+      required: [id, name, width, height, depth, locationId]
       properties:
         id:
           type: string
@@ -4952,18 +5004,17 @@ components:
           type: string
           format: uuid
           description: >
-            Resolved to an owned active location whose provided geographic
+            Mandatory reference to an active owned Location whose provided geographic
             fields are copied into the bed as a static snapshot. Unknown or
-            non-owned id → 404 before the bed is persisted. Absent → no
-            geographic context.
+            non-owned id → 404 before the bed is persisted.
 
     UpdateBed:
       description: >
         Partial update. `name`/dimensions are optional and none can be
         cleared (`null` → 400). `{}` is a no-op: 200, version unchanged.
-        `locationId` re-snapshots (uuid), clears the snapshot (`null`) or
-        leaves it unchanged (omitted). Raw geographic fields are never
-        accepted here. Plants are never placed by patching the bed.
+        `locationId` can be replaced with another valid location UUID to relocate,
+        but setting `locationId: null` is rejected (400).
+        Raw geographic fields are never accepted here. Plants are never placed by patching the bed.
       type: object
       additionalProperties: false
       properties:
@@ -4977,11 +5028,10 @@ components:
           $ref: '#/components/schemas/BedDimension'
         locationId:
           type: string
-          nullable: true
           format: uuid
           description: >
-            A uuid re-snapshots from that owned location (replace); `null`
-            clears the snapshot; omitted leaves it unchanged.
+            Relocates bed to another owned active location. Null is rejected (400).
+            Omitted leaves location and snapshot unchanged.
 
     #  ================= PLANT INSTANCES =================
 

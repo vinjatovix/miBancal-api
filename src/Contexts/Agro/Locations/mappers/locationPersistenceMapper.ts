@@ -14,8 +14,8 @@ export const locationPersistenceMapper: LocationPersistenceMapper = {
       id: createLocationId(fromMongoId(document._id)),
       userId: createUserId(fromMongoId(document.userId)),
       name: document.name,
-      latitude: document.latitude,
-      longitude: document.longitude,
+      ...(document.latitude != null && { latitude: document.latitude }),
+      ...(document.longitude != null && { longitude: document.longitude }),
       status: document.status,
       ...(document.deletedAt !== undefined && {
         deletedAt: new Date(document.deletedAt)
@@ -30,8 +30,10 @@ export const locationPersistenceMapper: LocationPersistenceMapper = {
       _id: toMongoId(location.id),
       userId: toMongoId(location.userId),
       name: location.name,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      ...(location.latitude !== undefined && { latitude: location.latitude }),
+      ...(location.longitude !== undefined && {
+        longitude: location.longitude
+      }),
       status: location.status,
       ...(location.deletedAt && {
         deletedAt: location.deletedAt.toISOString()

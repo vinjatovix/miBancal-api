@@ -1,5 +1,5 @@
 export type LocationChanges = {
-  name?: string;
-  latitude?: number;
-  longitude?: number;
+  name?: string | undefined;
+  latitude?: number | null | undefined;
+  longitude?: number | null | undefined;
 };

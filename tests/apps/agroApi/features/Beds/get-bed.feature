@@ -18,6 +18,45 @@ Feature: GetBed
             """
         And response matches OpenAPI contract
 
+    Scenario: Get an existing bed with include=location embeds location summary and omits ETag
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "e3333333-3333-4333-8333-333333333301",
+                "name": "Finca Singular",
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
+        And a POST user request to "/api/v1/beds" with body
+            """
+            {
+                "id": "b3333333-3333-4333-8333-333333333301",
+                "name": "Bed Single Include",
+                "width": 100,
+                "height": 200,
+                "depth": 30,
+                "locationId": "e3333333-3333-4333-8333-333333333301"
+            }
+            """
+        Then the response status code should be 201
+        When I send a GET user request to "/api/v1/beds/b3333333-3333-4333-8333-333333333301?include=location"
+        Then the response status code should be 200
+        And the response should not have an ETag
+        And the response body should contain
+            """
+            {
+                "id": "b3333333-3333-4333-8333-333333333301",
+                "location": {
+                    "id": "e3333333-3333-4333-8333-333333333301",
+                    "name": "Finca Singular",
+                    "latitude": 40.4168,
+                    "longitude": -3.7038
+                }
+            }
+            """
+
     Scenario: Get a non-existing bed
         Given a GET user request to "/api/v1/beds/12384ea3-e55d-4f69-8b0c-b54cccb9f443"
         Then the response status code should be 404

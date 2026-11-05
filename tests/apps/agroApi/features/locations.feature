@@ -37,7 +37,7 @@ Feature: User Locations
             }
             """
 
-    Scenario: Creating a location without coordinates is rejected
+    Scenario: Create a location without coordinates and read it back
         When a POST user request to "/api/v1/locations" with body
             """
             {
@@ -45,7 +45,91 @@ Feature: User Locations
                 "name": "Sin coordenadas"
             }
             """
+        Then the response status code should be 201
+        And the response should have ETag '"0"'
+        And the response body should contain
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111102",
+                "name": "Sin coordenadas"
+            }
+            """
+        When I send a GET user request to "/api/v1/locations/11111111-1111-4111-8111-111111111102"
+        Then the response status code should be 200
+        And the response body should contain
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111102",
+                "name": "Sin coordenadas"
+            }
+            """
+
+    Scenario: Creating a location with partial coordinates is rejected
+        When a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111120",
+                "name": "Solo latitud",
+                "latitude": 40.4168
+            }
+            """
         Then the response status code should be 400
+
+    Scenario: Clearing location coordinates sets them to null and bumps the version
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111121",
+                "name": "Parcela con coordenadas",
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
+        When I use If-Match '"0"'
+        And I send a PATCH user request to "/api/v1/locations/11111111-1111-4111-8111-111111111121" with body
+            """
+            {
+                "latitude": null,
+                "longitude": null
+            }
+            """
+        Then the response status code should be 200
+        And the response should have ETag '"1"'
+        And the response body should contain
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111121",
+                "name": "Parcela con coordenadas"
+            }
+            """
+
+    Scenario: Adding coordinates to a coordinate-less location succeeds
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111122",
+                "name": "Parcela sin coordenadas iniciales"
+            }
+            """
+        Then the response status code should be 201
+        When I use If-Match '"0"'
+        And I send a PATCH user request to "/api/v1/locations/11111111-1111-4111-8111-111111111122" with body
+            """
+            {
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 200
+        And the response should have ETag '"1"'
+        And the response body should contain
+            """
+            {
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
 
     Scenario: Creating a location with out-of-range coordinates is rejected
         When a POST user request to "/api/v1/locations" with body

@@ -14,6 +14,7 @@ export const bedDomainMapper: BedDomainMapper = {
     return {
       id: bed.id,
       userId: bed.userId,
+      locationId: bed.locationId,
       name: bed.name.value,
       width: bed.width.value,
       height: bed.height.value,
@@ -31,6 +32,7 @@ export const bedDomainMapper: BedDomainMapper = {
     return Bed.create({
       id: createBedId(primitives.id),
       userId: createUserId(primitives.userId),
+      locationId: primitives.locationId ?? null,
       name: new BedName(primitives.name),
       width: PositiveNumber.create(primitives.width),
       height: PositiveNumber.create(primitives.height),

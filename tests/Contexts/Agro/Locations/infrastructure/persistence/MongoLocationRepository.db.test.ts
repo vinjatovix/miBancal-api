@@ -65,6 +65,57 @@ describe('MongoLocationRepository', () => {
       expect(found?.id).toBe(location.id);
     });
 
+    it('finds active locations by IDs for owner and ignores deleted or foreign locations', async () => {
+      const userId = randomUserId();
+      const otherUserId = randomUserId();
+      const loc1 = LocationFactory.domainBase({ userId, name: 'Parcela 1' });
+      const loc2 = LocationFactory.domainBase({ userId, name: 'Parcela 2' });
+      const locDeleted = LocationFactory.domainBase({
+        userId,
+        name: 'Parcela Borrada'
+      });
+      const locOtherUser = LocationFactory.domainBase({
+        userId: otherUserId,
+        name: 'Parcela Ajena'
+      });
+
+      await repository.create(loc1);
+      await repository.create(loc2);
+      await repository.create(locDeleted);
+      await repository.create(locOtherUser);
+
+      const before = locationDomainMapper.toPrimitives(locDeleted);
+      locDeleted.markAsDeleted('tester', new Date());
+      await repository.updateWithDiff(
+        before,
+        locationDomainMapper.toPrimitives(locDeleted)
+      );
+
+      const results = await repository.findActiveByIdsForOwner(
+        [
+          loc1.id,
+          loc2.id,
+          locDeleted.id,
+          locOtherUser.id,
+          '00000000-0000-4000-8000-000000000000'
+        ],
+        userId
+      );
+
+      expect(results.map((l) => l.id).sort()).toEqual(
+        [loc1.id, loc2.id].sort()
+      );
+    });
+
+    it('returns empty array when findActiveByIdsForOwner receives empty IDs array', async () => {
+      const results = await repository.findActiveByIdsForOwner(
+        [],
+        randomUserId()
+      );
+
+      expect(results).toEqual([]);
+    });
+
     it('rejects a duplicate active name for the same owner', async () => {
       const userId = randomUserId();
       const first = LocationFactory.domainBase({ userId, name: 'Huerto' });

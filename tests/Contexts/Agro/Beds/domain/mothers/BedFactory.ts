@@ -17,6 +17,7 @@ function baseBed(overrides: BedOverrides = {}): BedProps {
   const defaults: BedProps = {
     id: randomBedId(),
     userId: randomUserId(),
+    locationId: random.uuid(),
     name: new BedName(`Bed ${random.integer({ min: 1, max: 100 })}`),
     width: PositiveNumber.create(100),
     height: PositiveNumber.create(200),

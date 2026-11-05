@@ -41,12 +41,38 @@ export class MongoBedRepository
     return this.bedPersistenceMapper.toMongoDocument(entity);
   }
 
-  async findByUserId(userId: string): Promise<Bed[]> {
+  protected override normalizePatch(diff: UnknownRecord): {
+    set: UnknownRecord;
+    unset: Record<string, ''>;
+  } {
+    const patch = super.normalizePatch(diff);
+    if (typeof patch.set.locationId === 'string') {
+      patch.set.locationId = toMongoId(patch.set.locationId);
+    }
+    return patch;
+  }
+
+  async findByUserId(userId: string, filter?: BedFilter): Promise<Bed[]> {
     const collection = this.collection();
 
-    const documents = await collection
-      .find({ userId: toMongoId(userId) })
-      .toArray();
+    const query: Record<string, unknown> = {
+      userId: toMongoId(userId),
+      ...this.activeFilter()
+    };
+
+    if (filter?.locationId !== undefined) {
+      const locationIdVal =
+        typeof filter.locationId === 'object' &&
+        filter.locationId !== null &&
+        'eq' in filter.locationId
+          ? filter.locationId.eq
+          : filter.locationId;
+      if (typeof locationIdVal === 'string') {
+        query.locationId = toMongoId(locationIdVal);
+      }
+    }
+
+    const documents = await collection.find(query).toArray();
 
     return documents.map((doc) => this.toDomain(doc as MongoBedDocument));
   }

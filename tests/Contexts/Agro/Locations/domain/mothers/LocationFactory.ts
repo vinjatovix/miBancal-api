@@ -21,6 +21,15 @@ export const LocationFactory = {
   domainBase: (overrides?: Partial<LocationProps>): Location =>
     Location.create(LocationFactory.propsBase(overrides)),
 
+  withoutCoordinates: (overrides?: Partial<LocationProps>): Location =>
+    Location.create(
+      LocationFactory.propsBase({
+        latitude: undefined,
+        longitude: undefined,
+        ...overrides
+      })
+    ),
+
   deleted: (overrides?: Partial<LocationProps>): Location =>
     Location.create(
       LocationFactory.propsBase({

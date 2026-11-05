@@ -24,6 +24,7 @@ export const bedInputMapper: BedInputMapper = {
     return Bed.create({
       id: createBedId(input.id),
       userId: createUserId(input.userId),
+      locationId: input.locationId,
       name: new BedName(input.name),
       width: PositiveNumber.create(input.width),
       height: PositiveNumber.create(input.height),

@@ -16,6 +16,7 @@ describe('bedInputMapper', () => {
       expect(bed).toBeInstanceOf(Bed);
       expect(bed.id).toBe(input.id);
       expect(bed.userId).toBe(input.userId);
+      expect(bed.locationId).toBe(input.locationId);
       expect(bed.name.value).toBe(input.name);
       expect(bed.width.value).toBe(input.width);
       expect(bed.height.value).toBe(input.height);

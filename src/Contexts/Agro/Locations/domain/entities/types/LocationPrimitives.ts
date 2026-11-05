@@ -5,8 +5,8 @@ export type LocationPrimitives = {
   id: string;
   userId: string;
   name: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number | undefined;
+  longitude?: number | undefined;
   status: LocationStatus;
   deletedAt?: string;
   metadata: MetadataPrimitives;
