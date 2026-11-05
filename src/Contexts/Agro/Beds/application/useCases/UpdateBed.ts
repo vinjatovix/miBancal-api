@@ -1,28 +1,36 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
+import type { LocationRepository } from '../../../Locations/domain/repositories/interfaces/LocationRepository.js';
 import type { PlantInstanceRepository } from '../../../PlantInstances/domain/repositories/interfaces/PlantInstanceRepository.js';
+import type { BedGeographicSnapshot } from '../../domain/entities/types/BedGeographicSnapshot.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 import { bedInputMapper } from '../../mappers/bedInputMapper.js';
 import { attachCropsToBed, type BedWithCrops } from './attachCrops.js';
 import type { UpdateBedInput } from './interfaces/UpdateBedInput.js';
+import { toBedGeographicSnapshot } from './toBedGeographicSnapshot.js';
 
 export type UpdateBedDependencies = {
   bedRepository: BedRepository;
   plantInstanceRepository: PlantInstanceRepository;
+  locationRepository: LocationRepository;
 };
 
 export class UpdateBed {
   private readonly bedRepository: BedRepository;
   private readonly plantInstanceRepository: PlantInstanceRepository;
+  private readonly locationRepository: LocationRepository;
 
   constructor({
     bedRepository,
-    plantInstanceRepository
+    plantInstanceRepository,
+    locationRepository
   }: UpdateBedDependencies) {
     this.bedRepository = bedRepository;
     this.plantInstanceRepository = plantInstanceRepository;
+    this.locationRepository = locationRepository;
   }
 
   async execute(
@@ -50,6 +58,15 @@ export class UpdateBed {
     if (Object.keys(changes.dimensions).length > 0) {
       bed.resize(changes.dimensions, user.username, at);
     }
+    if (changes.locationId !== undefined) {
+      if (changes.locationId === null) {
+        throw new InvalidArgumentException(
+          'Bed cannot be unlinked from a location'
+        );
+      }
+      const geo = await this.resolveSnapshot(changes.locationId, user.id);
+      bed.relocate(changes.locationId, geo, user.username, at);
+    }
 
     const after = bedDomainMapper.toPrimitives(bed);
 
@@ -59,5 +76,18 @@ export class UpdateBed {
     return attachCropsToBed(this.plantInstanceRepository, bed, user.id, {
       embedCrops: false
     });
+  }
+
+  private async resolveSnapshot(
+    locationId: string,
+    userId: string
+  ): Promise<BedGeographicSnapshot | null> {
+    const location = ensureFound(
+      await this.locationRepository.findOwnedActiveById(locationId, userId),
+      'Location',
+      locationId
+    );
+
+    return toBedGeographicSnapshot(location);
   }
 }

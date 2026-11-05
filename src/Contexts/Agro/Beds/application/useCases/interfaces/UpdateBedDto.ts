@@ -3,4 +3,5 @@ export interface UpdateBedDto {
   width?: number;
   height?: number;
   depth?: number;
+  locationId?: string;
 }

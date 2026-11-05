@@ -48,6 +48,10 @@
       "prettier --write"
     ]
   },
+  "engines": {
+    "node": ">=24.22.1",
+    "npm": ">=10.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vinjatovix/agro-back.git"

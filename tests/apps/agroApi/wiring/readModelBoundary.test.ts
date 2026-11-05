@@ -70,6 +70,12 @@ const isAggregateModule = (segments: string[]): boolean =>
 const describeImport = ({ file, target }: ImportStatement): string =>
   `${file} → ${path.relative(SOURCE_ROOT, target)}`;
 
+/** Stateless pure utilities (e.g. deriveGenus) are allowed in read modules. */
+const isSharedUtil = (target: string): boolean => {
+  const segments = domainSegments(target);
+  return segments !== undefined && segments[0] === 'utils';
+};
+
 describe('read model boundary', () => {
   const files = readModuleFiles();
   const statements = files.flatMap(importsOf);
@@ -90,7 +96,9 @@ describe('read model boundary', () => {
   it('takes no value from the domain', () => {
     const valueImports = statements.filter(
       (statement) =>
-        !statement.typeOnly && domainSegments(statement.target) !== undefined
+        !statement.typeOnly &&
+        domainSegments(statement.target) !== undefined &&
+        !isSharedUtil(statement.target)
     );
 
     expect(valueImports.map(describeImport)).toEqual([]);

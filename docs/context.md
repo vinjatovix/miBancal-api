@@ -12,6 +12,7 @@ This document serves as the absolute technical baseline and source of truth for 
 2.  **Spatial Distribution Validator:** A pure computational geometry engine that evaluates plant placement coordinate-by-coordinate in real-time. It computes spacing constraints and boundary collisions in an advisory, non-blocking manner (generating warnings), except for impossible $0\text{cm}$ physical overlaps which are strictly blocked.
 3.  **Standalone Crop Instance Manager:** A temporal tracker of living crops (`plantInstance`) sown in physical spaces, tracking their growth phenology, establishment methods (nurseries vs. direct sowing), and dynamic warning lists.
 4.  **Chronological Journal & Suggested Care Engine:** An append-only historical log of cultivation events (watering, pruning, harvests) that passively drives stateful, cached care reminders, dynamically adaptive to local weather forecasts (precipitation rain-silencing).
+5.  **Ecological Remedy & Garden Inputs Knowledge Catalog:** A peer-reviewed, empirically verified encyclopedia of natural defenses, fertilizers, biostimulants, and soil amendments (`gardenInputs`), complete with structured multi-step recipes, precise volumetric dosages, safety thresholds, and academic citations (EU Basic Substances, EPA 25(b), university cooperative extensions).
 
 ---
 
@@ -29,10 +30,10 @@ The technical stack is strictly versioned and configured for high-performance, t
 - **Boundary Security:** Helmet v8.3.0, Cors v2.8.6, Express-Rate-Limit v8.7.0, BcryptJS v3.0.3, Google-Auth-Library v11.1.0, JSONWebToken v9.0.3.
 - **Utilities:** `uuid` v14.0.2 (UUIDv7 IDs), `js-yaml` v5.4.2 (OpenAPI spec loading), `dotenv` v18.0.4, `env-var` v7.5.0.
 
-### Tooling Transitions (Phase 0 Targets)
+### Tooling Transitions
 
-- **Request Validation:** Every route validates with **Zod** through the shared `validateRequest` step (listings through `listQuerySchema`); `express-validator` was retired in Iteration 14. Still pending: using the schemas as the single source to generate the OpenAPI contract (`openapi.yaml`).
-- **Database Migrations:** Currently, schema indexes are declared programmatically on repository startup. The target state is transitioning to formal database migrations versioned under the `migrations/` folder and executed via `migrate-mongo` v14.0.7 during bootstrap.
+- **Request Validation:** Every route validates with **Zod** through the shared `validateRequest` step (listings through `listQuerySchema`); `express-validator` was retired in Iteration 14.
+- **Database Migrations:** Formally managed and executed via versioned migration scripts under `migrations/scripts/` using `migrate-mongo` on application bootstrap (`server.ts: listen()`). DDL operations guarantee collection creation, schema indexes, and uniqueness constraints (such as `garden_inputs_slug_unique`, `anomalies_slug_unique`, and `users_auth_provider_user_id_unique`) without startup auto-indexing overhead.
 
 ---
 
@@ -55,7 +56,7 @@ The codebase adheres strictly to **Clean DDD-Inspired Hexagonal Architecture**, 
 1.  **Pure Domain Core:** The domain layer (`src/Contexts/*/domain`) is stateless, side-effect free, and holds zero technology dependencies. No database models, HTTP error structures, or framework utilities are allowed inside.
 2.  **No DTOs in Domain:** Data Transfer Objects only exist at the system boundary (API / Use Case inputs). The domain only receives validated aggregates, entities, and rich Value Objects.
 3.  **Audit Metadata Ownership:** Audit fields (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`) are mutated in memory directly by domain methods prior to persistence, ensuring read-after-write queries (`findById` post-update) can be completely bypassed.
-4.  **CQRS Read-Only Bypass:** To maximize system throughput, read-only listings (GET queries) are officially permitted to bypass full rich domain aggregate hydration. Plain MongoDB projections map directly to boundary DTOs, validated by output schemas (Zod/OpenAPI). Current state: the Plants and Families `GET` routes read through dedicated read ports and strict output schemas (Iteration 18); writes always go through aggregates.
+4.  **CQRS Read-Only Bypass:** To maximize system throughput, read-only listings (GET queries) are officially permitted to bypass full rich domain aggregate hydration. Plain MongoDB projections map directly to boundary DTOs, validated by output schemas (Zod/OpenAPI). Current state: the Plants, Families, Anomalies, and GardenInputs `GET` routes read through dedicated read ports and strict output schemas; writes always go through aggregates.
 5.  **Repository Retrieval Contract:** Repositories function purely as data retrieval mechanisms. They return nullable values (`null` or `undefined`) when a record is absent and never throw domain-level exceptions (like `DomainNotFoundException`), shifting error enforcement strictly to application use cases.
 
 ---
@@ -72,15 +73,14 @@ To drive the new system roadmap, this section contrasts the current state of eac
   - **Decoupled Architecture:** Plant instances are completely detached from `Bed.ts` and stored in their dedicated `plant_instances` collection. Bed read endpoints project crop UUID arrays by default, or embed full crop details when `include=plantInstances` is requested.
   - Soft-deletion cascades to all active crops in the bed.
   - **Optimistic Concurrency Control (OCC):** An integer `version` is checked and incremented on every update. Over HTTP the client sends it in `If-Match` (read from `ETag`); an outdated version is rejected with `412` and a missing header with `428`. Adding, moving, or removing crops increments the parent bed version.
+  - **Cross-Collection Transactions:** Placing, moving and removing a crop (with the Bed version raise) and deleting a Bed (with its active crops) each run atomically in one MongoDB multi-document transaction, through the driver-free `UnitOfWork` port (delivered in `specs/026-cross-aggregate-transactions`).
 - **Target State (Spec v1.4.0):**
-  - **Soft Delete Standardization:** Standardized to lowercase `status: 'active' | 'removed'` with `deletedAt: ISODate | null`.
   - **Resizing Validation Limits:** Modifying physical bed dimensions is validated against active plant instances. Resizing is strictly blocked (throwing a `DomainConflictException`) if any living crop center coordinate falls outside the proposed boundaries.
-  - **Cross-Collection Transactions:** Placing, moving and removing a crop (with the Bed version raise) and deleting a Bed (with its active crops) each run atomically in one MongoDB multi-document transaction, through the driver-free `UnitOfWork` port; a failure leaves both collections as they were.
 
 ### B. PlantInstances Module
 
 - **Current State in Code:**
-  - Standalone aggregate root (`PlantInstance`) with its own dedicated MongoDB collection (`plant_instances`) and `PlantInstanceRepository`.
+  - Standalone aggregate root (`PlantInstance`) with its own dedicated MongoDB collection (`plant_instances`) and `PlantInstanceRepository` (delivered in `specs/024-extract-plant-instances`).
   - Full CRUD HTTP API at `/api/v1/plant-instances` supporting placement with spatial collision checks (409 on boundary or spacing collision), partial updates, movement, and soft-deletion (`instanceStatus: 'active' | 'removed'`).
   - Position coordinates are optional to support future nursery establishment.
 - **Target State (Spec v1.4.0):**
@@ -91,60 +91,66 @@ To drive the new system roadmap, this section contrasts the current state of eac
 
 - **Current State in Code:**
   - Catalog of biological species, fully implemented with rich value objects (calendars, sowing traits).
-  - Validation: Sowing block (`phenology.sowing`) is strictly mandatory.
-  - Knowledge block holds unstructured arrays of strings.
+  - Validation: Sowing block (`phenology.sowing`) is optional to support vegetatively propagated crops.
+  - Knowledge block holds unstructured arrays of strings and susceptibility links to anomalies (`anomalies: string[]`).
   - Updates use optimistic concurrency control (`version` via `If-Match`; stale version → `412`, missing `If-Match` → `428`).
+  - **Favorites & Social Interactions:** Integrated with a private `user_bookmarks` collection (`specs/038`, `039`). Community popular indicators (likes/dislikes) are desensitized and projected as numeric counters on the `Plant` aggregate root (`specs/040`), avoiding write contention and document size bloat.
 - **Target State (Spec v1.4.0):**
-  - **Sowing Refinement:** Sowing block becomes **optional** to support sterile or vegetatively propagated crops (such as Russian Comfrey).
   - **Structured Propagation:** Propagation methods are defined as detailed sub-objects mapping requirements (best practices, optimal seasons, estimated time weeks) per technique (division, cutting, seed).
-  - **Favorites & Social Interactions:** Integrated with a private `user_bookmarks` collection. Community popular indicators (likes/dislikes) are desensitized and projected as numeric counters on the `Plant` aggregate root, avoiding write contention and document size bloat.
 
 ### D. Families Module
 
 - **Current State in Code:**
   - Taxonomical classification fully implemented with CRUD, including public listings and custom seeders.
-  - Supports polymorphic read-only lookups (by UUID ID or alphanumeric string Slug) on GET routes.
+  - Supports polymorphic lookups (by UUID ID or alphanumeric string Slug) on GET routes.
+  - Mutation endpoints protected by `isCatalogMaintainer` allowing both `admin` and `collaborator` roles (`specs/036-collaborator-role`).
   - Updates use optimistic concurrency control (`version` via `If-Match`; stale version → `412`, missing `If-Match` → `428`).
 - **Target State (Spec v1.4.0):**
   - **Polymorphic Mutation:** `PATCH` already resolves `idOrSlug`; extend it to `DELETE`.
-  - **Collaborator Role:** Authorization for a `collaborator` role to manage catalog taxonomies, separate from system administrators.
 
-### E. Botanical Companions Graph (Plant Relations)
-
-- **Current State in Code:**
-  - Mock JSON data only (`mock_data/plantRelations.json`). No domain classes, schemas, or APIs exist.
-- **Target State (Spec v1.4.0):**
-  - **Directed Biological Graph:** Represented by `PlantRelation` aggregate root and collection, describing directional synergies (`beneficial`, `harmful`, `neutral`) with explicit ecological reasons (e.g., Tomato-Basil companionship).
-  - **Proximity Calculations:** Feeds directly into the Spatial System, allowing companion distance evaluations inside the Bed designer.
-
-### F. Chronological Events Module
+### E. Anomalies Module (Features 041 & 042)
 
 - **Current State in Code:**
-  - Domain entities, value objects, and mapping mappers (`EventMapper`, `EventDocument`) are fully implemented and unit-tested for core operations (watering, pruning, harvests).
-  - **Temporarily Inactive:** Lacks application use cases, repositories, or HTTP controllers. No routes are wired.
-- **Target State (Spec v1.4.0):**
-  - **Scope-Based Journal:** Integrates an explicit `scope: 'bed' | 'instance'` field to track agricultural logs cleanly, preventing "magic nulls".
-  - **Dual-Scope Harvesting:** Harvesting is logged per-instance (tracking exact coordinates) or per-bed (requiring an explicit `plantId` in the payload) for aggregated logging.
-  - **Crop Rotation Heuristics:** Historical events over the past 36 months are analyzed to identify family repetitions (e.g., sequential Solanaceae plantings), generating soil-restoring suggestions.
+  - Standalone aggregate root (`Anomaly`) completely decoupled from plants, stored in dedicated `anomalies` MongoDB collection.
+  - Unifies pests, diseases (pathogens), and physiological disorders under a closed category enum (`pest`, `disease`, `physiological_disorder`).
+  - Enforces semantic mutation methods (`update`, `delete`, `restore`), slug uniqueness invariants, and in-memory audit metadata.
+  - **Diagnostic Guidance:** Carries comprehensive diagnostic sections (`symptoms`, `damage`, `causes`, `affectedCrops`, `prevention`, `treatment`, `naturalEnemies`).
+  - **Visual & Differential Encyclopedia:** Rich embedded value objects: `SupportResource` (verified field images, articles, identification videos without mandatory image constraint) and `confusedWith` (declarative one-directional look-alike pointers verified active at write time with graceful dangling degradation).
+  - **Canonical Listing & Pagination Contracts:** Public read endpoint at `/api/v1/anomalies` with canonical `listQuerySchema` (`pagination[page]`, `pagination[limit]`), sorting, filtering, and JSON:API sparse fieldset projections.
+  - **Polymorphic Lookups:** `GET /api/v1/anomalies/:idOrSlug` with strong ETag generation and 304 Not Modified evaluation.
+  - **Curator Write Security:** Write operations guarded by `auth` + `isCatalogMaintainer` (`admin` or `collaborator`) with optimistic concurrency control (`If-Match`).
+  - **Plant Linkage:** Plants declare susceptibility via an array of anomaly slugs (`Plant.anomalies = string[]`).
 
-### G. Reminders & Care Engine
-
-- **Current State in Code:**
-  - Non-existent.
-- **Target State (Spec v1.4.0):**
-  - **State-Based Care Agenda:** Stateful, persisted `Reminder` records (`pending`, `completed`, `dismissed`) to avoid real-time calculation overhead, ensuring $O(1)$ read performance.
-  - **Passive Event-Driven Triggers:** Logged cultivation events passively mark reminders as completed and schedule subsequent tasks.
-  - **Cascading Invalidations:** Soft-deleting plant instances or removing beds triggers immediate, automatic cancellation/dismissal of future reminders.
-  - **Climatic Rain Silencing:** Integrates weather forecasts from Open-Meteo cached in Redis (2-hour TTL). Delays watering reminders when rain exceeds 5mm, with a protected environment bypass (indoor/greenhouse beds are never silenced).
-
-### H. Authentication & Identity (Auth)
+### F. GardenInputs Module (Feature 043, Iteration 40)
 
 - **Current State in Code:**
-  - Local and Google Sign-In verification, JWT token generation, and secure routes.
-  - JWT payload carries minimum identifiers (`id`, `email`, `username`, `roles`).
+  - Standalone aggregate root (`GardenInput`) completely decoupled from plants and anomalies, stored in dedicated `gardenInputs` MongoDB collection.
+  - Enforces semantic mutation methods (`update`, `delete`, `restore`), slug uniqueness invariants, and in-memory audit metadata.
+  - Rich embedded value objects: `Recipe` (ingredients with items/quantities, instructions, brew time, dosage by method, storage conditions, safety notes) and `SupportResource` (verified academic/extension citations).
+  - **Scientific & Empirical Baseline:** All catalog entries reflect agronomic literature and university extension standards (demystifying urban gardening myths like raw willow water containing synthetic IBA, or raw cinnamon serving as an auxin-based rooting hormone).
+  - **Canonical Listing & Pagination Contracts:** Listing endpoint strictly adheres to `listQuerySchema` with `deepObject` `pagination[page]` (default 1) and `pagination[limit]` (default 25, max 100), accompanied by operator-based filtering (`filter[<field>][eq/in]`) and clean `{ data, pagination }` responses validated via `checkPage`.
+  - **Polymorphic Lookups:** `GET /api/v1/garden-inputs/:idOrSlug` with strong ETag generation and 304 Not Modified evaluation.
+  - **Curator Write Security:** Write operations guarded by `auth` + `isCatalogMaintainer` (`admin` or `collaborator`) with optimistic concurrency control (`If-Match`).
+  - **Zero Seeding via Migrations:** Schema migrations (`20261026120000-create-garden-inputs-collection.js`) are strictly DDL (creating collection and unique/performance indexes). Catalog documents are ingested exclusively via the authenticated HTTP API by curator accounts (`admin` or `collaborator`).
+
+### G. User Bookmarks & Social Interactions (Features 038, 039, 040)
+
+- **Current State in Code:**
+  - Standalone `user_bookmarks` collection linking authenticated users to favorite plant varieties.
+  - Full CRUD operations via `/api/v1/bookmarks` allowing users to bookmark and unbookmark plants.
+  - Public `/api/v1/plants` listing supports filtering bookmarked plants via `filter[bookmarked][eq]=true`.
+  - Social popularity indicators: `POST /api/v1/plants/:id/like` and `DELETE /api/v1/plants/:id/like` allow authenticated users to like/unlike varieties, projecting atomic numeric counters on the `Plant` aggregate root.
+
+### H. Authentication & Identity (Auth) (Features 026, 027, 028, 030, 031, 034, 036)
+
+- **Current State in Code:**
+  - **Multi-Provider Authentication:** Local email/password credentials, stateless Google Sign-In (`POST /auth/google` with ID token verification), and stateless GitHub OAuth (`POST /auth/github` with PKCE authorization code exchange).
+  - **Transactional Email Activation:** New local registrations require email validation via emailed activation tokens (`POST /auth/activate`, `specs/030`).
+  - **Password Reset Flow:** Secure email password reset workflow with short-lived tokens (`POST /auth/password/forgot`, `POST /auth/password/reset`, `specs/031`).
+  - **Role Management:** Role-based access control with `admin`, `collaborator`, and `user` roles. Administrative role assignment endpoint (`PATCH /api/v1/users/:userId/roles`) with safeguards preventing admin lockout (`specs/034`, `035`).
+  - **Client Rate Limiting:** Dedicated rate limiters on sensitive auth endpoints (`registrationLimiter`, `authLimiter`, `passwordResetLimiter`).
 - **Target State (Spec v1.4.0):**
   - **Location & Hemisphere Configuration:** User profiles store `postalCode`, `country`, and calculated `hemisphere` (north | south), cached in Redis. Checked dynamically during seasonality validations to prevent JWT payload bloat.
-  - **Verification Mailer:** Proper transactional mailer infrastructure to support account validation.
 
 ---
 
@@ -193,19 +199,25 @@ The current MongoDB collection schemas are detailed below, highlighting embedded
 - `width`: Number (Positive).
 - `height`: Number (Positive).
 - `depth`: Number (Positive).
-- `plantInstances`: Array of embedded crop documents:
-  - `_id`: Binary (UUID)
-  - `plantId`: Binary (UUID)
-  - `position`: Coordinates object `{ x: number, y: number }`
-  - `growthStatus`: String (Enum: `germinating`, `seedling`, etc.)
-  - `instanceStatus`: String (Enum: `active`, `removed`)
-  - `plantedAt`: ISODate
-  - `removedAt`: ISODate (Optional)
-  - `variety`: String (Optional)
-  - `notes`: String (Optional)
-- `metadata`: Audit object.
+- `version`: Number (OCC).
 - `deleted`: Boolean (Logical deletion flag).
 - `deletedAt`: ISODate (Optional).
+- `metadata`: Audit object.
+
+### Collection: `plant_instances`
+
+- `_id`: Binary (UUID) - Primary Key (UUIDv7).
+- `userId`: Binary (UUID) - Foreign Key.
+- `bedId`: Binary (UUID) - Foreign Key.
+- `plantId`: Binary (UUID) - Foreign Key.
+- `position`: Coordinates object `{ x: number, y: number }` (Optional for nursery).
+- `growthStatus`: String (Enum: `seed`, `germinated`, `seedling`, `vegetative`, `flowering`, `fruiting`, `harvested`, `dormant`, `dead`).
+- `instanceStatus`: String (Enum: `active`, `removed`).
+- `plantedAt`: ISODate.
+- `removedAt`: ISODate (Optional).
+- `variety`: String (Optional).
+- `notes`: String (Optional).
+- `metadata`: Audit object.
 
 ### Collection: `families`
 
@@ -217,6 +229,7 @@ The current MongoDB collection schemas are detailed below, highlighting embedded
 - `shortDescription`: String.
 - `highlights`: Array of Strings.
 - `extra`: Dynamic JSON.
+- `version`: Number (OCC).
 - `metadata`: Audit object.
 
 ### Collection: `plants`
@@ -228,7 +241,58 @@ The current MongoDB collection schemas are detailed below, highlighting embedded
 - `traits`: Object `{ size: { height: range, spread: range }, spacingCm: range }`.
 - `calendar`: Object `{ sowing: months, flowering: months, harvest: months }`.
 - `propagation`: Object `{ methods: string[] }`.
+- `primaryImage`: String (Optional URL).
+- `likesCount`: Number (Atomic projected social counter).
+- `anomalies`: Array of Strings (Optional anomaly slugs declaring susceptibility).
+- `version`: Number (OCC).
 - `metadata`: Audit object.
+
+### Collection: `anomalies`
+
+- `_id`: Binary (UUID) - Primary Key (UUIDv7).
+- `slug`: String (Unique sparse index `anomalies_slug_unique`).
+- `name`: String.
+- `scientificName`: String (Optional).
+- `category`: String (Index `anomalies_category`; Enum: `pest`, `disease`, `physiological_disorder`).
+- `description`: String (Optional).
+- `symptoms`: Array of Strings (Optional).
+- `damage`: Array of Strings (Optional).
+- `causes`: Array of Strings (Optional).
+- `affectedCrops`: Array of Strings (Optional).
+- `prevention`: Array of Strings (Optional).
+- `treatment`: Array of Strings (Optional).
+- `naturalEnemies`: Array of Strings (Optional).
+- `resources`: Array of sub-documents `[{ type: 'article'|'video'|'image', url: string, title: string, source: string, tags: string[] }]`.
+- `confusedWith`: Array of Strings (Optional anomaly slugs).
+- `status`: String (Enum: `active`, `deleted`).
+- `deletedAt`: ISODate (Optional).
+- `version`: Number (Integer >= 0 for OCC).
+- `metadata`: Audit object (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`).
+
+### Collection: `gardenInputs`
+
+- `_id`: Binary (UUID) - Primary Key (UUIDv7).
+- `slug`: String (Unique sparse index `garden_inputs_slug_unique`).
+- `name`: String.
+- `description`: String (Optional).
+- `category`: String (Index `garden_inputs_category`; Enum: `defense`, `fertilizer`, `biostimulant`, `soil_amendment`).
+- `actions`: Array of Strings (Optional; Enum: `fungicide`, `insecticide`, `repellent`, `nematicide`, `fertilizer`, `biostimulant`, `rooting`, `compost_activator`).
+- `activeIngredients`: Array of Strings (Optional).
+- `nutrients`: Array of Strings (Optional).
+- `targets`: Array of Strings (Optional).
+- `recipes`: Array of sub-documents `[{ name, description, ingredients: [{ item, quantity }], instructions: string[], brewTime, dosage: { method, dilution, frequency }, storage: { duration, conditions, spoilageSigns }, safetyNotes: string[] }]`.
+- `resources`: Array of sub-documents `[{ type: 'article'|'video'|'image', url: string, title: string, source: string, tags: string[] }]`.
+- `status`: String (Enum: `active`, `deleted`).
+- `deletedAt`: ISODate (Optional).
+- `version`: Number (Integer >= 0 for OCC).
+- `metadata`: Audit object (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`).
+
+### Collection: `user_bookmarks`
+
+- `_id`: Binary (UUID) - Primary Key (UUIDv7).
+- `userId`: Binary (UUID) - Foreign Key.
+- `plantId`: Binary (UUID) - Foreign Key.
+- `bookmarkedAt`: ISODate.
 
 ---
 
@@ -249,28 +313,57 @@ Agro-Back implements an Express HTTP server starting at `src/index.ts`. All endp
 ### Detailed Active Routes
 
 1.  **Auth (`/api/v1/auth`):**
-    - `POST /register` ──► Registers local credentials.
-    - `POST /login` ──► Standard local login.
-    - `POST /google` ──► Verifies Google ID tokens.
-    - `POST /activate` ──► Validates the email with the emailed activation token.
+    - `POST /register` ──► Registers local credentials (initiates email activation).
+    - `POST /login` ──► Standard local login (checks email validation).
+    - `POST /google` ──► Verifies Google ID tokens (stateless OAuth).
+    - `POST /github` ──► Stateless GitHub OAuth with PKCE authorization code exchange.
+    - `POST /activate` ──► Validates email with activation token.
     - `POST /refresh` ──► Renews session token.
-    - `POST /update` ──► Modifies profile password/credentials.
+    - `POST /password/forgot` ──► Issues password reset token and sends email notice.
+    - `POST /password/reset` ──► Resets password with token.
+    - `POST /password/change` ──► Updates password for authenticated user.
+    - `PATCH /users/:userId/roles` ──► Updates user roles (Admin only, safeguarded).
 2.  **Beds (`/api/v1/beds`):**
     - `POST /` ──► Creates a bed.
     - `GET /` ──► Lists beds of the authenticated user.
-    - `GET /:id` ──► Retrieves details of a specific bed.
+    - `GET /:id` ──► Retrieves details of a specific bed (optional embed `include=plantInstances`).
     - `PATCH /:id` ──► Partially updates a bed through aggregate mutation methods (`rename`, `resize`).
-    - `DELETE /:id` ──► Logically marks a bed as deleted.
-3.  **Families (`/api/v1/families`):**
-    - `POST /` ──► Creates a taxonomy (Admin only).
-    - `GET /` ──► Public paginated listing.
+    - `DELETE /:id` ──► Logically marks a bed as deleted (cascading to plant instances).
+3.  **PlantInstances (`/api/v1/plant-instances`):**
+    - `POST /` ──► Places a crop in a bed with spatial collision validation.
+    - `GET /` ──► Lists plant instances of the authenticated user.
+    - `GET /:id` ──► Retrieves a specific crop instance.
+    - `PATCH /:id` ──► Updates variety, notes, or coordinates (with collision checks).
+    - `DELETE /:id` ──► Soft-deletes a crop instance.
+4.  **Families (`/api/v1/families`):**
+    - `POST /` ──► Creates a taxonomy (Admin / Collaborator).
+    - `GET /` ──► Public paginated listing with sparse fieldsets.
     - `GET /:idOrSlug` ──► Polymorphic lookup by ID or Slug.
-    - `PATCH /:id` ──► Partially updates a family (Admin only).
-4.  **Plants (`/api/v1/plants`):**
-    - `POST /` ──► Creates a plant variety (Admin only).
-    - `GET /` ──► Public paginated listing.
+    - `PATCH /:idOrSlug` ──► Partially updates a family (Admin / Collaborator).
+    - `DELETE /:id` ──► Soft-deletes a family (Admin / Collaborator).
+5.  **Plants (`/api/v1/plants`):**
+    - `POST /` ──► Creates a plant variety (Admin / Collaborator).
+    - `GET /` ──► Public paginated listing with sparse fieldsets and bookmark filtering.
     - `GET /:id` ──► Retrieves a specific variety.
-    - `PATCH /:id` ──► Partially updates traits/phenology (Admin only).
-    - `DELETE /:id` ──► Soft-deletes a variety (Admin only).
-5.  **Health (`/api/v1/health`):**
+    - `PATCH /:id` ──► Partially updates traits/phenology (Admin / Collaborator).
+    - `DELETE /:id` ──► Soft-deletes a variety (Admin / Collaborator).
+    - `POST /:id/like` ──► Adds a social like from authenticated user.
+    - `DELETE /:id/like` ──► Removes a social like from authenticated user.
+6.  **Anomalies (`/api/v1/anomalies`):**
+    - `POST /` ──► Creates a plant health anomaly (Admin / Collaborator).
+    - `GET /` ──► Public paginated listing with category filtering and sparse fieldsets.
+    - `GET /:idOrSlug` ──► Polymorphic lookup by UUID or slug with sparse fieldsets and ETag.
+    - `PATCH /:idOrSlug` ──► Partial update guarded by `If-Match` OCC (Admin / Collaborator).
+    - `DELETE /:idOrSlug` ──► Soft-deletes an anomaly guarded by `If-Match` OCC (Admin / Collaborator).
+7.  **GardenInputs (`/api/v1/garden-inputs`):**
+    - `POST /` ──► Creates an organic garden input (Admin / Collaborator).
+    - `GET /` ──► Public paginated listing with category/action filtering and sparse fieldsets.
+    - `GET /:idOrSlug` ──► Polymorphic lookup by UUID or slug with sparse fieldsets and ETag.
+    - `PATCH /:idOrSlug` ──► Partial merge-patch update guarded by `If-Match` OCC (Admin / Collaborator).
+    - `DELETE /:idOrSlug` ──► Soft-deletes a garden input guarded by `If-Match` OCC (Admin / Collaborator).
+8.  **Bookmarks (`/api/v1/bookmarks`):**
+    - `POST /` ──► Bookmarks a plant variety for the authenticated user.
+    - `GET /` ──► Lists bookmarked plant IDs for the authenticated user.
+    - `DELETE /:plantId` ──► Removes a plant from bookmarks.
+9.  **Health (`/api/v1/health`):**
     - `GET /` ──► Returns database and system status.

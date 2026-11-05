@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 
 import {
+  formatVersionETag,
   getExpectedVersions,
   ifMatchSchema,
   isFullRepresentation,
@@ -31,6 +32,13 @@ describe('versionTags', () => {
       [', "3",', [3]],
       [',,"3",,', [3]],
       ['"9007199254740991"', [Number.MAX_SAFE_INTEGER]],
+      ['"0-1"', [0]],
+      ['"2-3"', [2]],
+      ['"0-0"', [0]],
+      ['"0-1", "2-3"', [0, 2]],
+      ['"0-03"', []],
+      ['"0--1"', []],
+      ['W/"0-1"', []],
       ['W/"3"', []],
       ['"abc"', []],
       ['"a,b"', []],
@@ -76,14 +84,39 @@ describe('versionTags', () => {
     });
   });
 
+  describe('formatVersionETag', () => {
+    it.each([
+      [0, undefined, '"0"'],
+      [0, 0, '"0"'],
+      [0, 1, '"0-1"'],
+      [2, 5, '"2-5"'],
+      [4, 0, '"4"']
+    ])(
+      'formats version %i and counter %p as %s',
+      (version, counter, expected) => {
+        const tag = formatVersionETag(version, counter);
+
+        expect(tag).toBe(expected);
+      }
+    );
+  });
+
   describe('setVersionETag', () => {
-    it('should set a strong ETag holding the version', () => {
-      const { res, set } = buildRes();
+    it.each([
+      [4, undefined, '"4"'],
+      [0, 0, '"0"'],
+      [0, 1, '"0-1"'],
+      [2, 5, '"2-5"']
+    ])(
+      'should set ETag header for version %i and counter %p to %s',
+      (version, counter, expected) => {
+        const { res, set } = buildRes();
 
-      setVersionETag(res, 4);
+        setVersionETag(res, version, counter);
 
-      expect(set).toHaveBeenCalledWith('ETag', '"4"');
-    });
+        expect(set).toHaveBeenCalledWith('ETag', expected);
+      }
+    );
   });
 
   describe('expected versions', () => {

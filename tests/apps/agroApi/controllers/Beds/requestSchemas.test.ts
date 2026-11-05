@@ -87,6 +87,12 @@ describe('Bed requestSchemas', () => {
       ],
       ['a null name', { name: null }, 'name'],
       ['an id that is not a UUID', { id: 'bed-1' }, 'id'],
+      ['a null locationId', { locationId: null }, 'locationId'],
+      [
+        'a locationId that is not a UUID',
+        { locationId: 'loc-1' },
+        'locationId'
+      ],
       ...DIMENSIONS.flatMap((field): InvalidCase[] => [
         [`a zero ${field}`, { [field]: 0 }, field],
         [`a negative ${field}`, { [field]: -1 }, field],
@@ -116,7 +122,7 @@ describe('Bed requestSchemas', () => {
       const errors = await errorsOf(createBedRequest, { body: {} });
 
       expect(Object.keys(errors).sort()).toEqual(
-        ['depth', 'height', 'id', 'name', 'width'].sort()
+        ['depth', 'height', 'id', 'locationId', 'name', 'width'].sort()
       );
     });
 
@@ -171,6 +177,65 @@ describe('Bed requestSchemas', () => {
     });
   });
 
+  describe('listBedsRequest query', () => {
+    it.each([
+      ['plantInstances', { include: 'plantInstances' }],
+      ['location', { include: 'location' }],
+      ['plantInstances,location', { include: 'plantInstances,location' }],
+      ['location,plantInstances', { include: 'location,plantInstances' }],
+      ['filter.locationId', { filter: { locationId: random.uuid() } }],
+      [
+        'filter.locationId.eq',
+        { filter: { locationId: { eq: random.uuid() } } }
+      ],
+      ['filter[locationId]', { 'filter[locationId]': random.uuid() }],
+      ['filter[locationId][eq]', { 'filter[locationId][eq]': random.uuid() }]
+    ])('accepts valid query with %s', async (_label, query) => {
+      const parsed = await parsedOf(listBedsRequest, { query });
+
+      expect(parsed.query).toEqual(query);
+    });
+
+    it.each([
+      ['invalid include', { include: 'crops' }, 'include'],
+      ['empty include', { include: '' }, 'include'],
+      [
+        'non-UUID filter[locationId]',
+        { 'filter[locationId]': 'not-a-uuid' },
+        'filter[locationId]'
+      ]
+    ])('rejects %s', async (_label, query, field) => {
+      const errors = await errorsOf(listBedsRequest, { query });
+
+      expect(Object.keys(errors)).toEqual([field]);
+    });
+  });
+
+  describe('getBedByIdRequest query', () => {
+    it.each([
+      ['plantInstances', { include: 'plantInstances' }],
+      ['location', { include: 'location' }],
+      ['plantInstances,location', { include: 'plantInstances,location' }],
+      ['location,plantInstances', { include: 'location,plantInstances' }]
+    ])('accepts valid include query with %s', async (_label, query) => {
+      const parsed = await parsedOf(getBedByIdRequest, {
+        params: bedParams(),
+        query
+      });
+
+      expect(parsed.query).toEqual(query);
+    });
+
+    it('rejects invalid include', async () => {
+      const errors = await errorsOf(getBedByIdRequest, {
+        params: bedParams(),
+        query: { include: 'invalid' }
+      });
+
+      expect(Object.keys(errors)).toEqual(['include']);
+    });
+  });
+
   describe.each([
     ['getBedByIdRequest', getBedByIdRequest],
     ['updateBedRequest', updateBedRequest],
@@ -213,6 +278,7 @@ describe('Bed requestSchemas', () => {
     it.each<InvalidCase>([
       ['a null name', { name: null }, 'name'],
       ['a blank name', { name: '  ' }, 'name'],
+      ['a null locationId', { locationId: null }, 'locationId'],
       ...DIMENSIONS.flatMap((field): InvalidCase[] => [
         [`a null ${field}`, { [field]: null }, field],
         [`a zero ${field}`, { [field]: 0 }, field]

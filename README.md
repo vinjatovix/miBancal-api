@@ -23,7 +23,7 @@
 
 ### Prerequisites
 
-- Node.js version = 22.x
+- Node.js version = 24.x (>= 24.22.1)
 - npm version >= 10.1.0
 
 A `.tool-versions` file is provided to easily work with [asdf](https://asdf-vm.com/)

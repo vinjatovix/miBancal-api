@@ -1,7 +1,10 @@
 import { ListPlants } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/ListPlants.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { DomainUnauthorizedException } from '../../../../../../src/Contexts/shared/domain/errors/DomainUnauthorizedException.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { UserBookmarksRepositoryMock } from '../../../Bookmarks/__mocks__/UserBookmarksRepositoryMock.js';
+import { UserBookmarksMother } from '../../../Bookmarks/domain/entities/UserBookmarksMother.js';
 import { FamilySummaryReaderMock } from '../../__mocks__/FamilySummaryReaderMock.js';
 import { PlantReadRepositoryMock } from '../../__mocks__/PlantReadRepositoryMock.js';
 import { FamilySummaryViewMother } from '../queries/FamilySummaryViewMother.js';
@@ -10,11 +13,14 @@ import { PlantReadViewMother } from '../queries/PlantReadViewMother.js';
 describe('ListPlants', () => {
   let repository: PlantReadRepositoryMock;
   let familySummaryReader: FamilySummaryReaderMock;
+  let userBookmarksRepository: UserBookmarksRepositoryMock;
   let listPlants: ListPlants;
   const USER = {
+    id: random.uuid(),
     roles: ['user']
   } as UserSessionInfo;
   const ADMIN = {
+    id: random.uuid(),
     roles: ['admin']
   } as UserSessionInfo;
   const COLLABORATOR = {
@@ -24,9 +30,11 @@ describe('ListPlants', () => {
   beforeEach(() => {
     repository = new PlantReadRepositoryMock();
     familySummaryReader = new FamilySummaryReaderMock();
+    userBookmarksRepository = new UserBookmarksRepositoryMock();
     listPlants = new ListPlants({
       plantReadRepository: repository,
-      familySummaryReader
+      familySummaryReader,
+      userBookmarksRepository
     });
   });
 
@@ -160,6 +168,44 @@ describe('ListPlants', () => {
 
       expect(data[0]).not.toHaveProperty('identity');
       familySummaryReader.assertNotCalled();
+    });
+  });
+
+  describe('with bookmark filter', () => {
+    it('should throw authentication error for anonymous users', async () => {
+      await expect(
+        listPlants.execute(undefined, {
+          query: { filter: { bookmarked: { eq: true } } }
+        })
+      ).rejects.toThrow(DomainUnauthorizedException);
+    });
+
+    it('should filter by bookmarked plants', async () => {
+      const plant1 = PlantReadViewMother.random();
+      const bookmarks = UserBookmarksMother.ofPlants(USER.id, [plant1.id]);
+      userBookmarksRepository.addToStorage(bookmarks);
+
+      await listPlants.execute(USER, {
+        query: { filter: { bookmarked: { eq: true } } }
+      });
+
+      repository.assertFindAllHasBeenCalledWith({
+        filter: { id: { in: [plant1.id] }, status: { eq: PlantStatus.ACTIVE } }
+      });
+    });
+
+    it('should filter by non-bookmarked plants', async () => {
+      const plant1 = PlantReadViewMother.random();
+      const bookmarks = UserBookmarksMother.ofPlants(USER.id, [plant1.id]);
+      userBookmarksRepository.addToStorage(bookmarks);
+
+      await listPlants.execute(USER, {
+        query: { filter: { bookmarked: { eq: false } } }
+      });
+
+      repository.assertFindAllHasBeenCalledWith({
+        filter: { id: { nin: [plant1.id] }, status: { eq: PlantStatus.ACTIVE } }
+      });
     });
   });
 });

@@ -14,6 +14,7 @@ import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNu
 import type { BedId } from '../BedId.js';
 import { BedName } from '../BedName.js';
 import type { BedDimensionsChanges } from './types/BedDimensionsChanges.js';
+import type { BedGeographicSnapshot } from './types/BedGeographicSnapshot.js';
 import type { BedProps } from './types/BedProps.js';
 
 type BedState = BedProps & { version: number };
@@ -46,6 +47,14 @@ export class Bed extends AggregateRoot<BedId> {
     return this.props.depth;
   }
 
+  get latitude(): number | undefined {
+    return this.props.latitude;
+  }
+
+  get longitude(): number | undefined {
+    return this.props.longitude;
+  }
+
   get metadata(): Metadata {
     return this.props.metadata;
   }
@@ -60,6 +69,10 @@ export class Bed extends AggregateRoot<BedId> {
 
   get userId(): UserId {
     return this.props.userId;
+  }
+
+  get locationId(): string | null {
+    return this.props.locationId ?? null;
   }
 
   get version(): number {
@@ -121,6 +134,95 @@ export class Bed extends AggregateRoot<BedId> {
     if (!hasStateChanged(before, after)) return;
 
     this.commit({ width, height, depth }, user, at);
+  }
+
+  /**
+   * Sets/replaces the geographic coordinates snapshot (`geo`) or clears it (`null`),
+   * mirroring `rename`/`resize`. No-op when the resolved snapshot does not change.
+   */
+  applyLocationSnapshot(
+    geo: BedGeographicSnapshot | null,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    if (this.isDeleted) {
+      throw new DomainConflictException(
+        'Cannot change the location snapshot of a deleted bed'
+      );
+    }
+
+    const before = {
+      latitude: this.props.latitude,
+      longitude: this.props.longitude
+    };
+    const after: Partial<BedGeographicSnapshot> = geo ?? {};
+
+    if (!hasStateChanged(before, after)) return;
+
+    const nextProps: BedState = {
+      ...this.props,
+      metadata: Metadata.update(this.props.metadata, user, at)
+    };
+
+    delete nextProps.latitude;
+    delete nextProps.longitude;
+
+    if (after.latitude !== undefined) nextProps.latitude = after.latitude;
+    if (after.longitude !== undefined) nextProps.longitude = after.longitude;
+
+    this.props = Object.freeze(nextProps);
+  }
+
+  private applyRelocationProps(
+    locationId: string,
+    geo: BedGeographicSnapshot | null,
+    user: string,
+    at: Date
+  ): BedState {
+    const nextProps: BedState = {
+      ...this.props,
+      locationId,
+      metadata: Metadata.update(this.props.metadata, user, at)
+    };
+
+    delete nextProps.latitude;
+    delete nextProps.longitude;
+
+    if (geo?.latitude !== undefined) nextProps.latitude = geo.latitude;
+    if (geo?.longitude !== undefined) nextProps.longitude = geo.longitude;
+
+    return nextProps;
+  }
+
+  /**
+   * Relocates the bed to another location and updates the geographic coordinates snapshot atomically.
+   */
+  relocate(
+    locationId: string,
+    geo: BedGeographicSnapshot | null,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    if (this.isDeleted) {
+      throw new DomainConflictException('Cannot relocate a deleted bed');
+    }
+
+    const before = {
+      locationId: this.props.locationId ?? null,
+      latitude: this.props.latitude,
+      longitude: this.props.longitude
+    };
+    const after = {
+      locationId,
+      latitude: geo?.latitude,
+      longitude: geo?.longitude
+    };
+
+    if (!hasStateChanged(before, after)) return;
+
+    this.props = Object.freeze(
+      this.applyRelocationProps(locationId, geo, user, at)
+    );
   }
 
   markAsDeleted(user: string, at: Date = new Date()): void {

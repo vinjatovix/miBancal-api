@@ -1,6 +1,7 @@
 import { DataTable, Given, Then, When } from '@cucumber/cucumber';
 import { assert } from 'chai';
 
+import { up as backfillPlantGenus } from '../../../../../migrations/scripts/20261031130000-backfill-plant-genus.js';
 import { PlantStatus } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import {
   fromMongoId,
@@ -147,6 +148,26 @@ Given(
     await createSoftDeletedPlant(this, {
       'identity.scientificName': scientificName
     });
+  }
+);
+
+Given(
+  'a legacy plant without genus exists with scientific name {string}',
+  async function (this: AgroWorld, scientificName: string) {
+    const [plant] = await suite().seeders.plant.createMany(1, {
+      'identity.family': this.familyId,
+      'identity.scientificName': scientificName
+    });
+    assert.exists(plant, 'PlantSeeder created no plant for legacy genus test');
+    await updateStoredDocument('plants', plant.id.toString(), {
+      $unset: { 'identity.genus': '' }
+    });
+    // The genus back-fill runs once at BeforeAll on an empty database, so a
+    // legacy plant seeded inside the scenario must be back-filled here, the
+    // same way production runs the migration (idempotent; the hybrid case
+    // derives no genus and stays untouched).
+    await backfillPlantGenus(suite().client.db());
+    this.plantId = plant.id.toString();
   }
 );
 

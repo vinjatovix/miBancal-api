@@ -31,7 +31,8 @@ export type SeededUserState =
   | 'pendingExpired'
   | 'pendingWithoutToken'
   | 'googleLinked'
-  | 'googleOnly';
+  | 'googleOnly'
+  | 'githubLinked';
 
 /**
  * When the seeded reset token was issued: `recent` is inside the throttle
@@ -83,6 +84,8 @@ export type UserSeedOptions = Partial<
   state?: SeededUserState;
   /** Google identity of `googleLinked` and `googleOnly`. */
   googleSub?: string;
+  /** GitHub numeric identity of `githubLinked`. */
+  githubUserId?: string;
   /** Adds a password reset token to the account, whatever its state. */
   resetToken?: SeededResetToken;
 };
@@ -122,7 +125,7 @@ export const UserSeeder = ({
 
   const build = async (
     seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
-    { state = 'active', googleSub }: UserSeedOptions
+    { state = 'active', googleSub, githubUserId }: UserSeedOptions
   ): Promise<{ user: User; activationToken?: string }> => {
     const now = new Date();
     const { token, tokenHash } = oneTimeToken.generate();
@@ -163,8 +166,28 @@ export const UserSeeder = ({
       );
     }
 
+    if (state === 'githubLinked') {
+      user.linkProvider(
+        new UserAuthMethod({
+          provider: 'github',
+          providerUserId: githubUserId ?? `github-${random.uuid()}`,
+          linkedAt: now
+        }),
+        now
+      );
+    }
+
     return { user };
   };
+
+  const buildSeedDefaults = (
+    options: UserSeedOptions
+  ): Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>> => ({
+    id: options.id ?? random.uuid(),
+    username: options.username ?? random.word({ min: 8, max: 20 }),
+    email: options.email ?? `${random.word({ min: 8, max: 20 })}@seeded.com`,
+    password: options.password ?? SEEDED_PASSWORD
+  });
 
   /** Issues a reset token as the given time ago and returns it in plain. */
   const issueResetToken = (user: User, issued: SeededResetToken): string => {
@@ -181,13 +204,7 @@ export const UserSeeder = ({
 
   return {
     async create(options: UserSeedOptions = {}): Promise<SeededUser> {
-      const seed = {
-        id: options.id ?? random.uuid(),
-        username: options.username ?? random.word({ min: 8, max: 20 }),
-        email:
-          options.email ?? `${random.word({ min: 8, max: 20 })}@seeded.com`,
-        password: options.password ?? SEEDED_PASSWORD
-      };
+      const seed = buildSeedDefaults(options);
       const { user, activationToken } = await build(seed, options);
       const resetToken =
         options.resetToken === undefined

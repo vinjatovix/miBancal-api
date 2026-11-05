@@ -17,6 +17,8 @@ export type FakeResponse = {
   status: jest.Mock;
   json: jest.Mock;
   send: jest.Mock;
+  set: jest.Mock;
+  end: jest.Mock;
 };
 
 export const buildRequest = ({
@@ -32,12 +34,16 @@ export const buildResponse = (
   const status = jest.fn();
   const json = jest.fn();
   const send = jest.fn();
-  const res = { locals, status, json, send } as unknown as Response;
+  const set = jest.fn();
+  const end = jest.fn();
+  const res = { locals, status, json, send, set, end } as unknown as Response;
   status.mockReturnValue(res);
   json.mockReturnValue(res);
   send.mockReturnValue(res);
+  set.mockReturnValue(res);
+  end.mockReturnValue(res);
 
-  return { res, status, json, send };
+  return { res, status, json, send, set, end };
 };
 
 export const buildNext = (): jest.Mock => jest.fn();

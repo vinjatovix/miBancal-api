@@ -1,3 +1,5 @@
+import type { AppLogger } from '../../../../src/Contexts/shared/plugins/logger.plugin.js';
+
 type TransportOptions = { silent?: boolean; filename?: string };
 
 type FakeWinston = {
@@ -14,7 +16,11 @@ const LOGGER_MODULE =
   '../../../../src/Contexts/shared/plugins/logger.plugin.js';
 
 const createFakeWinston = (): FakeWinston => ({
-  createLogger: jest.fn(() => ({ add: jest.fn(), transports: [] })),
+  createLogger: jest.fn(() => ({
+    add: jest.fn(),
+    info: jest.fn(),
+    transports: []
+  })),
   format: {
     combine: jest.fn(),
     timestamp: jest.fn(),
@@ -31,8 +37,11 @@ const loadLoggerWith = (environment: Environment): FakeWinston => {
   jest.isolateModules(() => {
     jest.doMock('winston', () => ({ __esModule: true, default: winston }));
     jest.doMock('winston-mongodb', () => ({}));
-    jest.doMock(ENVS_MODULE, () => ({ envs: environment }));
-    jest.requireActual(LOGGER_MODULE);
+    jest.doMock(ENVS_MODULE, () => ({ getEnvs: () => environment }));
+    const { buildLogger } = jest.requireActual<{
+      buildLogger: (s: string) => AppLogger;
+    }>(LOGGER_MODULE);
+    buildLogger('test').info('trigger');
   });
 
   return winston;

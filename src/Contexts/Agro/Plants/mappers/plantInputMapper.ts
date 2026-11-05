@@ -164,6 +164,7 @@ export const plantInputMapper: PlantInputMapper = {
       },
       phenology,
       knowledge,
+      ...(dto.anomalies ? { anomalies: dto.anomalies } : {}),
       metadata: Metadata.create(user)
     };
 
@@ -187,6 +188,8 @@ export const plantInputMapper: PlantInputMapper = {
     if (phenology) result.phenology = phenology;
 
     if (dto.knowledge) result.knowledge = dto.knowledge;
+
+    if (dto.anomalies !== undefined) result.anomalies = dto.anomalies;
 
     return result;
   }

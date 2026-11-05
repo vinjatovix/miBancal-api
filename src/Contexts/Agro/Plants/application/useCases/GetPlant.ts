@@ -1,6 +1,8 @@
 import type { ReadOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
+import type { Nullable } from '../../../../../shared/domain/types/Nullable.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
+import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
 import type {
   FamilySummaryReader,
   PlantField,
@@ -29,15 +31,32 @@ export class GetPlant {
   }
 
   async execute(
-    id: string,
+    idOrSlug: string,
     user: UserSessionInfo | undefined,
     options: ReadOptions<PlantField, PlantRelation> = {}
   ): Promise<PlantSparseView> {
     const { include: _include, ...readOptions } = options;
-    const found = canSeeDeletedPlants(user)
-      ? await this.plantReadRepository.findById(id, readOptions)
-      : await this.plantReadRepository.findActiveById(id, readOptions);
-    const plant = ensureFound(found, 'Plant', id);
+    const isUuid = UuidValidator.isValid(idOrSlug);
+
+    let found: Nullable<PlantSparseView>;
+    if (canSeeDeletedPlants(user)) {
+      found = isUuid
+        ? await this.plantReadRepository.findById(idOrSlug, readOptions)
+        : await this.plantReadRepository.findBySlug(idOrSlug, readOptions);
+    } else {
+      found = isUuid
+        ? await this.plantReadRepository.findActiveById(idOrSlug, readOptions)
+        : await this.plantReadRepository.findActiveBySlug(
+            idOrSlug,
+            readOptions
+          );
+    }
+    const plant = ensureFound(
+      found,
+      'Plant',
+      idOrSlug,
+      isUuid ? undefined : 'slug'
+    );
 
     if (!embedsFamily(options)) return plant;
 

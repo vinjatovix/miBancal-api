@@ -34,24 +34,39 @@ Rules:
 
 ### 3.1 Anomaly
 
-Unifies pests, diseases (pathogens), physiological disorders, and weeds into a single diagnostic concept.
+Unifies pests, diseases (pathogens), and physiological disorders into a single diagnostic concept.
 
 #### Fields
 
-- id (UUID)
-- name
-- classification: pest | pathogen | disorder | weed
-- description
-- symptoms: string[]
-- causes: string[]
-- affectedPlants: Plant IDs (UUIDs)
-- treatments: GardenInput IDs (UUIDs) `[TARGET STATE (Pending [Iteration 41](../../roadmap.md#iteration-41-map-therapeutic-links-in-anomaly-documents))]` (models the therapeutic relationship directly at the document level)
+- `id`: UUID (UUIDv7 `AnomalyId` value object)
+- `slug`: string (kebab-case unique identifier, immutable after creation)
+- `name`: string (common name)
+- `scientificName`: string (optional latin taxonomy name)
+- `category`: `pest` | `disease` | `physiological_disorder`
+- `description`: string (optional overview text)
+- `symptoms`: string[] (optional diagnostic visible signs)
+- `damage`: string[] (optional agronomic crop damage)
+- `causes`: string[] (optional biological or abiotic origins)
+- `affectedCrops`: string[] (optional list of affected plants/crops)
+- `prevention`: string[] (optional cultural and physical preventive actions)
+- `treatment`: string[] (optional curative methods or organic remedy pointers)
+- `naturalEnemies`: string[] (optional beneficial biological control agents)
+- `resources`: SupportResource[] (optional support materials: image, article, video, each with absolute http/https url and optional title, source, tags; no mandatory image)
+- `confusedWith`: string[] (optional differential-diagnosis pointers to look-alike anomaly slugs; validated active at write time, absent-safe on retirement)
+- `status`: `active` | `deleted` (soft deletion)
+- `deletedAt`: Date (optional ISO timestamp)
+- `version`: integer (optimistic concurrency version, integer >= 0)
+- `metadata`: Metadata (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`)
 
 #### Rules
 
-- can affect multiple plants
-- symptoms are descriptive only
-- no behavioral domain logic
+- can affect multiple plants; plants declare susceptibility via `Plant.anomalies = string[]` (array of anomaly slugs)
+- symptoms and guidance lists are descriptive arrays of plain text
+- no behavioral domain logic outside invariants
+- `SupportResource` is a single shared Agro concept (`src/Contexts/Agro/shared/domain/supportResource/`), reused across Plants, Anomalies, and GardenInputs
+- `confusedWith` is **declarative and one-directional**: recording `A.confusedWith = [B]` writes nothing on `B`; no symmetry is enforced and no back-reference is kept
+- every `confusedWith` slug must name an existing (ACTIVE) anomaly at write time (non-transactional pre-check); a pointer that dangles later (target retired) never breaks the read of the referring entry
+- public read access via `/api/v1/anomalies`, curator write access (`admin` | `collaborator`) guarded by `If-Match` OCC
 
 ---
 
@@ -61,21 +76,36 @@ Unifies organic remedies, ecological treatments, repellents, bio-stimulants, and
 
 #### Fields
 
-- `id`: UUID (value object)
-- `name`: string
-- `type`: `nutrition` | `defense`
-- `subType`: `fungicide` | `insecticide` | `repellent` | `fertilizer` | `bio-stimulant`
-- `nutritionalProfile`: (optional object mapping N-P-K percentages or ratios, and lists of micro-elements like Calcium (Ca), Iron (Fe), Magnesium (Mg), Silicon (Si))
-- `recipe`: (optional object representing a home-made preparation)
-  - `ingredients`: string[] (list of required materials/plants, e.g. "compost", "fresh nettles")
-  - `fermentationType`: `alluring` | `aerobic` | `anaerobic` | `none`
-  - `preparationTimeDays`: integer (time needed for fermentation or infusion)
-  - `instructions`: string[] (step-by-step preparation tutorial)
-- `application`: (optional object with dosage instructions)
-  - `dilutionRatio`: string (e.g., "1:10", "1:500")
-  - `method`: `foliar` | `irrigation` | `soil`
-  - `frequencyDays`: integer (how often to apply)
-- `safetyWarnings`: string[] (optional safety instructions)
+- `id`: UUID (UUIDv7 `GardenInputId` value object)
+- `slug`: string (kebab-case unique identifier, immutable after creation)
+- `name`: string (common commercial or folk preparation name)
+- `description`: string (optional agronomic mode of action and background)
+- `category`: `defense` | `fertilizer` | `biostimulant` | `soil_amendment`
+- `actions`: array of enum strings (`fungicide`, `insecticide`, `repellent`, `nematicide`, `fertilizer`, `biostimulant`, `rooting`, `compost_activator`)
+- `activeIngredients`: string[] (optional active biochemical compounds or botanical extracts)
+- `nutrients`: string[] (optional nutrient contents, e.g. N, P, K, Ca, S, Si)
+- `targets`: string[] (optional targeted pests, diseases, or soil deficiencies)
+- `recipes`: Recipe[] (optional array of structured preparation and application formulas)
+  - `name`: string (recipe title)
+  - `description`: string (optional recipe summary)
+  - `ingredients`: `{ item: string, quantity: string }[]` (required materials and ratios)
+  - `instructions`: string[] (step-by-step preparation steps)
+  - `brewTime`: string (optional maceration/fermentation duration)
+  - `dosage`: `{ method: 'foliar'|'irrigation'|'soil'|'soaking'|'dusting'|'other', dilution: string, frequency: string }`
+  - `storage`: `{ duration: string, conditions: string, spoilageSigns?: string }` (optional storage parameters)
+  - `safetyNotes`: string[] (optional PPE, phytotoxicity warnings, or withholding periods)
+- `resources`: SupportResource[] (optional support materials: article, video, image)
+- `status`: `active` | `deleted` (soft deletion)
+- `deletedAt`: Date (optional ISO timestamp)
+- `version`: integer (optimistic concurrency version, integer >= 0)
+- `metadata`: Metadata (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`)
+
+#### Rules
+
+- completely decoupled from Plants and Anomalies: zero circular imports, references managed via stable slugs
+- public read access via `/api/v1/garden-inputs` with canonical pagination, sorting, filtering, and sparse fieldsets
+- polymorphic lookups (`GET /api/v1/garden-inputs/:idOrSlug`) with strong ETag and 304 validation
+- curator write access (`admin` | `collaborator`) guarded by `If-Match` OCC and transactional persistence
 
 #### 3.2.1 `[TARGET STATE (Pending [Iteration 42](../../roadmap.md#iteration-42-build-organic-dilution-calculator-service))]` Organic Dilution Calculator Service
 

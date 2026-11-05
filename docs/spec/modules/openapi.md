@@ -265,7 +265,7 @@ PlantInstances are managed as standalone aggregates associated with a specific B
 
 ### 6.7 Knowledge `[TARGET STATE (Pending Iterations [39](../../roadmap.md#iteration-39-implement-anomaly-domain-and-crud-endpoints) & [40](../../roadmap.md#iteration-40-implement-gardeninput-domain-and-crud-endpoints))]`
 
-- anomalies (unifies pests, diseases, disorders, weeds)
+- anomalies (unifies pests, diseases, disorders)
   - POST /api/v1/anomalies (admin | collaborator)
   - GET /api/v1/anomalies (public)
   - GET /api/v1/anomalies/:id (public)

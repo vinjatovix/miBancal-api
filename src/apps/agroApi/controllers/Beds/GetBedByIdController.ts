@@ -5,6 +5,7 @@ import type { UserSessionInfo } from '../../../../Contexts/Auth/application/inde
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
 import { setVersionETag } from '../../shared/versionTags.js';
+import { parseBedIncludes } from './bedQueryParser.js';
 import { toBedResponse } from './bedResponse.js';
 import { getBedByIdRequest } from './requestSchemas.js';
 
@@ -29,16 +30,16 @@ export class GetBedByIdController extends HttpController {
       const { params, query } = getValidatedRequest(res, getBedByIdRequest);
       const user = res.locals.user as UserSessionInfo;
 
-      const embedCrops = query.include === 'plantInstances';
-      const bedWithCrops = await this.getBedById.execute(params.id, user, {
-        embedCrops
+      const { embedCrops, embedLocation } = parseBedIncludes(query.include);
+      const bedWithRelations = await this.getBedById.execute(params.id, user, {
+        embedCrops,
+        embedLocation
       });
 
-      const response = toBedResponse(bedWithCrops);
+      const response = toBedResponse(bedWithRelations);
 
-      // Embedded crops change without bumping the bed version, so that
-      // representation carries no ETag.
-      if (!embedCrops) {
+      // ETag is omitted whenever any include is requested (FR-015)
+      if (!query.include) {
         setVersionETag(res, response.version);
       }
 

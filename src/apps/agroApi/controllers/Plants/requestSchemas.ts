@@ -7,7 +7,6 @@ import {
   type PlantRelation
 } from '../../../../Contexts/Agro/Plants/application/queries/index.js';
 import {
-  PLANT_RESOURCE_TYPES,
   PollinationType,
   SEASONS
 } from '../../../../Contexts/Agro/Plants/domain/entities/types/index.js';
@@ -17,6 +16,7 @@ import type { RequestSchemas } from '../../middlewares/validateRequest.js';
 import {
   booleanField,
   enumField,
+  exactField,
   fieldsetSchema,
   identifierField,
   includeSchema,
@@ -25,13 +25,13 @@ import {
   monthItem,
   rangeField,
   readQuerySchema,
-  textField
+  textField,
+  textItem
 } from '../../shared/listQuerySchema.js';
 import {
   boundedRecordSchema,
   emptyBody,
   emptyQuery,
-  httpUrlSchema,
   listSchema,
   longTextSchema,
   partialRangeSchema,
@@ -39,6 +39,7 @@ import {
   REQUEST_LIMITS,
   requiredShortTextSchema,
   shortTextSchema,
+  supportResourceSchema,
   trimmedShortTextSchema
 } from '../../shared/requestSchemas.js';
 
@@ -76,6 +77,18 @@ const camelCaseKeySchema = z
 // Empty aliases are dropped by the domain, not rejected.
 const aliasesSchema = listSchema(trimmedShortTextSchema);
 
+// Anomaly slugs: kebab-case, `1..120`. Blanks/dups dropped by the domain.
+const anomalySlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'Expected a kebab-case slug'
+  });
+
+const anomaliesSchema = listSchema(anomalySlugSchema);
+
 // Optional, but never blank when sent.
 const harvestDescriptionSchema = z
   .string()
@@ -91,13 +104,9 @@ const pruningItemSchema = z.object({
   bestPractices: textListSchema.exactOptional()
 });
 
-const resourceItemSchema = z.object({
-  type: z.enum(PLANT_RESOURCE_TYPES),
-  url: httpUrlSchema,
-  title: shortTextSchema.exactOptional(),
-  source: shortTextSchema.exactOptional(),
-  tags: labelListSchema.exactOptional()
-});
+// The single shared support-resource shape; the plant's mandatory-image rule is
+// enforced by the domain (`Plant.requireImage`), not by this schema.
+const resourceItemSchema = supportResourceSchema;
 
 // Optional, but never blank when sent.
 const toxicityNotesSchema = z
@@ -138,6 +147,10 @@ const propagationMethodChangesSchema = z
 
 const plantIdParams = z.object({
   id: z.uuid()
+});
+
+const plantIdOrSlugParams = z.object({
+  id: z.string().trim().min(1)
 });
 
 const createPlantBody = z.object({
@@ -218,7 +231,8 @@ const createPlantBody = z.object({
     // Required: every plant has an image resource (checked by `Plant`).
     resources: listSchema(resourceItemSchema),
     notes: textListSchema.exactOptional()
-  })
+  }),
+  anomalies: anomaliesSchema.exactOptional()
 });
 
 export const createPlantRequest = {
@@ -342,7 +356,8 @@ const updatePlantBody = z.object({
       resources: clearable(listSchema(resourceItemSchema)),
       notes: clearable(textListSchema)
     })
-    .exactOptional()
+    .exactOptional(),
+  anomalies: clearable(anomaliesSchema)
 });
 
 export const updatePlantRequest = {
@@ -358,7 +373,7 @@ const plantSelection = {
 };
 
 export const getPlantByIdRequest = {
-  params: plantIdParams,
+  params: plantIdOrSlugParams,
   query: readQuerySchema(plantSelection),
   body: emptyBody
 } satisfies RequestSchemas;
@@ -375,6 +390,7 @@ const listPlantsQuery = listQuerySchema({
   filter: {
     identity: textField(),
     family: identifierField(),
+    genus: exactField(textItem),
     lifeCycle: enumField(LIFECYCLES),
     sowingMethod: enumField(['direct', 'starter']),
     lightType: textField(),
@@ -385,7 +401,8 @@ const listPlantsQuery = listQuerySchema({
     lightHoursMin: rangeField(),
     sowingMonths: listField(monthItem),
     edible: booleanField(),
-    toxic: booleanField()
+    toxic: booleanField(),
+    bookmarked: booleanField()
   },
   sortableKeys: ['name', 'scientificName'],
   ...plantSelection

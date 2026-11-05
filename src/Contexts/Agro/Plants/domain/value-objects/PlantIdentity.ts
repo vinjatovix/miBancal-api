@@ -1,5 +1,7 @@
+import { deriveGenus } from '../../../../../shared/domain/utils/deriveGenus.js';
 import { patchField } from '../../../../../shared/domain/utils/patchField.js';
 import { requiredText } from '../../../../../shared/domain/utils/requiredText.js';
+import { slugify } from '../../../../../shared/domain/utils/slugify.js';
 import {
   createFamilyId,
   type FamilyId
@@ -16,6 +18,8 @@ export class PlantIdentity {
   readonly name: { primary: string; aliases?: string[] };
   readonly scientificName: string;
   readonly family: FamilyId;
+  readonly genus?: string;
+  readonly slug: string;
 
   constructor(props: IdentityPrimitives) {
     const primary = requiredText(props.name.primary, 'identity.name.primary');
@@ -28,15 +32,21 @@ export class PlantIdentity {
       'identity.scientificName'
     );
     this.family = createFamilyId(requiredText(props.family, 'identity.family'));
+    const genus = deriveGenus(this.scientificName);
+    if (genus !== undefined) {
+      this.genus = genus;
+    }
+    this.slug = slugify(this.scientificName);
   }
 
   /** An absent field is kept; `null` removes the aliases. */
   update(changes: PlantIdentityChanges): PlantIdentity {
     const aliases = patchField(changes.name?.aliases, this.name.aliases);
+    const primary = changes.name?.primary ?? this.name.primary;
 
     return new PlantIdentity({
       name: {
-        primary: changes.name?.primary ?? this.name.primary,
+        primary,
         ...(aliases !== undefined && { aliases })
       },
       scientificName: changes.scientificName ?? this.scientificName,
@@ -52,7 +62,8 @@ export class PlantIdentity {
         ...(aliases !== undefined && { aliases: [...aliases] })
       },
       scientificName: this.scientificName,
-      family: this.family
+      family: this.family,
+      ...(this.genus !== undefined && { genus: this.genus })
     };
   }
 

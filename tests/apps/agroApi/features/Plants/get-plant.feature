@@ -32,11 +32,17 @@ Feature: Get Plant
       """
     And response matches OpenAPI contract
 
-  Scenario: Get a plant with invalid ID
+  # A non-UUID path segment is treated as a slug; an unknown one is simply
+  # not found (the id/slug param only rejects an empty value).
+  Scenario: Get a plant by a slug that does not exist
     Given a GET request to "/api/v1/plants/invalid-id"
-    Then the response status code should be 400
-    And the response errors should include "id"
-    And the response body should not echo "invalid-id"
+    Then the response status code should be 404
+    Then the response body should be
+      """
+      {
+        "message": "Plant not found with slug: invalid-id"
+      }
+      """
     And response matches OpenAPI contract
 
   Scenario: Get a plant with an unknown query parameter
@@ -135,7 +141,7 @@ Feature: Get Plant
   Scenario: Get a plant with every field listed
     Given a family exists
     And a plant exists
-    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,version"
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,slug,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,version,likesCount"
     Then the response status code should be 200
     And a GET user request to "/api/v1/plants/<plantId>" should return the same body
     And the response should not have an ETag

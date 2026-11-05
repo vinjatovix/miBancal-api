@@ -1,3 +1,4 @@
+import { deriveGenus } from '../../../../../../shared/domain/utils/deriveGenus.js';
 import type { MetadataPrimitives } from '../../../../../shared/domain/MetadataPrimitives.js';
 import { fromMongoId } from '../../../../../shared/infrastructure/persistence/mongo/MongoId.js';
 import {
@@ -72,15 +73,23 @@ const PLANT_VIEW_FIELDS: ReadViewFieldMappers<
   PlantReadView
 > = {
   id: (document) => fromMongoId(document._id),
-  identity: (document) => document.identity,
+  slug: (document) => document.slug,
+  identity: (document) => {
+    const { genus: _stored, ...rest } = document.identity;
+    const genus = deriveGenus(rest.scientificName);
+
+    return { ...rest, ...(genus !== undefined && { genus }) };
+  },
   traits: (document) => document.traits,
   phenology: (document) => document.phenology,
   knowledge: (document) => document.knowledge ?? {},
+  anomalies: (document) => document.anomalies,
   image: (document) => toPlantImage(document.image),
   metadata: (document) => toMetadata(document.metadata),
   status: (document) => document.status ?? DEFAULT_STATUS,
   deletedAt: (document) => toDeletedAt(document.deletedAt),
-  version: (document) => document.version ?? 0
+  version: (document) => document.version ?? 0,
+  likesCount: (document) => document.likesCount ?? 0
 };
 
 /** Stored plant → read view; copies stored values, builds no aggregate. */
@@ -89,10 +98,17 @@ export const toPlantReadView = (
 ): PlantReadView => ({
   id: PLANT_VIEW_FIELDS.id(document),
   version: PLANT_VIEW_FIELDS.version(document),
+  likesCount: PLANT_VIEW_FIELDS.likesCount(document),
+  ...(PLANT_VIEW_FIELDS.slug(document) !== undefined
+    ? { slug: PLANT_VIEW_FIELDS.slug(document) }
+    : {}),
   identity: PLANT_VIEW_FIELDS.identity(document),
   traits: PLANT_VIEW_FIELDS.traits(document),
   phenology: PLANT_VIEW_FIELDS.phenology(document),
   knowledge: PLANT_VIEW_FIELDS.knowledge(document),
+  ...(PLANT_VIEW_FIELDS.anomalies(document)
+    ? { anomalies: PLANT_VIEW_FIELDS.anomalies(document) }
+    : {}),
   image: PLANT_VIEW_FIELDS.image(document),
   metadata: PLANT_VIEW_FIELDS.metadata(document),
   status: PLANT_VIEW_FIELDS.status(document),

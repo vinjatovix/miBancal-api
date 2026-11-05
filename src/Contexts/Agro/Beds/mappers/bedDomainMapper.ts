@@ -14,10 +14,13 @@ export const bedDomainMapper: BedDomainMapper = {
     return {
       id: bed.id,
       userId: bed.userId,
+      locationId: bed.locationId,
       name: bed.name.value,
       width: bed.width.value,
       height: bed.height.value,
       depth: bed.depth.value,
+      ...(bed.latitude !== undefined && { latitude: bed.latitude }),
+      ...(bed.longitude !== undefined && { longitude: bed.longitude }),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),
@@ -29,10 +32,17 @@ export const bedDomainMapper: BedDomainMapper = {
     return Bed.create({
       id: createBedId(primitives.id),
       userId: createUserId(primitives.userId),
+      locationId: primitives.locationId ?? null,
       name: new BedName(primitives.name),
       width: PositiveNumber.create(primitives.width),
       height: PositiveNumber.create(primitives.height),
       depth: PositiveNumber.create(primitives.depth),
+      ...(primitives.latitude !== undefined && {
+        latitude: primitives.latitude
+      }),
+      ...(primitives.longitude !== undefined && {
+        longitude: primitives.longitude
+      }),
       deleted: primitives.deleted,
       ...(primitives.deletedAt && {
         deletedAt: new Date(primitives.deletedAt)

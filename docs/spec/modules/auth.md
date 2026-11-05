@@ -19,8 +19,9 @@ It specifies how users are identified, authorized, and how their user profile da
 The system supports the following authentication providers:
 
 - **local:** Standard email and password authentication. _(CURRENTLY IMPLEMENTED)_
-- **google:** Stateless OAuth provider; the client sends a Google ID token (`idToken`) and the API verifies it. _(CURRENTLY IMPLEMENTED)_
-- **github / facebook:** Secondary OAuth providers. **`[TARGET STATE (Pending [Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth))]`**
+- **google:** Stateless OAuth provider; the client sends a Google ID token (`idToken`) and the API verifies it against the single configured web client id. _(CURRENTLY IMPLEMENTED, [Iteration 27](../../roadmap.md#iteration-27-implement-stateless-google-oauth))_
+- **github:** Stateless OAuth provider; the client sends an authorization `code` and a PKCE `codeVerifier`, and the API exchanges them server-side, reads the numeric user id and requires a primary verified email. _(CURRENTLY IMPLEMENTED, [Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth))_
+- **facebook:** Secondary OAuth provider. **`[TARGET STATE]`**
 
 ---
 
@@ -38,7 +39,21 @@ The current codebase in `@src/Contexts/Auth` implements:
   - a duplicate-email race on insert (`create` → `emailTaken`) answers the same `202` with no email.
 - **`ActivateAccount`** (`POST /auth/activate`, body `{ token }`, [Iteration 26](../../roadmap.md#iteration-26-implement-email-account-activation-flow)): hashes the token, finds the account by it, validates the email and removes the token in one write. Answers `204` with no body and no session token. Any token that cannot activate an account (unknown, expired, used, replaced, of another purpose, malformed, a session JWT) gets the same `400 { "message": "Invalid or expired token" }` (`InvalidEmailTokenException`), including the loser of two concurrent activations. Failed attempts count towards `authLimiter`.
 - **`LoginUserLocal`:** verifies local email/password credentials and issues a stateless JWT. After the password matches, an account whose email is not validated gets the same `401 "Invalid credentials"`, in every mode (§7). Every refusal costs one bcrypt comparison: a missing account, or one without a local password (Google only), runs `EncrypterTool.simulateCompare` against a hash of an unknown value built once with the configured cost, so response time does not reveal whether the email has an account.
-- **`AuthenticateWithGoogle`:** verifies Google ID tokens, links Google through `User.linkProvider` (§3.5), auto-creates users derived from Google profiles, and generates JWTs. A write that lost a race is retried once after reading the account again; a second loss is a `409`.
+- **`AuthenticateWithGoogle`:** stateless Google sign-in ([Iteration 27](../../roadmap.md#iteration-27-implement-stateless-google-oauth)). Behaviour:
+  - **Token**: takes a Google ID token (`idToken`), never an authorization code, and stores nothing between requests. `GoogleIdTokenVerifierAdapter` receives the single web client id (`googleClientId`, from `GOOGLE_CLIENT_ID`) by injection, fetches Google's public keys (5 s timeout, cached by `google-auth-library`) and then checks signature, issuer (`accounts.google.com`), audience (only that client id) and expiry. Every untrusted token, and a token whose email Google does not mark as verified, gets `401 "Invalid Google token"`. If the keys cannot be fetched, the adapter throws `DomainServiceUnavailableException` and the answer is `503 "Google sign-in is temporarily unavailable"`; nothing is stored.
+  - **Resolution**: by Google identity (`sub`) first, then by email, through the shared `ProviderUserResolver` (§3.5). A returning user gets a token with no write and no email, even when their Google email changed. Linking to an account found by email follows `User.linkProvider` (§3.5); an email linked to another Google identity is a `401`. A link write that lost a race is retried once after reading the account again; a second loss is a `409`.
+  - **Creation**: `User.registerWithProvider` (validated email, Google linked, no password, role `user`) stored with `AuthRepository.create` (insert only, never an upsert). The username is the email's local part reduced to `[a-z0-9]` (`user` if empty, padded with `user` to 4 characters, cut to 20); if taken, 3 variants with a random 4-digit suffix, then 1 with 8 random hex characters; if all 5 are taken, `409`. When `create` answers `emailTaken` or `providerTaken` (a concurrent first sign-in of the same person won), the account is resolved again once and its token returned; a second loss is a `409`.
+  - **Storage guarantee**: the unique sparse index `users_auth_provider_user_id_unique` on `authMethods.providerUserId` keeps one provider identity on at most one account and serves `searchByProvider`. It is unique by value across providers; a per-provider compound index was evaluated in [Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth) and not adopted (a compound multikey unique index over `authMethods` also indexes the `local` method as `(local, null)`, colliding across every account with a password, and MongoDB does not serve the `$elemMatch` lookup from it). A GitHub numeric id (short integer) and a Google `sub` (21 digits) never coincide in practice, so the value-only index is sufficient.
+  - **Token**: issued by the shared `SessionTokenIssuer`, identical to a password or GitHub login (same key, lifetime and identity claims).
+  - **Configuration and tests**: `GOOGLE_CLIENT_ID` is required in every mode; without it the application does not start. The production verifier has no test shortcut: acceptance tests register `FakeGoogleIdTokenVerifier` through the `overrides` option of `createAppContainer` / `AgroBackApp` (production passes none).
+  - **Logs**: sign-ins, links and creations name the user by username; a rejected token logs `warn "Google token rejected"` and a key fetch failure `error "Google public keys could not be fetched"` with the error name and code only. The token and the email are never logged.
+
+- **`AuthenticateWithGithub`:** stateless GitHub sign-in ([Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth)). Behaviour:
+  - **Exchange**: takes an authorization `code` and the PKCE `codeVerifier`, never a token from the client. `GithubIdentityProviderAdapter` receives `githubClientId`, `githubClientSecret` and `githubRedirectUri` (from `GITHUB_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI`) by injection, exchanges the code server-side (the client never sees the secret), then reads the numeric user id (`GET /user`) and the emails (`GET /user/emails`), requiring one that is **both primary and verified**. The short-lived access token is a local variable, used once and never stored or returned. Each call is bounded by a 5 s timeout.
+  - **Refusal vs unavailability**: a code/verifier GitHub rejects, or an identity with no primary verified email, is `null` → the uniform `401 "Invalid GitHub authorization"`. An unreachable GitHub, a 5xx, a `429` or a secondary-rate-limit `403` throws `DomainServiceUnavailableException` → `503 "GitHub sign-in is temporarily unavailable"`. Nothing is stored on either path.
+  - **Resolution, creation and token**: identical to Google's, through the shared `ProviderUserResolver` and `SessionTokenIssuer` (§3.5); the account is matched by the numeric id first (never the login name), then by email.
+  - **Configuration and tests**: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `GITHUB_REDIRECT_URI` are required in every mode; without them the application does not start. The production adapter has no test shortcut: acceptance tests register `FakeGithubIdentityProvider` through the `overrides` option (production passes none).
+  - **Logs**: exchange and email-read failures are logged by shape only (error name/code or HTTP status); the code, verifier, access token and email are never logged.
 - **`RefreshToken`:** loads the account of the verified session (`searchById`); a removed or unvalidated account gets the same `401 "Invalid token"` as a bad token, otherwise the session is extended.
 - **`ForgotPassword`** (`POST /auth/password/forgot`, body `{ email }`, [Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email)): every well-formed email answers `202` with an empty body. The request only looks the account up; for an existing one, a background task issues a `passwordReset` token (30 minutes, replacing any previous one) and sends the reset email. Within 2 minutes of the last reset token nothing is issued or sent (`User.hasRecentResetToken`). If the token write loses a race (`stale`) no email is sent. An unknown email schedules nothing. Background failures are only logged (recipient domain and reason). Guarded by `passwordResetLimiter`.
 - **`ResetPassword`** (`POST /auth/password/reset`, body `{ token, password, repeatPassword }`, [Iteration 26b](../../roadmap.md#iteration-26b-implement-password-reset-by-email)): checks the password rules and the confirmation first, so a password `400` leaves the token usable; then finds the account by the token hash and applies `User.resetPassword`: stores the new hash (adding the `local` auth method if missing, keeping linked providers), sets `emailValidated: true`, and removes the reset token and any activation token, in one write. Answers `204` with no body and no session token, and emails the "password changed" notice. Any token that cannot reset (unknown, used, expired, replaced, an activation token, the loser of a concurrent reset) gets `400 { "message": "Invalid or expired token" }`. Failed attempts count towards `authLimiter`.
@@ -48,7 +63,7 @@ The current codebase in `@src/Contexts/Auth` implements:
 
 ### 3.2 Planned Features
 
-- **Stateless OAuth Multi-provider:** GitHub sign-in through a server-side exchange of the authorization code (with PKCE), requiring a primary verified email, and one user-resolution step shared with Google (§3.5). **`[TARGET STATE (Pending [Iteration 28](../../roadmap.md#iteration-28-implement-stateless-github-oauth))]`**
+- **Stateless OAuth Multi-provider:** Facebook sign-in, reusing the shared user-resolution step (§3.5) that Google and GitHub already share. **`[TARGET STATE]`**
 
 ### 3.3 Request Validation _(CURRENTLY IMPLEMENTED)_
 
@@ -59,6 +74,7 @@ Auth routes validate input with Zod through `validateRequest` (validation.md §3
 | `POST /auth/register`        | body `id` (RFC UUID), `email` (email), `username` (string), `password` and `repeatPassword` (strings, must match) |
 | `POST /auth/login`           | body `email` (email), `password` (string)                                                                         |
 | `POST /auth/google`          | body `idToken` (string)                                                                                           |
+| `POST /auth/github`          | body `code` (string), `codeVerifier` (string); unknown fields rejected                                            |
 | `POST /auth/activate`        | body `token` (string, 1 to 512 characters)                                                                        |
 | `POST /auth/password/forgot` | body `email` (email)                                                                                              |
 | `POST /auth/password/reset`  | body `token` (string, 1 to 512 characters), `password` and `repeatPassword` (strings, must match)                 |
@@ -113,7 +129,7 @@ One person has one `User`, whatever the ways they sign in: each one is an entry 
 
 1. **No session before validation.** `LoginUserLocal` and `RefreshToken` refuse a user whose `emailValidated` is false, in every mode (§7), with the same `401` as wrong credentials so the answer does not reveal the account.
 2. **Linking to an unvalidated account removes its password.** The provider has just proved who owns the email; whoever chose the password did not. The `local` auth method and the stored hash are removed (unset, never stored as `null`) in the same write that links the provider and validates the email.
-3. **Linking to a validated account keeps the password and tells the owner.** The owner gets an email naming the provider that was linked, so a link they did not expect is visible.
+3. **Linking to a validated account keeps the existing sign-in methods and tells the owner.** The owner gets an email naming the provider that was linked, so a link they did not expect is visible. The notice uses one reusable, method-agnostic wording ("Tus accesos anteriores siguen funcionando como hasta ahora.") that never mentions a password and never names which methods the account holds, so it is correct and reveals nothing for a password, Google-only or any account.
 4. **A pending account cannot hold an email forever.** A registration with the email of an unvalidated account whose activation token has expired replaces that account. While the token is valid, the registration gets the same answer as any other (no account enumeration, §3.2) and nothing changes.
 5. **The activation email** tells whoever did not create the account not to open the link: opening it would validate an account whose password someone else chose.
 
@@ -161,37 +177,13 @@ res.locals.user = {
 
 ---
 
-## 5. LOCATION & HEMISPHERE CONFIGURATION (USER PROFILE) `[TARGET STATE (Pending [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate))]`
+## 5. LOCATION & HEMISPHERE CONFIGURATION — MOVED TO THE `Location` MODULE _(CURRENTLY IMPLEMENTED)_
 
-_Note: The current User aggregate root and database schema do NOT yet support these fields. This entire geographic configuration is planned for [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate)._
+As of [Iteration 29](../../roadmap.md#iteration-29-user-locations-aggregate-and-bed-climate-snapshot), the `User` aggregate carries **no geographic state**: no `postalCode`, `country`, `timezone` or `hemisphere` field, getter, or resolution logic. A user can own several named `Location` documents (collection `locations`), each with its own optional geography; see **Module: Location (location.md)** for the aggregate, CRUD contract and uniqueness rules.
 
-To support geographic-specific sowing calendars, local time scheduling, and meteorological watering adjustments without compromising user privacy, the User profile will support the following location configurations:
+`GetUserProfile`/`UpdateUserProfile` and their `/users/profile` routes are retained, but expose/accept identity and roles only (`id`, `username`, `email`, `roles`). `UpdateUserProfile` currently has no editable field (the body is always `{}`); the plumbing stays so a future non-geographic field has somewhere to land.
 
-- `postalCode` (string, optional)
-- `country` (string, optional, e.g., "Spain", "Argentina")
-- `hemisphere` (enum: `'north'` | `'south'`, defaults to `'north'`)
-- `timezone` (string, optional, IANA timezone format e.g., `'Europe/Madrid'`, defaults to `'UTC'`)
-
-### 5.1 Resolution Flow `[TARGET STATE (Pending [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate))]`
-
-1. When a user updates their profile (by submitting geolocation parameters), if `postalCode` and `country` are provided, the backend initiates geolocation resolution (via an offline ZIP-to-lat database or Open-Meteo Geocoding API).
-2. If geolocation succeeds, the backend stores the resolved `latitude`/`longitude` in the database and automatically extracts/computes the `hemisphere` (`latitude >= 0 ? 'north' : 'south'`) and the exact IANA `timezone`.
-3. If geolocation fails, is empty, or is skipped for privacy, the backend honors any manual `hemisphere` override or `timezone` sent by the user frontend (e.g., captured via `Intl.DateTimeFormat().resolvedOptions().timeZone` in the browser). If none is provided, it defaults to `'north'` and `'UTC'`.
-
-### 5.2 Low-Latency Redis Caching `[TARGET STATE (Pending [Iteration 30](../../roadmap.md#iteration-30-build-redis-cache-repository-with-memory-fallback))]`
-
-All technical caching specifications (including TTLs, Redis configuration, and local in-memory backup fallbacks) are defined centrally in **Module: Persistence (persistence.md)** to prevent specification redundancies.
-
-### 5.3 Context Resolution & Immutability Flow (Backend) `[TARGET STATE (Pending Iterations [29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate), [30](../../roadmap.md#iteration-30-build-redis-cache-repository-with-memory-fallback) & [33](../../roadmap.md#iteration-33-implement-private-user-bookmarks-collection))]`
-
-When a protected use case requires geographic or user-specific configuration details:
-
-1. The endpoint controller receives the request with the JWT validated.
-2. The use case is executed, receiving the `userId` (`id` from `res.locals.user`).
-3. **`[TARGET STATE (Pending [Iteration 29](../../roadmap.md#iteration-29-add-geographic-fields-to-user-profile-and-bed-aggregate))]` Bed Creation (Snapshotting):** When creating new physical structures like a `Bed`, the usecase queries the `User` aggregate (or the fast Redis cache) to retrieve the profile's `postalCode`, `country`, and `hemisphere` on-the-fly. **These values are then explicitly copied and persisted into the newly created `Bed` document**. This ensures that the historical climate context of a physical location remains permanently immutable, even if the user moves to another continent years later.
-4. **`[TARGET STATE (Pending [Iteration 33](../../roadmap.md#iteration-33-implement-private-user-bookmarks-collection))]`** User-level dynamic states, such as bookmarked plants, are still queried dynamically from the independent `user_bookmarks` collection because they are not tied to historical physics.
-
-This hybrid flow guarantees that layout-dependent physics (climates, seasons) are historically preserved, while purely operational states remain 100% fresh and independent of token lifecycles.
+`CreateBed` accepts an optional `locationId`: when present, it resolves an owned active `Location` and copies its provided geographic fields into the `Bed` document as a static, immutable snapshot (see **Module: Bed (bed.md)**). The `User` aggregate is never consulted for this — `Location` is the single source of truth.
 
 ---
 
@@ -207,7 +199,7 @@ This hybrid flow guarantees that layout-dependent physics (climates, seasons) ar
 
 ## 7. BOUNDARY RULES
 
-- **No Shared State:** The authentication session state (specifically, the JWT payload) MUST NOT carry any business-oriented or operational properties (e.g., `postalCode`, `country`, `latitude`, `longitude`, or `hemisphere`).
+- **No Shared State:** The authentication session state (specifically, the JWT payload) MUST NOT carry any business-oriented or operational properties (e.g., `postalCode`, `country`, `latitude`, `longitude`, or `hemisphere`) — geography lives on `Location` (see location.md), never on `User` or the token.
 - **No Direct Domain Exposure:** Authentication primitives are mapped to domain-specific Value Objects and branded types (`Email`, `UserId`, etc.) only at the boundary level.
 - **Audit Metadata Ownership:** every User change goes through a `User` method (`register`, `activate`, `issueEmailToken`, `changePassword`, `linkProvider`) that refreshes `updatedAt`/`updatedBy` in memory with one timestamp, the actor being the account's own username. `UserPatch` was removed. The use case keeps `before = user.toPrimitives()`, calls the method and passes both states to `AuthRepository.update(before, after)`, which writes the top-level diff (`$set`, `$unset` for removed fields, `metadata` field by field as given) and never adds audit data (persistence.md, Metadata Ownership).
 - **Concurrent writes without a version:** User has no `version` / `If-Match`. `update(before, after)` is a compare-and-set: it only matches while every changed field (except `metadata`) still holds its `before` value (`$exists: false` when it was absent), and answers `written`, `unchanged` or `stale`. Two activations with the same token: the first writes, the second is `stale` and gets the uniform `400`.

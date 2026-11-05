@@ -11,6 +11,10 @@ export const operators = {
   hasAny: (a, b) =>
     Array.isArray(a) && (Array.isArray(b) ? b : [b]).some((v) => a.includes(v)),
 
+  // The scalar `actual` is one of the expected values (a single cell counts as
+  // a one-item list).
+  in: (a, b) => (Array.isArray(b) ? b : [b]).includes(a),
+
   contains: (a, b) =>
     typeof a === 'string' && typeof b === 'string' && a.includes(b),
 

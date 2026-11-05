@@ -87,7 +87,13 @@ describe('toPlantReadView', () => {
     ])('for %s', (_case, build) => {
       const document = stored(build());
 
-      expect(readView(document)).toEqual(domainRoundTrip(document));
+      const read = readView(document);
+      const expected = {
+        ...(domainRoundTrip(document) as Record<string, unknown>),
+        slug: document.slug
+      };
+
+      expect(read).toEqual(expected);
     });
 
     it('when the stored version is missing (read as 0)', () => {
@@ -159,6 +165,45 @@ describe('toPlantReadView', () => {
     const plant = PlantFactory.tomato();
 
     expect(readView(stored(plant)).identity.family).toBe(plant.identity.family);
+  });
+
+  describe('genus (derived, hardened)', () => {
+    it('derives genus from scientificName (tomato → Solanum)', () => {
+      const document = stored(PlantFactory.tomato());
+
+      expect(readView(document).identity.genus).toBe('Solanum');
+    });
+
+    it('strips a stale stored genus and re-derives the correct one', () => {
+      const document = stored(PlantFactory.tomato());
+      const stale = {
+        ...document,
+        identity: { ...document.identity, genus: 'Stale' }
+      };
+
+      expect(readView(stale).identity.genus).toBe('Solanum');
+    });
+
+    it('omits genus for a hybrid-prefix scientific name', () => {
+      const document = stored(PlantFactory.tomato());
+      const hybrid = {
+        ...document,
+        identity: { ...document.identity, scientificName: '×Brassicoraphanus' }
+      };
+
+      expect(readView(hybrid).identity).not.toHaveProperty('genus');
+    });
+
+    it('read-view genus equals write-response genus (parity)', () => {
+      const document = stored(PlantFactory.tomato());
+
+      const view = readView(document);
+      const response = domainRoundTrip(document) as {
+        identity: { genus?: string };
+      };
+
+      expect(view.identity.genus).toBe(response.identity.genus);
+    });
   });
 
   it('builds no aggregate: a document breaking a business rule is copied', () => {
@@ -243,6 +288,50 @@ describe('toPlantSparseView', () => {
       );
     }
   );
+});
+
+describe('likesCount projection', () => {
+  it('projects the stored likesCount into the read view', () => {
+    const document = { ...stored(PlantFactory.tomato()), likesCount: 42 };
+
+    expect(readView(document).likesCount).toBe(42);
+  });
+
+  it('defaults likesCount to 0 when the document has none', () => {
+    const document = stored(PlantFactory.tomato());
+
+    expect(document).not.toHaveProperty('likesCount');
+    expect(readView(document).likesCount).toBe(0);
+  });
+});
+
+describe('genus projection', () => {
+  const withScientificName = (name: string): MongoPlantDocument => {
+    const document = stored(PlantFactory.tomato());
+
+    return {
+      ...document,
+      identity: { ...document.identity, scientificName: name }
+    };
+  };
+
+  it('derives the capitalized genus from the first word of the scientific name', () => {
+    expect(
+      readView(withScientificName('solanum lycopersicum')).identity.genus
+    ).toBe('Solanum');
+  });
+
+  it('takes the genus even when a hybrid "×" marker follows it', () => {
+    expect(readView(withScientificName('citrus × limon')).identity.genus).toBe(
+      'Citrus'
+    );
+  });
+
+  it('omits genus when none can be derived (leading hybrid "×")', () => {
+    const view = readView(withScientificName('× Citrofortunella microcarpa'));
+
+    expect(view.identity).not.toHaveProperty('genus');
+  });
 });
 
 describe('toPlantImage', () => {

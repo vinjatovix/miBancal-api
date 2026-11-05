@@ -1,7 +1,7 @@
-import type { PlantResourcePrimitives } from './PlantKnowledgePrimitives.js';
+import type { SupportResourcePrimitives } from '../../../../shared/domain/supportResource/index.js';
 
 /** The plant's primary picture: the first `knowledge.resources` image. */
 export type PlantImagePrimitives = Pick<
-  PlantResourcePrimitives,
+  SupportResourcePrimitives,
   'url' | 'title' | 'source'
 >;
