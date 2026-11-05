@@ -7,14 +7,31 @@ export const BedSeeder = (server: Server, token: string) => ({
   async createOne(
     overrides?: Partial<{
       id: string;
+      locationId: string;
       name: string;
       width: number;
       height: number;
       depth: number;
     }>
   ) {
+    let locationId = overrides?.locationId;
+    if (!locationId) {
+      const locationResponse: Response = await request(server)
+        .post('/api/v1/locations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          id: random.uuid(),
+          name: `Location ${random.uuid().slice(0, 8)}`,
+          latitude: 40.4168,
+          longitude: -3.7038
+        })
+        .expect(201);
+      locationId = (locationResponse.body as { id: string }).id;
+    }
+
     const defaults = {
       id: random.uuid(),
+      locationId,
       name: 'Test bed',
       width: 100,
       height: 100,

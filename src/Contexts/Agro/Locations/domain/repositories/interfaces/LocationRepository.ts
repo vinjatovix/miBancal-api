@@ -10,6 +10,8 @@ export interface LocationRepository {
   /** Insert-only: the id is client-suppliable, like Bed. */
   create(location: Location): Promise<void>;
   findOwnedActiveById(id: string, userId: string): Promise<Nullable<Location>>;
+  /** Batch resolution for multiple location IDs owned by the user. */
+  findActiveByIdsForOwner(ids: string[], userId: string): Promise<Location[]>;
   /** Case/accent-insensitive equality under the `es`/strength-1 collation. */
   findActiveByNameForOwner(
     userId: string,

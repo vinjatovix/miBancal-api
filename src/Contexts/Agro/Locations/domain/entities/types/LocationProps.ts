@@ -7,8 +7,8 @@ export type LocationProps = {
   id: LocationId;
   userId: UserId;
   name: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number | undefined;
+  longitude?: number | undefined;
   status?: LocationStatus;
   deletedAt?: Date;
   metadata: Metadata;

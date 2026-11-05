@@ -7,6 +7,7 @@ import type { BedName } from '../../BedName.js';
 export type BedProps = {
   id: BedId;
   userId: UserId;
+  locationId?: string | null;
   name: BedName;
   width: PositiveNumber;
   height: PositiveNumber;

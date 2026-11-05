@@ -39,4 +39,16 @@ describe('toLocationResponse', () => {
     expect('timezone' in response).toBe(false);
     expect('hemisphere' in response).toBe(false);
   });
+
+  it('omits coordinates when location has no coordinates', () => {
+    const location = LocationFactory.domainBase({
+      latitude: undefined,
+      longitude: undefined
+    });
+
+    const response = toLocationResponse(location);
+
+    expect('latitude' in response).toBe(false);
+    expect('longitude' in response).toBe(false);
+  });
 });

@@ -43,6 +43,50 @@ describe('UpdateLocation', () => {
     expect(updated.version).toBe(location.version + 1);
   });
 
+  it('clears coordinates when null is provided and bumps the version', async () => {
+    const location = LocationFactory.domainBase({
+      latitude: 40.4168,
+      longitude: -3.7038
+    });
+    repository.addToStorage(location);
+
+    const updated = await useCase.execute(
+      {
+        id: location.id,
+        userId: location.userId,
+        latitude: null,
+        longitude: null
+      },
+      USER,
+      [location.version]
+    );
+
+    expect(updated.latitude).toBeUndefined();
+    expect(updated.longitude).toBeUndefined();
+    expect(updated.version).toBe(location.version + 1);
+  });
+
+  it('leaves version unchanged when clearing already-cleared coordinates', async () => {
+    const location = LocationFactory.domainBase({
+      latitude: undefined,
+      longitude: undefined
+    });
+    repository.addToStorage(location);
+
+    const updated = await useCase.execute(
+      {
+        id: location.id,
+        userId: location.userId,
+        latitude: null,
+        longitude: null
+      },
+      USER,
+      [location.version]
+    );
+
+    expect(updated.version).toBe(location.version);
+  });
+
   it('throws InvalidArgumentException when only latitude is provided', async () => {
     const location = LocationFactory.domainBase({});
     repository.addToStorage(location);

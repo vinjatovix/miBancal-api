@@ -5,8 +5,8 @@ import { locationDomainMapper } from '../../../../Contexts/Agro/Locations/mapper
 export type LocationResponse = {
   id: string;
   name: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   createdAt: Date;
   createdBy: string;
   updatedAt: Date;
@@ -16,8 +16,10 @@ export type LocationResponse = {
 const fromPrimitives = (primitives: LocationPrimitives): LocationResponse => ({
   id: primitives.id,
   name: primitives.name,
-  latitude: primitives.latitude,
-  longitude: primitives.longitude,
+  ...(primitives.latitude !== undefined && { latitude: primitives.latitude }),
+  ...(primitives.longitude !== undefined && {
+    longitude: primitives.longitude
+  }),
   createdAt: primitives.metadata.createdAt,
   createdBy: primitives.metadata.createdBy,
   updatedAt: primitives.metadata.updatedAt,

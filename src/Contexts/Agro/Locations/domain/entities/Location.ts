@@ -32,7 +32,7 @@ const resolveName = (value: string): string => {
 
 /**
  * A per-user growing site: a required `name`, unique (case/accent
- * insensitively) among the owner's active locations, plus mandatory
+ * insensitively) among the owner's active locations, plus optional
  * geographic coordinates (latitude and longitude). Soft-deleted via `status`.
  */
 export class Location extends AggregateRoot<LocationId> {
@@ -42,8 +42,15 @@ export class Location extends AggregateRoot<LocationId> {
     super(props.id);
     Location.assertSoftDeleteConsistency(props);
 
-    new Latitude(props.latitude);
-    new Longitude(props.longitude);
+    if (props.latitude !== undefined || props.longitude !== undefined) {
+      if (props.latitude === undefined || props.longitude === undefined) {
+        throw new InvalidArgumentException(
+          '<Location> latitude and longitude must both be provided together'
+        );
+      }
+      new Latitude(props.latitude);
+      new Longitude(props.longitude);
+    }
 
     this.props = Object.freeze({
       ...props,
@@ -63,11 +70,11 @@ export class Location extends AggregateRoot<LocationId> {
     return this.props.name;
   }
 
-  get latitude(): number {
+  get latitude(): number | undefined {
     return this.props.latitude;
   }
 
-  get longitude(): number {
+  get longitude(): number | undefined {
     return this.props.longitude;
   }
 
@@ -106,14 +113,39 @@ export class Location extends AggregateRoot<LocationId> {
 
   /**
    * Updates geographic coordinates atomically. Coordinates must be valid
-   * numbers within range. A no-op leaves audit metadata untouched.
+   * numbers within range or both null to clear. A no-op leaves audit metadata untouched.
    */
   updateCoordinates(
-    coords: { latitude: number; longitude: number },
+    coords: { latitude: number | null; longitude: number | null },
     actor: string,
     at: Date
   ): void {
     this.assertActive();
+
+    if (coords.latitude === null && coords.longitude === null) {
+      if (
+        this.props.latitude === undefined &&
+        this.props.longitude === undefined
+      ) {
+        return;
+      }
+
+      this.commit(
+        {
+          latitude: undefined,
+          longitude: undefined
+        },
+        actor,
+        at
+      );
+      return;
+    }
+
+    if (coords.latitude === null || coords.longitude === null) {
+      throw new InvalidArgumentException(
+        '<Location> latitude and longitude must both be provided together'
+      );
+    }
 
     new Latitude(coords.latitude);
     new Longitude(coords.longitude);

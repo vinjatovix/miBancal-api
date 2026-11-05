@@ -1,5 +1,8 @@
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
-import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
+import {
+  DomainConflictException,
+  InvalidArgumentException
+} from '../../../../shared/domain/errors/index.js';
 import type { LocationRepository } from '../../../Locations/domain/repositories/interfaces/LocationRepository.js';
 import type { Bed } from '../../domain/entities/Bed.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
@@ -23,6 +26,10 @@ export class CreateBed {
   }
 
   async execute(dtoWithUserId: CreateBedInput, user: string): Promise<Bed> {
+    if (!dtoWithUserId.locationId) {
+      throw new InvalidArgumentException('Bed.locationId is required');
+    }
+
     const exists = await this.bedRepository.exists(dtoWithUserId.id);
 
     if (exists) {
@@ -47,8 +54,6 @@ export class CreateBed {
   private async resolveGeoSnapshot(
     dtoWithUserId: CreateBedInput
   ): Promise<BedGeographicSnapshot | undefined> {
-    if (dtoWithUserId.locationId === undefined) return undefined;
-
     const location = ensureFound(
       await this.locationRepository.findOwnedActiveById(
         dtoWithUserId.locationId,
@@ -58,6 +63,6 @@ export class CreateBed {
       dtoWithUserId.locationId
     );
 
-    return toBedGeographicSnapshot(location);
+    return toBedGeographicSnapshot(location) ?? undefined;
   }
 }

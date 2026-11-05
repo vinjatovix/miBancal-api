@@ -34,6 +34,22 @@ describe('CreateLocation', () => {
     expect(repository.getStored(input.id)?.longitude).toBe(-3.7038);
   });
 
+  it('creates and stores the location without coordinates', async () => {
+    const input = {
+      id: random.uuid(),
+      userId: USER_ID,
+      name: 'Huerto sin coordenadas'
+    };
+
+    const location = await useCase.execute(input, USER);
+
+    expect(location.name).toBe('Huerto sin coordenadas');
+    expect(location.latitude).toBeUndefined();
+    expect(location.longitude).toBeUndefined();
+    expect(repository.getStored(input.id)?.latitude).toBeUndefined();
+    expect(repository.getStored(input.id)?.longitude).toBeUndefined();
+  });
+
   it('rejects a duplicate active name for the same owner', async () => {
     const existing = LocationFactory.domainBase({ name: 'Huerto' });
     repository.addToStorage(existing);

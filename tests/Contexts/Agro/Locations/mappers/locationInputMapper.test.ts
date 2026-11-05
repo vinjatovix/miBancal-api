@@ -24,6 +24,25 @@ describe('locationInputMapper', () => {
     expect(location.longitude).toBe(-3.7038);
   });
 
+  it('maps CreateLocationInput without coordinates to Location entity', () => {
+    const input = {
+      id: randomUUID(),
+      userId: randomUUID(),
+      name: 'Huerto Sin GPS'
+    };
+
+    const location = locationInputMapper.fromCreateInputToDomain(
+      input,
+      'test-user'
+    );
+
+    expect(location.id).toBe(input.id);
+    expect(location.userId).toBe(input.userId);
+    expect(location.name).toBe('Huerto Sin GPS');
+    expect(location.latitude).toBeUndefined();
+    expect(location.longitude).toBeUndefined();
+  });
+
   it('maps UpdateLocationInput with coordinates to LocationChanges', () => {
     const input = {
       id: randomUUID(),
@@ -38,5 +57,19 @@ describe('locationInputMapper', () => {
     expect(changes.name).toBe('Nuevo Nombre');
     expect(changes.latitude).toBe(41.3879);
     expect(changes.longitude).toBe(2.1699);
+  });
+
+  it('maps UpdateLocationInput with null coordinates to LocationChanges', () => {
+    const input = {
+      id: randomUUID(),
+      userId: randomUUID(),
+      latitude: null,
+      longitude: null
+    };
+
+    const changes = locationInputMapper.toChanges(input);
+
+    expect(changes.latitude).toBeNull();
+    expect(changes.longitude).toBeNull();
   });
 });

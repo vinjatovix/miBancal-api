@@ -34,6 +34,21 @@ describe('locationDomainMapper', () => {
     expect(roundTripped.version).toBe(location.version);
   });
 
+  it('maps and round-trips a location without coordinates', () => {
+    const location = LocationFactory.domainBase({
+      latitude: undefined,
+      longitude: undefined
+    });
+
+    const primitives = locationDomainMapper.toPrimitives(location);
+    const roundTripped = locationDomainMapper.fromPrimitives(primitives);
+
+    expect(primitives.latitude).toBeUndefined();
+    expect(primitives.longitude).toBeUndefined();
+    expect(roundTripped.latitude).toBeUndefined();
+    expect(roundTripped.longitude).toBeUndefined();
+  });
+
   it('serializes deletedAt only when the location is deleted', () => {
     const location = LocationFactory.deleted();
 

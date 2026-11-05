@@ -30,4 +30,19 @@ describe('locationPersistenceMapper', () => {
     expect(roundTripped.latitude).toBe(41.3879);
     expect(roundTripped.longitude).toBe(2.1699);
   });
+
+  it('maps and round-trips a document without coordinates', () => {
+    const location = LocationFactory.domainBase({
+      latitude: undefined,
+      longitude: undefined
+    });
+
+    const document = locationPersistenceMapper.toMongoDocument(location);
+    const roundTripped = locationPersistenceMapper.fromMongoDocument(document);
+
+    expect(document.latitude).toBeUndefined();
+    expect(document.longitude).toBeUndefined();
+    expect(roundTripped.latitude).toBeUndefined();
+    expect(roundTripped.longitude).toBeUndefined();
+  });
 });

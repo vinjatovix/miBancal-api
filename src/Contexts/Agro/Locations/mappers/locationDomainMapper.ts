@@ -11,8 +11,10 @@ export const locationDomainMapper: LocationDomainMapper = {
       id: location.id,
       userId: location.userId,
       name: location.name,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      ...(location.latitude !== undefined && { latitude: location.latitude }),
+      ...(location.longitude !== undefined && {
+        longitude: location.longitude
+      }),
       status: location.status,
       ...(location.deletedAt && {
         deletedAt: location.deletedAt.toISOString()

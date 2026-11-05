@@ -14,6 +14,23 @@ describe('toBedResponse', () => {
     expect(response.longitude).toBe(-3.7038);
   });
 
+  it('includes locationId when present on bed', () => {
+    const locationId = '11111111-1111-4111-8111-111111111111';
+    const bed = BedFactory.create({ locationId });
+
+    const response = toBedResponse({ bed, cropIds: [] });
+
+    expect(response.locationId).toBe(locationId);
+  });
+
+  it('returns locationId as null when bed has null locationId', () => {
+    const bed = BedFactory.create({ locationId: null });
+
+    const response = toBedResponse({ bed, cropIds: [] });
+
+    expect(response.locationId).toBeNull();
+  });
+
   it('omits coordinates and legacy fields when absent on bed', () => {
     const bed = BedFactory.create();
 

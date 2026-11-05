@@ -37,7 +37,15 @@ Feature: Bed Geographic Snapshot on Creation
             }
             """
 
-    Scenario: Creating a bed without a locationId omits geographic fields
+    Scenario: Creating a bed with a coordinate-less location omits geographic fields
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "a1b2c3d4-0c5a-4e2b-8a7f-1d9c3e5b7a91",
+                "name": "Finca sin coordenadas"
+            }
+            """
+        Then the response status code should be 201
         When a POST user request to "/api/v1/beds" with body
             """
             {
@@ -45,11 +53,18 @@ Feature: Bed Geographic Snapshot on Creation
                 "name": "Default Bed",
                 "width": 100,
                 "height": 200,
-                "depth": 25
+                "depth": 25,
+                "locationId": "a1b2c3d4-0c5a-4e2b-8a7f-1d9c3e5b7a91"
             }
             """
         Then the response status code should be 201
         And the response body should not have the fields "latitude,longitude"
+        And the response body should contain
+            """
+            {
+                "locationId": "a1b2c3d4-0c5a-4e2b-8a7f-1d9c3e5b7a91"
+            }
+            """
 
     Scenario: Editing the source location does not alter an existing bed's snapshot
         Given a POST user request to "/api/v1/locations" with body

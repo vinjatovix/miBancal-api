@@ -1,6 +1,7 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
+import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
 import type { LocationRepository } from '../../../Locations/domain/repositories/interfaces/LocationRepository.js';
 import type { PlantInstanceRepository } from '../../../PlantInstances/domain/repositories/interfaces/PlantInstanceRepository.js';
 import type { BedGeographicSnapshot } from '../../domain/entities/types/BedGeographicSnapshot.js';
@@ -58,8 +59,13 @@ export class UpdateBed {
       bed.resize(changes.dimensions, user.username, at);
     }
     if (changes.locationId !== undefined) {
+      if (changes.locationId === null) {
+        throw new InvalidArgumentException(
+          'Bed cannot be unlinked from a location'
+        );
+      }
       const geo = await this.resolveSnapshot(changes.locationId, user.id);
-      bed.applyLocationSnapshot(geo, user.username, at);
+      bed.relocate(changes.locationId, geo, user.username, at);
     }
 
     const after = bedDomainMapper.toPrimitives(bed);
@@ -73,11 +79,9 @@ export class UpdateBed {
   }
 
   private async resolveSnapshot(
-    locationId: string | null,
+    locationId: string,
     userId: string
   ): Promise<BedGeographicSnapshot | null> {
-    if (locationId === null) return null;
-
     const location = ensureFound(
       await this.locationRepository.findOwnedActiveById(locationId, userId),
       'Location',

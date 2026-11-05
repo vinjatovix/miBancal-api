@@ -17,6 +17,8 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
     return Bed.create({
       id: createBedId(fromMongoId(document._id)),
       userId: createUserId(fromMongoId(document.userId)),
+      locationId:
+        document.locationId != null ? fromMongoId(document.locationId) : null,
       name: new BedName(document.name),
       width: PositiveNumber.create(document.width),
       height: PositiveNumber.create(document.height),
@@ -38,6 +40,7 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
     return {
       _id: toMongoId(bed.id),
       userId: toMongoId(bed.userId),
+      locationId: bed.locationId !== null ? toMongoId(bed.locationId) : null,
       name: bed.name.value,
       width: bed.width.value,
       height: bed.height.value,

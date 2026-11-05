@@ -14,6 +14,7 @@ describe('bedPersistenceMapper', () => {
       expect(document.width).toBe(bed.width.value);
       expect(document.height).toBe(bed.height.value);
       expect(document.depth).toBe(bed.depth.value);
+      expect(document.locationId).toBeDefined();
 
       expect(document.deleted).toBe(bed.isDeleted);
 
@@ -84,8 +85,19 @@ describe('bedPersistenceMapper', () => {
       expect(bed.width.value).toBe(original.width.value);
       expect(bed.height.value).toBe(original.height.value);
       expect(bed.depth.value).toBe(original.depth.value);
+      expect(bed.locationId).toBe(original.locationId);
 
       expect(bed.isDeleted).toBe(original.isDeleted);
+    });
+
+    it('should default locationId to null when missing from legacy mongo document', () => {
+      const original = BedFactory.create();
+      const document = bedPersistenceMapper.toMongoDocument(original);
+      const { locationId: _locationId, ...legacyDocument } = document;
+
+      const bed = bedPersistenceMapper.fromMongoDocument(legacyDocument);
+
+      expect(bed.locationId).toBeNull();
     });
 
     it('should map geographic fields from mongo document correctly', () => {

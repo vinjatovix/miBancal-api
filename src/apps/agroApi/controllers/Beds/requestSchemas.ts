@@ -25,10 +25,7 @@ const createBedBody = z.object({
   width: dimensionSchema,
   height: dimensionSchema,
   depth: dimensionSchema,
-  // Resolved to an owned active location whose provided geographic fields
-  // are copied into the bed as a static snapshot; raw geographic fields are
-  // never accepted here.
-  locationId: z.uuid().exactOptional()
+  locationId: z.uuid()
 });
 
 export const createBedRequest = {
@@ -36,18 +33,50 @@ export const createBedRequest = {
   body: createBedBody
 } satisfies RequestSchemas;
 
-const bedQueryWithInclude = z.object({
-  include: z.enum(['plantInstances']).exactOptional()
-});
+const bedIncludeSchema = z
+  .enum([
+    'plantInstances',
+    'location',
+    'plantInstances,location',
+    'location,plantInstances'
+  ])
+  .exactOptional();
+
+const locationIdFilterValue = z.union([
+  z.uuid(),
+  z.object({
+    eq: z.uuid()
+  })
+]);
+
+const listBedsQuery = z
+  .object({
+    include: bedIncludeSchema,
+    filter: z
+      .object({
+        locationId: locationIdFilterValue.exactOptional()
+      })
+      .strict()
+      .exactOptional(),
+    'filter[locationId]': z.uuid().exactOptional(),
+    'filter[locationId][eq]': z.uuid().exactOptional()
+  })
+  .strict();
 
 export const listBedsRequest = {
-  query: bedQueryWithInclude,
+  query: listBedsQuery,
   body: emptyBody
 } satisfies RequestSchemas;
 
+const getBedByIdQuery = z
+  .object({
+    include: bedIncludeSchema
+  })
+  .strict();
+
 export const getBedByIdRequest = {
   params: bedIdParams,
-  query: bedQueryWithInclude,
+  query: getBedByIdQuery,
   body: emptyBody
 } satisfies RequestSchemas;
 
@@ -58,10 +87,9 @@ const updateBedBody = z.object({
   width: dimensionSchema.exactOptional(),
   height: dimensionSchema.exactOptional(),
   depth: dimensionSchema.exactOptional(),
-  // A uuid re-snapshots from that owned location (replace); `null` clears
-  // the snapshot; omitted leaves it unchanged. Raw geographic fields remain
-  // absent from this schema, so sending them is a 400.
-  locationId: z.uuid().nullable().exactOptional()
+  // A uuid re-snapshots and relocates to that owned location.
+  // Unlinking (null) is prohibited (400). Omitted leaves location unchanged.
+  locationId: z.uuid().exactOptional()
 });
 
 export const updateBedRequest = {

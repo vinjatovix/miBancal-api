@@ -1,3 +1,4 @@
+import type { BedPrimitives } from '../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import { bedDomainMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import { InvalidArgumentException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
 import { BedFactory } from '../domain/mothers/BedFactory.js';
@@ -15,6 +16,7 @@ describe('bedDomainMapper', () => {
       expect(primitives.width).toBe(bed.width.value);
       expect(primitives.height).toBe(bed.height.value);
       expect(primitives.depth).toBe(bed.depth.value);
+      expect(primitives.locationId).toBe(bed.locationId);
 
       expect(primitives.deleted).toBe(bed.isDeleted);
 
@@ -54,8 +56,21 @@ describe('bedDomainMapper', () => {
       expect(bed.width.value).toBe(primitives.width);
       expect(bed.height.value).toBe(primitives.height);
       expect(bed.depth.value).toBe(primitives.depth);
+      expect(bed.locationId).toBe(primitives.locationId ?? null);
 
       expect(bed.isDeleted).toBe(primitives.deleted);
+    });
+
+    it('should default locationId to null when missing from legacy primitives', () => {
+      const original = BedFactory.create();
+      const primitives = bedDomainMapper.toPrimitives(original);
+      const { locationId: _locationId, ...legacyPrimitives } = primitives;
+
+      const bed = bedDomainMapper.fromPrimitives(
+        legacyPrimitives as BedPrimitives
+      );
+
+      expect(bed.locationId).toBeNull();
     });
 
     it('should round-trip the version', () => {
