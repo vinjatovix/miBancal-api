@@ -32,6 +32,23 @@ export class LocationRepositoryMock
       : null;
   }
 
+  async conditionalIncrementVersion(
+    id: string,
+    expectedVersion: number
+  ): Promise<void> {
+    const location = this.storage.get(id);
+    if (
+      !location ||
+      !this.isActive(location) ||
+      location.version !== expectedVersion
+    ) {
+      throw new Error(`Location was modified concurrently: ${id}`);
+    }
+    const primitives = this.toPrimitives(location);
+    primitives.version += 1;
+    this.storage.set(id, this.toDomain(primitives));
+  }
+
   async findActiveByNameForOwner(
     userId: string,
     name: string

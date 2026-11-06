@@ -20,6 +20,77 @@ describe('UpdateLocation', () => {
     useCase = new UpdateLocation({ locationRepository: repository });
   });
 
+  it('updates spatial canvas configuration', async () => {
+    const location = LocationFactory.domainBase();
+    repository.addToStorage(location);
+
+    const updated = await useCase.execute(
+      {
+        id: location.id,
+        userId: location.userId,
+        canvasWidth: 1000,
+        canvasHeight: 1500,
+        northAngle: 45
+      },
+      USER,
+      [location.version]
+    );
+
+    expect(updated.canvasWidth).toBe(1000);
+    expect(updated.canvasHeight).toBe(1500);
+    expect(updated.northAngle).toBe(45);
+    expect(updated.version).toBe(location.version + 1);
+  });
+
+  it('preserves canvas dimensions when only northAngle is updated', async () => {
+    const location = LocationFactory.domainBase({
+      canvasWidth: 1000,
+      canvasHeight: 1500,
+      northAngle: 45
+    });
+    repository.addToStorage(location);
+
+    const updated = await useCase.execute(
+      {
+        id: location.id,
+        userId: location.userId,
+        northAngle: 90
+      },
+      USER,
+      [location.version]
+    );
+
+    expect(updated.canvasWidth).toBe(1000);
+    expect(updated.canvasHeight).toBe(1500);
+    expect(updated.northAngle).toBe(90);
+    expect(updated.version).toBe(location.version + 1);
+  });
+
+  it('preserves northAngle when only canvas dimensions are updated', async () => {
+    const location = LocationFactory.domainBase({
+      canvasWidth: 1000,
+      canvasHeight: 1500,
+      northAngle: 45
+    });
+    repository.addToStorage(location);
+
+    const updated = await useCase.execute(
+      {
+        id: location.id,
+        userId: location.userId,
+        canvasWidth: 2000,
+        canvasHeight: 2500
+      },
+      USER,
+      [location.version]
+    );
+
+    expect(updated.canvasWidth).toBe(2000);
+    expect(updated.canvasHeight).toBe(2500);
+    expect(updated.northAngle).toBe(45);
+    expect(updated.version).toBe(location.version + 1);
+  });
+
   it('updates coordinates atomically and bumps the version', async () => {
     const location = LocationFactory.domainBase({
       latitude: 40.4168,

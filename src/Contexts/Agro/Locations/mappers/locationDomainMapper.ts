@@ -15,6 +15,15 @@ export const locationDomainMapper: LocationDomainMapper = {
       ...(location.longitude !== undefined && {
         longitude: location.longitude
       }),
+      ...(location.canvasWidth !== undefined && {
+        canvasWidth: location.canvasWidth
+      }),
+      ...(location.canvasHeight !== undefined && {
+        canvasHeight: location.canvasHeight
+      }),
+      ...(location.northAngle !== undefined && {
+        northAngle: location.northAngle
+      }),
       status: location.status,
       ...(location.deletedAt && {
         deletedAt: location.deletedAt.toISOString()
@@ -31,6 +40,9 @@ export const locationDomainMapper: LocationDomainMapper = {
       name: primitives.name,
       latitude: primitives.latitude,
       longitude: primitives.longitude,
+      canvasWidth: primitives.canvasWidth,
+      canvasHeight: primitives.canvasHeight,
+      northAngle: primitives.northAngle,
       status: primitives.status,
       ...(primitives.deletedAt !== undefined && {
         deletedAt: new Date(primitives.deletedAt)

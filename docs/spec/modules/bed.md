@@ -57,16 +57,30 @@ Bed is NOT:
 - Bed defines coordinate space assumptions
 - Bed is input for SpatialService validation
 
-### 4.3 Bed → User
+### 4.3 Bed → User & Location
 
 - Bed is scoped to a single User.
 - Access is enforced per user ownership.
 - Cross-user access is forbidden. Another user's bed is reported as not found (`404`), not `403`, so bed ids cannot be probed; this also applies before any `If-Match` version check.
 - **Immutable Geographic Snapshot** _(CURRENTLY IMPLEMENTED, [Iteration 29](../../roadmap.md#iteration-29-user-locations-aggregate-and-bed-climate-snapshot))_: `POST /beds` accepts an optional `locationId`. When present, the use case resolves an owned active `Location` (see **Module: Location**, location.md) and copies its provided `postalCode`/`country`/`timezone`/`hemisphere` into the `Bed` document as static properties; fields the location does not carry stay absent (no synthetic defaults). An unknown or non-owned `locationId` is rejected `404` before any bed is persisted. Without a `locationId`, the bed has no geographic context. `PATCH /beds/{id}` accepts the same `locationId` (a uuid re-snapshots/replaces, `null` clears it via `$unset`, omitted leaves it unchanged); raw geographic fields are never writable on a bed (rejected `400` at the transport boundary). Because the snapshot is a copy, not a live reference, editing or deleting the source `Location` afterwards never changes an existing bed — climatic and seasonal history (crop rotations, planting calendars, seasonal shifts, local task schedules) stays historically accurate. The `User` profile is never consulted for this.
+- **Spatial Positioning within Location Canvas** _(CURRENTLY IMPLEMENTED, [Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md))_:
+  - When associated with a `locationId`, a Bed can have a spatial placement on the site canvas defined by `position` (`{ x: number, y: number }` in cm, nullable) and `rotation` (0–359 degrees, nullable, defaults to 0).
+  - Creation is decoupled from placement: `POST /beds` creates beds with physical dimensions without forcing spatial placement (`position: null`).
+  - Placement and layout orchestration are updated either through `PATCH /beds/{id}` or batch-managed via `PATCH /locations/{id}/beds-layout`.
+  - **Net Solar Orientation**: The bed's absolute orientation relative to geographic North is derived as:
+    $$\text{netOrientation} = (\text{location.northAngle} + \text{bed.rotation}) \pmod{360}$$
 
 ---
 
 ## 5. SPATIAL MODEL `[TARGET STATE (Pending Iterations [56](../../roadmap.md#iteration-56-build-2d-euclidean-proximity-calculator) & [58](../../roadmap.md#iteration-58-implement-container-volumetric-capacity-validation))]`
+
+### 5.0 Bed-Level Layout & Collision Detection (OBB / SAT) _(Implemented in [Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md))_
+
+Within a `Location` canvas, placed beds must not collide or overlap with each other, and must stay within the physical bounds of `Location.canvasDimensions` (when configured):
+
+- Evaluated via `BedCollisionDetector` using **Oriented Bounding Boxes (OBB)** and the **Separating Axis Theorem (SAT)**.
+- Accounts for each bed's physical `width`, `height`, canvas offset `position: { x, y }`, and `rotation` angle.
+- Overlapping beds in a layout update reject the request with `400 Bad Request` (`DomainConflictException` / validation error).
 
 ### 5.1 Hybrid Bed Types `[TARGET STATE (Pending Iterations [56](../../roadmap.md#iteration-56-build-2d-euclidean-proximity-calculator) & [58](../../roadmap.md#iteration-58-implement-container-volumetric-capacity-validation))]`
 
@@ -223,6 +237,7 @@ _Note: For the exact HTTP verbs, status codes, and routing parameters exposing t
 - in-memory audit metadata (domain-core.md Sec. 5.2): `rename`/`resize` refresh `updatedAt`/`updatedBy` only on a real change; `markAsDeleted(user, at)` uses one timestamp for `deletedAt` and `updatedAt`. All of them accept an optional `at` timestamp; `UpdateBed` passes one `at` to `rename` and `resize`. `UpdateBed` returns the in-memory bed after `syncVersion` (1 read + 1 write, no read-back)
 - soft deletion cascades: `DeleteBed` soft-deletes the bed first (so an outdated version answers `412` before any crop is touched) and then marks every active crop of the bed as removed with the same timestamp; deleting an already deleted bed returns `404`. Both writes run in one transaction (Sec. 7.2.2)
 - cross-collection transactions ([Iteration 24](../../roadmap.md#iteration-24-wrap-cross-aggregate-mutations-in-acid-transactions)): placing, moving and removing a crop, and deleting a bed, change the bed and its crops together or not at all
+- spatial positioning and rotation inside locations ([Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md)): `position: { x, y }` and `rotation` in `[0, 359]` degrees, `updatePosition`/`updateRotation` aggregate methods, layout orchestration and OBB/SAT collision detection via `BedCollisionDetector`
 
 ### Partial
 

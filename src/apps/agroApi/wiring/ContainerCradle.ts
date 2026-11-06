@@ -52,8 +52,10 @@ import type {
   CreateLocation,
   DeleteLocation,
   GetLocationById,
+  GetLocationLayout,
   ListUserLocations,
-  UpdateLocation
+  UpdateLocation,
+  UpdateLocationBedsLayout
 } from '../../../Contexts/Agro/Locations/application/useCases/index.js';
 import type { MongoLocationRepository } from '../../../Contexts/Agro/Locations/infrastructure/persistence/MongoLocationRepository.js';
 import type { LocationPersistenceMapper } from '../../../Contexts/Agro/Locations/mappers/interfaces/LocationPersistenceMapper.js';
@@ -188,6 +190,8 @@ import type {
   DeleteLocationController,
   GetLocationByIdController,
   GetUserLocationsController,
+  LocationBedsLayoutPatchController,
+  LocationLayoutGetController,
   UpdateLocationController
 } from '../controllers/Locations/index.js';
 import type {
@@ -314,7 +318,9 @@ export type ContainerCradle = {
   createLocation: CreateLocation;
   listUserLocations: ListUserLocations;
   getLocationById: GetLocationById;
+  getLocationLayout: GetLocationLayout;
   updateLocation: UpdateLocation;
+  updateLocationBedsLayout: UpdateLocationBedsLayout;
   deleteLocation: DeleteLocation;
   createPlant: CreatePlant;
   getPlant: GetPlant;
@@ -376,7 +382,9 @@ export type ContainerCradle = {
   createLocationController: CreateLocationController;
   getUserLocationsController: GetUserLocationsController;
   getLocationByIdController: GetLocationByIdController;
+  locationLayoutGetController: LocationLayoutGetController;
   updateLocationController: UpdateLocationController;
+  locationBedsLayoutPatchController: LocationBedsLayoutPatchController;
   deleteLocationController: DeleteLocationController;
   createPlantController: CreatePlantController;
   getAllPlantsController: GetAllPlantsController;

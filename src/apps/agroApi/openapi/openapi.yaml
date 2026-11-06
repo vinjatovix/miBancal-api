@@ -1431,6 +1431,13 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/LocationId'
+        - in: query
+          name: include
+          description: When include=beds, embeds all active beds belonging to this location.
+          required: false
+          schema:
+            type: string
+            enum: [beds]
       responses:
         '200':
           description: Location
@@ -1514,6 +1521,78 @@ paths:
           $ref: '#/components/responses/PreconditionFailedError'
         '428':
           $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/locations/{id}/beds-layout:
+    patch:
+      tags: [Locations]
+      summary: Batch update bed spatial coordinates and rotations within a location canvas
+      description: >
+        Applies batch placement or relocation of beds in a single optimistic concurrency transaction.
+        Enforces 2D boundary clamping and spatial non-collision (Axis-Aligned Bounding Box overlap detection).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LocationId'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BedLayoutPlacementInput'
+      responses:
+        '204':
+          description: Layout successfully updated.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '428':
+          $ref: '#/components/responses/PreconditionRequiredError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/locations/{id}/layout:
+    get:
+      tags: [Locations]
+      summary: Retrieve complete spatial layout and companion graph for a location
+      description: >
+        Returns the site canvas dimensions, all placed beds with their absolute positions and solar orientation,
+        unplaced beds, and the directed cross-bed and intra-bed companion affinity graph edges.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LocationId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Comprehensive garden layout model.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ReadETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationLayoutResponse'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -1608,6 +1687,115 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/plant-instances/batch:
+    post:
+      summary: Batch place plant instances
+      description: Plants multiple crops in a single target bed atomically.
+      operationId: batchPlacePlantInstances
+      security:
+        - bearerAuth: []
+      tags:
+        - PlantInstances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchPlacePlantInstancesRequest'
+      responses:
+        '201':
+          description: All plant instances created successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlantInstanceResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Spatial collision detected (internal or against existing crops) or duplicate IDs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      summary: Batch update and relocate plant instances
+      description: Updates and/or relocates multiple crops within a single target bed atomically with OCC.
+      operationId: batchUpdatePlantInstances
+      security:
+        - bearerAuth: []
+      tags:
+        - PlantInstances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdatePlantInstancesRequest'
+      responses:
+        '200':
+          description: All plant instances updated successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlantInstanceResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Spatial collision or concurrent state modification conflict.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Batch remove plant instances
+      description: Marks multiple crops as removed from a single target bed atomically with OCC.
+      operationId: batchRemovePlantInstances
+      security:
+        - bearerAuth: []
+      tags:
+        - PlantInstances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRemovePlantInstancesRequest'
+      responses:
+        '204':
+          description: All plant instances marked as removed successfully.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailedError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -2759,6 +2947,12 @@ components:
           nullable: true
           minimum: -180.0
           maximum: 180.0
+        northAngle:
+          type: integer
+          minimum: 0
+          maximum: 359
+          nullable: true
+          example: 45
         createdAt:
           type: string
           format: date-time
@@ -2769,6 +2963,11 @@ components:
           format: date-time
         updatedBy:
           type: string
+        beds:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationBedSummary'
+          description: Present only when `include=beds` is requested.
         version:
           type: integer
           minimum: 0
@@ -2788,6 +2987,11 @@ components:
           $ref: '#/components/schemas/Latitude'
         longitude:
           $ref: '#/components/schemas/Longitude'
+        northAngle:
+          type: integer
+          minimum: 0
+          maximum: 359
+          example: 45
 
     UpdateLocation:
       description: >
@@ -2809,6 +3013,11 @@ components:
           nullable: true
           minimum: -180.0
           maximum: 180.0
+        northAngle:
+          type: integer
+          minimum: 0
+          maximum: 359
+          nullable: true
 
     UserProfileView:
       type: object
@@ -4952,6 +5161,22 @@ components:
         longitude:
           $ref: '#/components/schemas/Longitude'
           description: Snapshotted longitude from the referenced location at create/update time.
+        position:
+          $ref: '#/components/schemas/BedPosition'
+          nullable: true
+          description: Coordinate position of bed origin (0, 0). Null indicates unplaced bed.
+        rotation:
+          type: integer
+          minimum: 0
+          maximum: 359
+          description: Clockwise rotation in degrees around bed origin.
+          example: 90
+        netOrientation:
+          type: integer
+          minimum: 0
+          maximum: 359
+          description: Net solar orientation (location.northAngle + rotation) % 360.
+          example: 135
         plantInstances:
           description: >
             Flat array of active crop UUIDs by default; full PlantInstance objects
@@ -5032,6 +5257,17 @@ components:
           description: >
             Relocates bed to another owned active location. Null is rejected (400).
             Omitted leaves location and snapshot unchanged.
+        position:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/BedPosition'
+            - type: 'null'
+          description: Coordinate position of bed origin, or null to unplace.
+        rotation:
+          type: integer
+          minimum: 0
+          maximum: 359
+          description: Clockwise rotation in degrees around bed origin.
 
     #  ================= PLANT INSTANCES =================
 
@@ -5167,6 +5403,136 @@ components:
             $ref: '#/components/schemas/PlantInstanceResponse'
         pagination:
           $ref: '#/components/schemas/PaginationResponse'
+
+    BatchPlacePlantInstancesRequest:
+      type: object
+      required:
+        - bedId
+        - items
+      properties:
+        bedId:
+          type: string
+          format: uuid
+          description: Target bed identifier.
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/BatchPlacePlantInstanceItem'
+
+    BatchPlacePlantInstanceItem:
+      type: object
+      required:
+        - id
+        - plantId
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Client-generated unique identifier for the crop.
+        plantId:
+          type: string
+          format: uuid
+          description: Identifier of the catalog plant.
+        position:
+          $ref: '#/components/schemas/Coordinates'
+        growthStatus:
+          $ref: '#/components/schemas/CropGrowthStatus'
+          default: planted
+        variety:
+          type: string
+          nullable: true
+          maxLength: 100
+        notes:
+          type: string
+          nullable: true
+          maxLength: 1000
+
+    BatchUpdatePlantInstancesRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/BatchUpdatePlantInstanceItem'
+
+    BatchUpdatePlantInstanceItem:
+      type: object
+      required:
+        - id
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the existing crop.
+        version:
+          type: integer
+          minimum: 0
+          description: Expected concurrency version of the crop.
+        position:
+          $ref: '#/components/schemas/Coordinates'
+        growthStatus:
+          $ref: '#/components/schemas/CropGrowthStatus'
+        variety:
+          type: string
+          nullable: true
+          maxLength: 100
+        notes:
+          type: string
+          nullable: true
+          maxLength: 1000
+
+    BatchRemovePlantInstancesRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/BatchRemovePlantInstanceItem'
+
+    BatchRemovePlantInstanceItem:
+      type: object
+      required:
+        - id
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the crop to delete.
+        version:
+          type: integer
+          minimum: 0
+          description: Expected concurrency version of the crop.
+
+    SpatialConflictError:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Spatial collision detected within batch
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            conflictType: internal
+            itemIndex: '2'
+            collidingWithIndex: '3'
+            distance: '7.50cm'
+            minRequired: '15.00cm'
 
     FavoritePlantItem:
       type: object
@@ -5562,6 +5928,214 @@ components:
             $ref: '#/components/schemas/PlantRelation'
         pagination:
           $ref: '#/components/schemas/PaginationResponse'
+
+    BedPosition:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: number
+          description: X coordinate in centimeters, representing horizontal displacement from an unbounded relative reference origin (0, 0).
+          example: 150
+        y:
+          type: number
+          description: Y coordinate in centimeters, representing vertical displacement from an unbounded relative reference origin (0, 0).
+          example: 200
+
+    BedLayoutPlacementInput:
+      type: object
+      required: [id, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the bed belonging to this location.
+        position:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/BedPosition'
+            - type: 'null'
+          description: Coordinate position of the bed origin (0, 0). Null indicates an unplaced bed.
+        rotation:
+          type: integer
+          minimum: 0
+          maximum: 359
+          default: 0
+          description: Clockwise rotation in degrees around the bed origin.
+          example: 90
+
+    PlacedBedSummary:
+      type: object
+      required: [id, name, width, height, position, rotation, netOrientation]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Tomato Bed 1
+        width:
+          type: number
+          example: 120
+        height:
+          type: number
+          example: 240
+        position:
+          $ref: '#/components/schemas/BedPosition'
+        rotation:
+          type: integer
+          minimum: 0
+          maximum: 359
+          example: 90
+        netOrientation:
+          type: integer
+          minimum: 0
+          maximum: 359
+          example: 135
+
+    UnplacedBedSummary:
+      type: object
+      required: [id, name, width, height, position, rotation]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Auxiliary Nursery Bed
+        width:
+          type: number
+          example: 80
+        height:
+          type: number
+          example: 120
+        position:
+          type: object
+          nullable: true
+          required: [x, y]
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+          example: null
+        rotation:
+          type: integer
+          default: 0
+          example: 0
+
+    CompanionGraphEdge:
+      type: object
+      required:
+        [
+          sourcePlantInstanceId,
+          targetPlantInstanceId,
+          sourceBedId,
+          targetBedId,
+          relationType,
+          mechanism,
+          strength,
+          distanceCm,
+          scope
+        ]
+      properties:
+        sourcePlantInstanceId:
+          type: string
+          format: uuid
+          description: Influencer crop instance.
+        targetPlantInstanceId:
+          type: string
+          format: uuid
+          description: Affected crop instance.
+        sourceBedId:
+          type: string
+          format: uuid
+        targetBedId:
+          type: string
+          format: uuid
+        relationType:
+          type: string
+          enum: [beneficial, detrimental]
+        mechanism:
+          type: string
+          example: pest_repellent
+        strength:
+          type: number
+          example: 80
+        distanceCm:
+          type: number
+          example: 45.5
+        scope:
+          type: string
+          enum: [intra_bed, cross_bed]
+        reason:
+          type: string
+          example: Marigold repels tomato root-knot nematodes.
+
+    LocationLayoutResponse:
+      type: object
+      required: [location, placedBeds, unplacedBeds, companionGraph]
+      properties:
+        location:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            northAngle:
+              type: integer
+              minimum: 0
+              maximum: 359
+              nullable: true
+              example: 45
+        placedBeds:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlacedBedSummary'
+        unplacedBeds:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnplacedBedSummary'
+        companionGraph:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanionGraphEdge'
+
+    LocationBedSummary:
+      type: object
+      required: [id, name, width, height, depth, position, rotation]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        width:
+          type: number
+        height:
+          type: number
+        depth:
+          type: number
+        position:
+          type: object
+          nullable: true
+          required: [x, y]
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+        rotation:
+          type: integer
+          minimum: 0
+          maximum: 359
+        netOrientation:
+          type: integer
+          minimum: 0
+          maximum: 359
 
   responses:
     UnprocessableEntityError:

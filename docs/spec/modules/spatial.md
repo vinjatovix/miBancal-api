@@ -12,9 +12,12 @@ This module defines spatial and ecological computation rules for MiBancal.
 
 It is responsible for:
 
+- Two-tier spatial reference system (local Bed coordinate space vs. global Location canvas space).
 - Plant placement validation.
-- Spatial collision detection (geometric and volumetric).
-- Dynamic companionship proximity checks (`ecologicalReport`).
+- Spatial collision detection (geometric bed-level and volumetric container-level).
+- Bed-level collision detection in site layouts (`BedCollisionDetector` via OBB/SAT).
+- Dynamic companionship proximity checks (`ecologicalReport` and `CrossBedCompanionService`).
+- Global plant coordinate projection (`SpatialProjectionService`).
 - Microclimatic solar suitability checks.
 - Coordinate system consistency.
 
@@ -26,7 +29,11 @@ It MUST NOT depend on persistence or API layers.
 
 Includes:
 
-- `SpatialService` (pure computations, validation, and report generation).
+- `SpatialService` / `CropSpatialService` (pure computations, validation, and report generation).
+- `SpatialProjectionService` (projects local bed coordinates to global site canvas coordinates).
+- `CrossBedCompanionService` (computes ecological synergies and antagonisms across contiguous beds).
+- `BedCollisionDetector` (validates bed-to-bed overlaps and boundary confinement via OBB/SAT).
+- `Vector2D` (shared 2D vector mathematics and transformation primitives).
 - `SpatialContext` (environment state encapsulation).
 - Distance and overlap validation logic.
 - Crop rotation historical heuristics.
@@ -68,6 +75,50 @@ Responsible for:
 - Validating placement against boundaries and overlaps.
 - Detecting volumetric soil constraints.
 - Generating the dynamic `ecologicalReport`.
+
+---
+
+## 4.3 Two-Tier Coordinate System & Global Projection (Feature 052)
+
+To model real-world garden topologies where beds are placed in "U", "L", or parallel batteries close to each other, the spatial architecture operates on two distinct coordinate layers:
+
+1. **Local Coordinate Space (Bed-Level):**
+   - Each `PlantInstance` maintains its position `(x, y)` in centimeters relative to the top-left origin $(0, 0)$ of its containing `Bed`.
+   - **Invariance & Portability:** Moving or rotating a bed in the garden layout does not modify the plant's local coordinates, preventing massive cascading write operations.
+
+2. **Global Coordinate Space (Location Canvas-Level):**
+   - The `Location` defines an optional site canvas of physical dimensions (`width`, `height` in cm) and geographic orientation (`northAngle` in $[0, 359]^\circ$).
+   - Each placed `Bed` has an offset `position: { x, y }` (top-left anchor in canvas coordinates) and a clockwise rotation angle `rotation: [0, 359]^\circ`.
+   - `SpatialProjectionService` transforms each local plant position $\vec{P}_{\text{local}} = (x_l, y_l)$ to global canvas coordinates $\vec{P}_{\text{global}}$:
+     $$\vec{P}_{\text{global}} = \vec{B}_{\text{pos}} + R(\theta) \cdot \vec{P}_{\text{local}}$$
+     where $\vec{B}_{\text{pos}}$ is the bed's canvas offset, and $R(\theta)$ is the standard 2D rotation matrix:
+     $$R(\theta) = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}$$
+
+---
+
+## 4.4 Cross-Bed Companion Proximity Analysis (Feature 052)
+
+Plants located near the perimeter of a bed can exert beneficial or harmful effects on plants in adjacent beds.
+
+`CrossBedCompanionService`:
+
+- Operates on the set of projected plants across all placed beds in a given `Location`.
+- Excludes intra-bed plant pairs (intra-bed synergies are evaluated within `Bed` scope).
+- For each cross-bed pair $(P_1, P_2)$, calculates Euclidean distance in global canvas space:
+  $$d = \|\vec{P}_{1,\text{global}} - \vec{P}_{2,\text{global}}\|$$
+- Checks against the interaction's `maxDistanceCm` defined in `PlantRelation` (falling back to species mature spacing when unspecified).
+- Emits directed `CompanionGraphEdge` records representing active cross-bed ecological links, returning them in the site layout representation (`GET /api/v1/locations/:id/layout`).
+
+---
+
+## 4.5 Bed-Level Collision Detection (OBB / SAT) (Feature 052)
+
+When planning bed placement on a location canvas (`PATCH /api/v1/locations/:id/beds-layout`):
+
+- `BedCollisionDetector` models each rotated rectangular bed as an **Oriented Bounding Box (OBB)**.
+- Validates confinement within `Location.canvasDimensions` (all 4 corners of each bed must remain within $[0, \text{canvasWidth}] \times [0, \text{canvasHeight}]$).
+- Validates pairwise separation using the **Separating Axis Theorem (SAT)** across the 4 candidate projection axes formed by the edges of both boxes.
+- Any intersection or boundary violation halts execution with a domain validation error.
 
 ---
 
@@ -231,6 +282,10 @@ To support real-time visual drag-and-drop on a spatial canvas (using rendering e
 - SpatialContext model.
 - spacingCm validation rule.
 - Math-based distance calculations.
+- Vector2D domain spatial value object and mathematical operations ([Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md)).
+- SpatialProjectionService (transforms local bed plant coordinates to site global coordinates) ([Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md)).
+- CrossBedCompanionService (cross-bed companion graph calculation across placed beds in location layout) ([Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md)).
+- BedCollisionDetector (OBB/SAT bed-to-bed collision detection and canvas boundary confinement) ([Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md)).
 
 ## Pending `[TARGET STATE (Pending Phase 9, 10 & 13 Iterations)]`
 

@@ -13,8 +13,10 @@ import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
 import type { BedId } from '../BedId.js';
 import { BedName } from '../BedName.js';
+import { BedRotation } from '../valueObjects/BedRotation.js';
 import type { BedDimensionsChanges } from './types/BedDimensionsChanges.js';
 import type { BedGeographicSnapshot } from './types/BedGeographicSnapshot.js';
+import type { BedPosition } from './types/BedPosition.js';
 import type { BedProps } from './types/BedProps.js';
 
 type BedState = BedProps & { version: number };
@@ -33,6 +35,18 @@ export class Bed extends AggregateRoot<BedId> {
 
   get name(): BedName {
     return this.props.name;
+  }
+
+  get position(): BedPosition | undefined {
+    return this.props.position;
+  }
+
+  get rotation(): number | undefined {
+    return this.props.rotation;
+  }
+
+  get netOrientation(): number | undefined {
+    return this.props.netOrientation;
   }
 
   get width(): PositiveNumber {
@@ -235,6 +249,54 @@ export class Bed extends AggregateRoot<BedId> {
 
   static create(props: BedProps): Bed {
     return new Bed(props);
+  }
+
+  place(
+    position: BedPosition,
+    bedRotation: number,
+    canvasNorthAngle: number | undefined,
+    actor: string,
+    at: Date
+  ): void {
+    if (this.props.deleted) {
+      throw new DomainConflictException('Cannot modify deleted bed');
+    }
+
+    if (position.x < 0 || position.y < 0) {
+      throw new InvalidArgumentException('Bed position x and y must be >= 0');
+    }
+
+    const rotation = new BedRotation(bedRotation);
+
+    let netOrientation = rotation.value;
+    if (canvasNorthAngle !== undefined) {
+      netOrientation = (canvasNorthAngle + rotation.value) % 360;
+    }
+
+    this.commit(
+      {
+        position,
+        rotation: rotation.value,
+        netOrientation
+      },
+      actor,
+      at
+    );
+  }
+
+  unplace(actor: string, at: Date): void {
+    if (this.props.deleted) {
+      throw new DomainConflictException('Cannot modify deleted bed');
+    }
+    this.commit(
+      {
+        position: undefined,
+        rotation: undefined,
+        netOrientation: undefined
+      },
+      actor,
+      at
+    );
   }
 
   private commit(changes: Partial<BedProps>, user: string, at: Date): void {

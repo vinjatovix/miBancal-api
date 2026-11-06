@@ -446,15 +446,16 @@ Rules:
 
 ---
 
-### 3.22 Locations System `[DELIVERED (spec 049, Iteration 29)]`
+### 3.22 Locations System `[DELIVERED (spec 049, Iteration 29 & Feature 052)]`
 
 ```sh
 /modules/location.md
 ```
 
-- Per-user `Location` aggregate (collection `locations`): owner-scoped CRUD, optional geography (`postalCode`, `country`, `timezone`, `hemisphere`), soft delete.
-- Single source of truth for geography; `User` carries none.
+- Per-user `Location` aggregate (collection `locations`): owner-scoped CRUD, optional geography (`postalCode`, `country`, `timezone`, `hemisphere`), spatial configuration (`northAngle`, `canvasDimensions`), soft delete.
+- Single source of truth for geography and site canvas; `User` carries none.
 - Source of the immutable geographic snapshot copied into a `Bed` via `locationId` (see §5.9).
+- Site layout engine: `GET /locations/:id/layout` (canvas, placed beds, projected plants, cross-bed companion graph) and `PATCH /locations/:id/beds-layout` (batch position/rotation update with OBB/SAT collision detection).
 
 Rules:
 
@@ -576,9 +577,12 @@ No mutation allowed
 
 ---
 
-### 5.9 Bed ↔ Location (Geographic Snapshot Inheritance)
+### 5.9 Bed ↔ Location (Geographic Snapshot & Spatial Layout)
 
 - A Bed optionally references a `Location` (owned by the same user) at creation/update time; the location's provided geographic fields (`postalCode`, `country`, `timezone`, `hemisphere`) are copied into the Bed as a static, immutable snapshot. The `User` aggregate carries no geography.
+- Beds placed within a `Location` canvas have 2D offsets (`position: { x, y }`) and rotational orientation (`rotation: 0–359`).
+- The Location coordinates spatial arrangement, validating bed bounds and avoiding overlaps via `BedCollisionDetector` (OBB/SAT).
+- Plants within placed beds are projected into global canvas space by `SpatialProjectionService`, enabling `CrossBedCompanionService` to calculate botanical relationships across neighboring beds.
 
 ---
 

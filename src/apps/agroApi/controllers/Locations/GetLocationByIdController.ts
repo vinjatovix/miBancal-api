@@ -26,14 +26,23 @@ export class GetLocationByIdController extends HttpController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { params } = getValidatedRequest(res, getLocationByIdRequest);
+      const { params, query } = getValidatedRequest(
+        res,
+        getLocationByIdRequest
+      );
       const user = res.locals.user as UserSessionInfo;
 
-      const location = await this.getLocationById.execute(params.id, user.id);
+      const { location, beds } = await this.getLocationById.execute(
+        params.id,
+        user.id,
+        query?.include
+      );
 
-      const response = toLocationResponse(location);
+      const response = toLocationResponse(location, beds);
 
-      setVersionETag(res, location.version);
+      if (beds === undefined) {
+        setVersionETag(res, location.version);
+      }
       res.status(this.status()).json(response);
     } catch (error) {
       next(error);

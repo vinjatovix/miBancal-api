@@ -78,7 +78,9 @@ To support the varying nature of botanical synergies, plant interactions are mod
 ## 6. RELATIONSHIPS
 
 - `PlantRelation` depends on `Plant` (source & target IDs must be valid active plant catalog species).
-- The `SpatialSystem` depends on `PlantRelation` to calculate the dynamic `ecologicalReport` of a Bed.
+- The `SpatialSystem` depends on `PlantRelation` to:
+  - calculate the dynamic `ecologicalReport` of individual Beds (`CropSpatialService`).
+  - compute multi-bed cross-border synergies and antagonisms across contiguous beds in a site canvas (`CrossBedCompanionService`, [Feature 052](../../specs/052-cross-bed-spatial-engine/spec.md)).
 
 ---
 

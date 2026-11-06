@@ -5,6 +5,7 @@ import {
   InvalidArgumentException
 } from '../../../../shared/domain/errors/index.js';
 import type { Location } from '../../domain/entities/Location.js';
+import type { LocationChanges } from '../../domain/entities/types/LocationChanges.js';
 import type { LocationRepository } from '../../domain/repositories/interfaces/LocationRepository.js';
 import { locationDomainMapper } from '../../mappers/locationDomainMapper.js';
 import { locationInputMapper } from '../../mappers/locationInputMapper.js';
@@ -46,18 +47,14 @@ export class UpdateLocation {
       location.rename(changes.name, user, at);
     }
 
-    if (changes.latitude !== undefined || changes.longitude !== undefined) {
-      if (changes.latitude === undefined || changes.longitude === undefined) {
-        throw new InvalidArgumentException(
-          'Both latitude and longitude must be provided together'
-        );
-      }
-      location.updateCoordinates(
-        { latitude: changes.latitude, longitude: changes.longitude },
-        user,
-        at
-      );
-    }
+    this.applySpatialChanges(location, changes, user, at);
+    this.applyCoordinateChanges(
+      location,
+      changes.latitude,
+      changes.longitude,
+      user,
+      at
+    );
 
     const after = locationDomainMapper.toPrimitives(location);
 
@@ -66,6 +63,53 @@ export class UpdateLocation {
     );
 
     return location;
+  }
+
+  private applySpatialChanges(
+    location: Location,
+    changes: LocationChanges,
+    user: string,
+    at: Date
+  ): void {
+    if (
+      changes.canvasWidth !== undefined ||
+      changes.canvasHeight !== undefined ||
+      changes.northAngle !== undefined
+    ) {
+      location.updateSpatialCanvas(
+        {
+          ...(changes.canvasWidth !== undefined && {
+            canvasWidth: changes.canvasWidth
+          }),
+          ...(changes.canvasHeight !== undefined && {
+            canvasHeight: changes.canvasHeight
+          }),
+          ...(changes.northAngle !== undefined && {
+            northAngle: changes.northAngle
+          })
+        },
+        user,
+        at
+      );
+    }
+  }
+
+  private applyCoordinateChanges(
+    location: Location,
+    latitude: number | null | undefined,
+    longitude: number | null | undefined,
+    user: string,
+    at: Date
+  ): void {
+    if (latitude === undefined && longitude === undefined) {
+      return;
+    }
+    if (latitude === undefined || longitude === undefined) {
+      throw new InvalidArgumentException(
+        'Both latitude and longitude must be provided together'
+      );
+    }
+    location.updateCoordinates({ latitude, longitude }, user, at);
   }
 
   private async ensureNameIsFree(

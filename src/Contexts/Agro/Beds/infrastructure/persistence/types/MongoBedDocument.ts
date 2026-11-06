@@ -11,6 +11,9 @@ export type MongoBedDocument = {
   depth: number;
   latitude?: number;
   longitude?: number;
+  position?: { x: number; y: number } | null;
+  rotation?: number;
+  netOrientation?: number;
   metadata: BedPrimitives['metadata'];
   deleted: boolean;
   deletedAt?: string;

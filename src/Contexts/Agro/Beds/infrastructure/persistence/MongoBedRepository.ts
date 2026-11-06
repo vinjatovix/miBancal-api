@@ -110,6 +110,57 @@ export class MongoBedRepository
     }
   }
 
+  async updateLayouts(beds: Bed[]): Promise<void> {
+    if (beds.length === 0) return;
+
+    const operations = beds.map((bed) => {
+      const doc = this.toMongoDocument(bed);
+      const setFields: Record<string, unknown> = {
+        metadata: doc.metadata
+      };
+      const unsetFields: Record<string, ''> = {};
+
+      if (doc.position !== undefined) {
+        setFields.position = doc.position;
+      } else {
+        unsetFields.position = '';
+      }
+
+      if (doc.rotation !== undefined) {
+        setFields.rotation = doc.rotation;
+      } else {
+        unsetFields.rotation = '';
+      }
+
+      if (doc.netOrientation !== undefined) {
+        setFields.netOrientation = doc.netOrientation;
+      } else {
+        unsetFields.netOrientation = '';
+      }
+
+      const update: Record<string, unknown> = {
+        $set: setFields,
+        $inc: { version: 1 }
+      };
+
+      if (Object.keys(unsetFields).length > 0) {
+        update.$unset = unsetFields;
+      }
+
+      return {
+        updateOne: {
+          filter: {
+            _id: doc._id,
+            ...this.activeFilter()
+          },
+          update
+        }
+      };
+    });
+
+    await this.collection().bulkWrite(operations, this.sessionOptions());
+  }
+
   protected activeFilter(): UnknownRecord {
     return { deleted: { $ne: true } };
   }

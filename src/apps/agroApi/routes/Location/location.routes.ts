@@ -4,7 +4,9 @@ import {
   createLocationRequest,
   deleteLocationRequest,
   getLocationByIdRequest,
+  getLocationLayoutRequest,
   listLocationsRequest,
+  updateLocationBedsLayoutRequest,
   updateLocationRequest
 } from '../../controllers/Locations/requestSchemas.js';
 import {
@@ -34,6 +36,13 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   );
 
   router.get(
+    `${prefix}/:id/layout`,
+    auth,
+    validateRequest(getLocationLayoutRequest),
+    locationApiInvoker('getLocationLayout')
+  );
+
+  router.get(
     `${prefix}/:id`,
     auth,
     validateRequest(getLocationByIdRequest),
@@ -46,6 +55,14 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     requireIfMatch,
     validateRequest(updateLocationRequest),
     locationApiInvoker('updateLocation')
+  );
+
+  router.patch(
+    `${prefix}/:id/beds-layout`,
+    auth,
+    requireIfMatch,
+    validateRequest(updateLocationBedsLayoutRequest),
+    locationApiInvoker('updateBedsLayout')
   );
 
   router.delete(
