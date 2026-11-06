@@ -12,6 +12,8 @@ import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import type { LocationId } from '../LocationId.js';
 import { Latitude } from '../value-objects/Latitude.js';
 import { Longitude } from '../value-objects/Longitude.js';
+import { CanvasDimensions } from '../valueObjects/CanvasDimensions.js';
+import { NorthAngle } from '../valueObjects/NorthAngle.js';
 import type { LocationProps } from './types/LocationProps.js';
 import type { LocationStatus } from './types/LocationStatus.js';
 
@@ -41,16 +43,8 @@ export class Location extends AggregateRoot<LocationId> {
   private constructor(props: LocationProps) {
     super(props.id);
     Location.assertSoftDeleteConsistency(props);
-
-    if (props.latitude !== undefined || props.longitude !== undefined) {
-      if (props.latitude === undefined || props.longitude === undefined) {
-        throw new InvalidArgumentException(
-          '<Location> latitude and longitude must both be provided together'
-        );
-      }
-      new Latitude(props.latitude);
-      new Longitude(props.longitude);
-    }
+    Location.assertCoordinatesConsistency(props);
+    Location.assertSpatialConsistency(props);
 
     this.props = Object.freeze({
       ...props,
@@ -60,6 +54,33 @@ export class Location extends AggregateRoot<LocationId> {
       status: props.status ?? 'active',
       version: props.version ?? 0
     });
+  }
+
+  private static assertCoordinatesConsistency(props: LocationProps): void {
+    if (props.latitude === undefined && props.longitude === undefined) {
+      return;
+    }
+    if (props.latitude === undefined || props.longitude === undefined) {
+      throw new InvalidArgumentException(
+        '<Location> latitude and longitude must both be provided together'
+      );
+    }
+    new Latitude(props.latitude);
+    new Longitude(props.longitude);
+  }
+
+  private static assertSpatialConsistency(props: LocationProps): void {
+    if (props.canvasWidth !== undefined || props.canvasHeight !== undefined) {
+      if (props.canvasWidth === undefined || props.canvasHeight === undefined) {
+        throw new InvalidArgumentException(
+          '<Location> canvasWidth and canvasHeight must both be provided together'
+        );
+      }
+      new CanvasDimensions(props.canvasWidth, props.canvasHeight);
+    }
+    if (props.northAngle !== undefined) {
+      new NorthAngle(props.northAngle);
+    }
   }
 
   get userId(): UserId {
@@ -76,6 +97,18 @@ export class Location extends AggregateRoot<LocationId> {
 
   get longitude(): number | undefined {
     return this.props.longitude;
+  }
+
+  get canvasWidth(): number | undefined {
+    return this.props.canvasWidth;
+  }
+
+  get canvasHeight(): number | undefined {
+    return this.props.canvasHeight;
+  }
+
+  get northAngle(): number | undefined {
+    return this.props.northAngle;
   }
 
   get status(): LocationStatus {
@@ -165,6 +198,77 @@ export class Location extends AggregateRoot<LocationId> {
       actor,
       at
     );
+  }
+
+  updateSpatialCanvas(
+    spatial: {
+      canvasWidth?: number | null;
+      canvasHeight?: number | null;
+      northAngle?: number | null;
+    },
+    actor: string,
+    at: Date
+  ): void {
+    this.assertActive();
+
+    const { nextWidth, nextHeight } = this.resolveNextCanvasDimensions(
+      spatial.canvasWidth,
+      spatial.canvasHeight
+    );
+    const nextNorthAngle = this.resolveNextNorthAngle(spatial.northAngle);
+
+    if (
+      this.props.canvasWidth === nextWidth &&
+      this.props.canvasHeight === nextHeight &&
+      this.props.northAngle === nextNorthAngle
+    ) {
+      return;
+    }
+
+    this.commit(
+      {
+        canvasWidth: nextWidth,
+        canvasHeight: nextHeight,
+        northAngle: nextNorthAngle
+      },
+      actor,
+      at
+    );
+  }
+
+  private resolveNextCanvasDimensions(
+    canvasWidth?: number | null,
+    canvasHeight?: number | null
+  ): { nextWidth: number | undefined; nextHeight: number | undefined } {
+    if (canvasWidth === undefined && canvasHeight === undefined) {
+      return {
+        nextWidth: this.props.canvasWidth,
+        nextHeight: this.props.canvasHeight
+      };
+    }
+    if (canvasWidth === null && canvasHeight === null) {
+      return { nextWidth: undefined, nextHeight: undefined };
+    }
+    if (typeof canvasWidth === 'number' && typeof canvasHeight === 'number') {
+      new CanvasDimensions(canvasWidth, canvasHeight);
+      return { nextWidth: canvasWidth, nextHeight: canvasHeight };
+    }
+    throw new InvalidArgumentException(
+      '<Location> canvasWidth and canvasHeight must both be provided together'
+    );
+  }
+
+  private resolveNextNorthAngle(
+    northAngle?: number | null
+  ): number | undefined {
+    if (northAngle === undefined) {
+      return this.props.northAngle;
+    }
+    if (northAngle === null) {
+      return undefined;
+    }
+    new NorthAngle(northAngle);
+    return northAngle;
   }
 
   markAsDeleted(actor: string, at: Date): void {

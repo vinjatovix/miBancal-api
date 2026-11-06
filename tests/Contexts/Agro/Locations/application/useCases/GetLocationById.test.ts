@@ -21,7 +21,10 @@ describe('GetLocationById', () => {
     });
     repository.addToStorage(location);
 
-    const result = await useCase.execute(location.id, location.userId);
+    const { location: result } = await useCase.execute(
+      location.id,
+      location.userId
+    );
 
     expect(result.id).toBe(location.id);
     expect(result.latitude).toBe(40.4168);

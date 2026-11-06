@@ -29,6 +29,15 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
       ...(document.longitude !== undefined && {
         longitude: document.longitude
       }),
+      ...(document.position !== undefined && {
+        position: document.position ?? undefined
+      }),
+      ...(document.rotation !== undefined && {
+        rotation: document.rotation
+      }),
+      ...(document.netOrientation !== undefined && {
+        netOrientation: document.netOrientation
+      }),
       metadata: Metadata.fromPrimitives(document.metadata),
       deleted: document.deleted,
       ...(document.deletedAt && { deletedAt: new Date(document.deletedAt) }),
@@ -47,6 +56,11 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
       depth: bed.depth.value,
       ...(bed.latitude !== undefined && { latitude: bed.latitude }),
       ...(bed.longitude !== undefined && { longitude: bed.longitude }),
+      ...(bed.position !== undefined && { position: bed.position }),
+      ...(bed.rotation !== undefined && { rotation: bed.rotation }),
+      ...(bed.netOrientation !== undefined && {
+        netOrientation: bed.netOrientation
+      }),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),

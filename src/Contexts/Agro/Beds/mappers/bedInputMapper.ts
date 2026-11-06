@@ -46,7 +46,9 @@ export const bedInputMapper: BedInputMapper = {
     return {
       ...(input.name !== undefined && { name: input.name }),
       dimensions,
-      ...(input.locationId !== undefined && { locationId: input.locationId })
+      ...(input.locationId !== undefined && { locationId: input.locationId }),
+      ...(input.position !== undefined && { position: input.position }),
+      ...(input.rotation !== undefined && { rotation: input.rotation })
     };
   }
 };

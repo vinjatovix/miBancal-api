@@ -204,10 +204,33 @@ When implementing **[Iteration 35](../../roadmap.md#iteration-35-make-plant-sowi
 
 #### Schemas
 
-- `Bed` (response; `name` and `depth` always present)
+- `Bed` (response; `name` and `depth` always present; optional `position` and `rotation`)
 - `CreateBed`: `id` (UUID), `name` (`RequiredShortText`), `width`/`height`/`depth` (`BedDimension`: JSON number > 0); `additionalProperties: false`
-- `UpdateBed`: any of `name`, `width`, `height`, `depth`, none nullable; `{}` is a no-op; no `plantInstances`; `additionalProperties: false`
+- `UpdateBed`: any of `name`, `width`, `height`, `depth`, `position` (object `{ x, y }` or `null`), `rotation` (`0–359` or `null`); `{}` is a no-op; no `plantInstances`; `additionalProperties: false`
 - `BedId` path parameter (`format: uuid`); `GET /beds` and `GET /beds/{id}` declare `400`
+
+---
+
+### 6.3bis Locations (user) `[DELIVERED (Iteration 29 & Feature 052)]`
+
+#### Locations Endpoints
+
+- POST /api/v1/locations
+- GET /api/v1/locations
+- GET /api/v1/locations/:id
+- PATCH /api/v1/locations/:id
+- DELETE /api/v1/locations/:id
+- GET /api/v1/locations/:id/layout
+- PATCH /api/v1/locations/:id/beds-layout
+
+#### Schemas
+
+- `Location` (response; includes `name`, geographic attributes, `northAngle`, `canvasDimensions`)
+- `CreateLocation`: `name` (`RequiredShortText`), optional geographic fields (`postalCode`, `country`, `timezone`, `hemisphere`), `northAngle` (0–359), `canvasDimensions` (`{ width, height }`); `additionalProperties: false`
+- `UpdateLocation`: JSON Merge Patch; fields `null` unsets, omitted leaves unchanged; accepts `northAngle` and `canvasDimensions`; `additionalProperties: false`
+- `LocationSummary`: lightweight projection for embedding in related resources
+- `LocationLayoutResponse`: full site layout with canvas dimensions, placed beds array, projected plant instance coordinates, and cross-bed companion relationships
+- `BedLayoutPlacementInput`: element schema for `PATCH /api/v1/locations/:id/beds-layout` array (`bedId`, `position: { x, y }`, `rotation`)
 
 ---
 

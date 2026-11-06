@@ -80,6 +80,13 @@ export const getBedByIdRequest = {
   body: emptyBody
 } satisfies RequestSchemas;
 
+const positionSchema = z.object({
+  x: z.number().min(0),
+  y: z.number().min(0)
+});
+const nullablePositionSchema = z.union([positionSchema, z.null()]);
+const rotationSchema = z.number().int().min(0).max(359);
+
 // JSON Merge Patch: `{}` accepted (no-op), the version check still applies.
 // Every field is required on the bed, so none accepts `null`.
 const updateBedBody = z.object({
@@ -89,7 +96,9 @@ const updateBedBody = z.object({
   depth: dimensionSchema.exactOptional(),
   // A uuid re-snapshots and relocates to that owned location.
   // Unlinking (null) is prohibited (400). Omitted leaves location unchanged.
-  locationId: z.uuid().exactOptional()
+  locationId: z.uuid().exactOptional(),
+  position: nullablePositionSchema.exactOptional(),
+  rotation: rotationSchema.exactOptional()
 });
 
 export const updateBedRequest = {

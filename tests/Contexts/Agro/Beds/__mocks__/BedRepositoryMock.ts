@@ -61,6 +61,18 @@ export class BedRepositoryMock
     });
     return Promise.resolve(beds);
   }
+
+  async updateLayouts(beds: Bed[]): Promise<void> {
+    for (const bed of beds) {
+      const stored = this.storage.get(bed.id);
+      if (stored) {
+        const primitives = this.toPrimitives(bed);
+        primitives.version = stored.version + 1;
+        this.storage.set(bed.id, this.toDomain(primitives));
+      }
+    }
+  }
+
   protected toDomain(primitives: BedPrimitives): Bed {
     return bedDomainMapper.fromPrimitives(primitives);
   }

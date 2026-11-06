@@ -6,4 +6,6 @@ export type BedChanges = {
   /** A uuid re-snapshots from that owned location (replace); `null` clears
    * the snapshot; omitted leaves it unchanged. */
   locationId?: string | null;
+  position?: { x: number; y: number } | null;
+  rotation?: number;
 };

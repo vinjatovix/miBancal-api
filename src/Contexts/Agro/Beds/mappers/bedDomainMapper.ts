@@ -21,6 +21,11 @@ export const bedDomainMapper: BedDomainMapper = {
       depth: bed.depth.value,
       ...(bed.latitude !== undefined && { latitude: bed.latitude }),
       ...(bed.longitude !== undefined && { longitude: bed.longitude }),
+      ...(bed.position !== undefined && { position: bed.position }),
+      ...(bed.rotation !== undefined && { rotation: bed.rotation }),
+      ...(bed.netOrientation !== undefined && {
+        netOrientation: bed.netOrientation
+      }),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),
@@ -42,6 +47,15 @@ export const bedDomainMapper: BedDomainMapper = {
       }),
       ...(primitives.longitude !== undefined && {
         longitude: primitives.longitude
+      }),
+      ...(primitives.position !== undefined && {
+        position: primitives.position ?? undefined
+      }),
+      ...(primitives.rotation !== undefined && {
+        rotation: primitives.rotation
+      }),
+      ...(primitives.netOrientation !== undefined && {
+        netOrientation: primitives.netOrientation
       }),
       deleted: primitives.deleted,
       ...(primitives.deletedAt && {

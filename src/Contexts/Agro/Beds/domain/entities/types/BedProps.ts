@@ -14,6 +14,10 @@ export type BedProps = {
   depth: PositiveNumber;
   latitude?: number;
   longitude?: number;
+  position?: { x: number; y: number } | undefined;
+  rotation?: number | undefined;
+  netOrientation?: number | undefined;
+
   metadata: Metadata;
   deleted: boolean;
   deletedAt?: Date;

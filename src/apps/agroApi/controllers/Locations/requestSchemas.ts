@@ -16,12 +16,20 @@ const longitudeSchema = z.number().finite().min(-180).max(180);
 const nullableLatitudeSchema = z.union([latitudeSchema, z.null()]);
 const nullableLongitudeSchema = z.union([longitudeSchema, z.null()]);
 
+const dimensionSchema = z.number().positive();
+const nullableDimensionSchema = z.union([dimensionSchema, z.null()]);
+const angleSchema = z.number().int().min(0).max(359);
+const nullableAngleSchema = z.union([angleSchema, z.null()]);
+
 const createLocationBody = z
   .object({
     id: z.uuid(),
     name: requiredShortTextSchema,
     latitude: latitudeSchema.exactOptional(),
-    longitude: longitudeSchema.exactOptional()
+    longitude: longitudeSchema.exactOptional(),
+    width: dimensionSchema.exactOptional(),
+    height: dimensionSchema.exactOptional(),
+    northAngle: angleSchema.exactOptional()
   })
   .strict()
   .refine(
@@ -30,6 +38,14 @@ const createLocationBody = z
       (data.latitude !== undefined && data.longitude !== undefined),
     {
       message: 'Both latitude and longitude must be provided together'
+    }
+  )
+  .refine(
+    (data) =>
+      (data.width === undefined && data.height === undefined) ||
+      (data.width !== undefined && data.height !== undefined),
+    {
+      message: 'Both width and height must be provided together'
     }
   );
 
@@ -43,7 +59,10 @@ const updateLocationBody = z
   .object({
     name: requiredShortTextSchema.exactOptional(),
     latitude: nullableLatitudeSchema.exactOptional(),
-    longitude: nullableLongitudeSchema.exactOptional()
+    longitude: nullableLongitudeSchema.exactOptional(),
+    width: nullableDimensionSchema.exactOptional(),
+    height: nullableDimensionSchema.exactOptional(),
+    northAngle: nullableAngleSchema.exactOptional()
   })
   .strict()
   .refine(
@@ -60,6 +79,21 @@ const updateLocationBody = z
     {
       message: 'Both latitude and longitude must be provided together'
     }
+  )
+  .refine(
+    (data) => {
+      const hasWidth = data.width !== undefined;
+      const hasHeight = data.height !== undefined;
+      if (!hasWidth && !hasHeight) return true;
+      if (!hasWidth || !hasHeight) return false;
+      const bothNull = data.width === null && data.height === null;
+      const bothNumbers =
+        typeof data.width === 'number' && typeof data.height === 'number';
+      return bothNull || bothNumbers;
+    },
+    {
+      message: 'Both width and height must be provided together'
+    }
   );
 
 export const updateLocationRequest = {
@@ -67,7 +101,17 @@ export const updateLocationRequest = {
   body: updateLocationBody
 } satisfies RequestSchemas;
 
+const getLocationByIdQuery = z.object({
+  include: z.enum(['beds']).optional()
+});
+
 export const getLocationByIdRequest = {
+  params: locationIdParams,
+  query: getLocationByIdQuery,
+  body: emptyBody
+} satisfies RequestSchemas;
+
+export const getLocationLayoutRequest = {
   params: locationIdParams,
   body: emptyBody
 } satisfies RequestSchemas;
@@ -85,4 +129,31 @@ const listLocationsQuery = listQuerySchema({
 export const listLocationsRequest = {
   query: listLocationsQuery,
   body: emptyBody
+} satisfies RequestSchemas;
+
+const bedPositionSchema = z.object({
+  x: z.number().min(0),
+  y: z.number().min(0)
+});
+
+const bedLayoutPlacementItemSchema = z.object({
+  id: z.string().uuid(),
+  position: z.union([bedPositionSchema, z.null()]),
+  rotation: z.number().int().min(0).max(359).optional()
+});
+
+const updateLocationBedsLayoutBody = z
+  .array(bedLayoutPlacementItemSchema)
+  .min(1)
+  .refine(
+    (items) => {
+      const ids = new Set(items.map((item) => item.id));
+      return ids.size === items.length;
+    },
+    { message: 'Bed layout items must have unique IDs' }
+  );
+
+export const updateLocationBedsLayoutRequest = {
+  params: locationIdParams,
+  body: updateLocationBedsLayoutBody
 } satisfies RequestSchemas;

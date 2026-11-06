@@ -8,6 +8,7 @@ import { GetLocationById } from '../../../../../src/Contexts/Agro/Locations/appl
 import type { UserSessionInfo } from '../../../../../src/Contexts/Auth/application/index.js';
 import { createUserId } from '../../../../../src/Contexts/Auth/domain/UserId.js';
 import { DomainNotFoundException } from '../../../../../src/Contexts/shared/domain/errors/index.js';
+import { BedRepositoryMock } from '../../../../Contexts/Agro/Beds/__mocks__/BedRepositoryMock.js';
 import { LocationRepositoryMock } from '../../../../Contexts/Agro/Locations/__mocks__/LocationRepositoryMock.js';
 import { LocationFactory } from '../../../../Contexts/Agro/Locations/domain/mothers/LocationFactory.js';
 import {
@@ -27,12 +28,17 @@ describe('GetLocationByIdController', () => {
   };
 
   let repository: LocationRepositoryMock;
+  let bedRepository: BedRepositoryMock;
   let controller: GetLocationByIdController;
 
   beforeEach(() => {
     repository = new LocationRepositoryMock();
+    bedRepository = new BedRepositoryMock();
     controller = new GetLocationByIdController({
-      getLocationById: new GetLocationById({ locationRepository: repository })
+      getLocationById: new GetLocationById({
+        locationRepository: repository,
+        bedRepository
+      })
     });
   });
 
@@ -66,6 +72,36 @@ describe('GetLocationByIdController', () => {
       updatedAt: location.metadata.updatedAt,
       updatedBy: location.metadata.updatedBy
     });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('embeds beds summary and omits ETag header when include=beds is requested', async () => {
+    const location = LocationFactory.domainBase({
+      userId: createUserId(sessionUser.id),
+      version: 2
+    });
+    repository.addToStorage(location);
+
+    const req = buildRequest({
+      params: { id: location.id },
+      query: { include: 'beds' }
+    });
+    const { res, status, json, set } = buildResponse({
+      user: sessionUser
+    });
+    const next = buildNext();
+
+    await runWithValidation(getLocationByIdRequest, req, res);
+    await controller.run(req, res, next as NextFunction);
+
+    expect(status).toHaveBeenCalledWith(httpStatus.OK);
+    expect(set).not.toHaveBeenCalledWith('ETag', expect.anything());
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: location.id,
+        beds: []
+      })
+    );
     expect(next).not.toHaveBeenCalled();
   });
 
