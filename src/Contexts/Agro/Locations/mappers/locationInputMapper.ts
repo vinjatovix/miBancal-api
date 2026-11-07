@@ -15,8 +15,6 @@ export const locationInputMapper: LocationInputMapper = {
       name: input.name,
       latitude: input.latitude,
       longitude: input.longitude,
-      canvasWidth: input.width ?? input.canvasWidth,
-      canvasHeight: input.height ?? input.canvasHeight,
       northAngle: input.northAngle,
       metadata: Metadata.create(user)
     });
@@ -28,12 +26,6 @@ export const locationInputMapper: LocationInputMapper = {
     if (input.name !== undefined) changes.name = input.name;
     if (input.latitude !== undefined) changes.latitude = input.latitude;
     if (input.longitude !== undefined) changes.longitude = input.longitude;
-
-    const width = input.width ?? input.canvasWidth;
-    if (width !== undefined) changes.canvasWidth = width;
-
-    const height = input.height ?? input.canvasHeight;
-    if (height !== undefined) changes.canvasHeight = height;
 
     if (input.northAngle !== undefined) changes.northAngle = input.northAngle;
 

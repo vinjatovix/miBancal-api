@@ -9,8 +9,6 @@ export type LocationProps = {
   name: string;
   latitude?: number | undefined;
   longitude?: number | undefined;
-  canvasWidth?: number | undefined;
-  canvasHeight?: number | undefined;
   northAngle?: number | undefined;
   status?: LocationStatus;
   deletedAt?: Date;

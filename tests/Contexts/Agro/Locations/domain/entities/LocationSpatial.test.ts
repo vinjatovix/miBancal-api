@@ -14,133 +14,62 @@ describe('Location Spatial Configuration', () => {
   };
 
   describe('updateSpatialCanvas', () => {
-    it('should set canvas dimensions and north angle', () => {
+    it('sets north angle and updates audit metadata', () => {
       const location = Location.create(defaultProps);
+      const updateTime = new Date();
 
-      location.updateSpatialCanvas(
-        { canvasWidth: 1000, canvasHeight: 1500, northAngle: 45 },
-        'test-user',
-        new Date()
-      );
+      location.updateSpatialCanvas({ northAngle: 45 }, 'test-user', updateTime);
 
-      expect(location.canvasWidth).toBe(1000);
-      expect(location.canvasHeight).toBe(1500);
       expect(location.northAngle).toBe(45);
+      expect(location.metadata.updatedBy).toBe('test-user');
+      expect(location.metadata.updatedAt).toEqual(updateTime);
     });
 
-    it('should clear spatial properties when exactly null is provided', () => {
+    it('clears north angle when null is provided', () => {
       const location = Location.create({
         ...defaultProps,
-        canvasWidth: 1000,
-        canvasHeight: 1500,
         northAngle: 45
       });
-
-      location.updateSpatialCanvas(
-        { canvasWidth: null, canvasHeight: null, northAngle: null },
-        'test-user',
-        new Date()
-      );
-
-      expect(location.canvasWidth).toBeUndefined();
-      expect(location.canvasHeight).toBeUndefined();
-      expect(location.northAngle).toBeUndefined();
-    });
-
-    it('should throw if setting height without width', () => {
-      const location = Location.create(defaultProps);
-
-      expect(() => {
-        location.updateSpatialCanvas(
-          { canvasWidth: null, canvasHeight: 1500, northAngle: 45 },
-          'test-user',
-          new Date()
-        );
-      }).toThrow(InvalidArgumentException);
-    });
-
-    it('should throw if setting width without height', () => {
-      const location = Location.create(defaultProps);
-
-      expect(() => {
-        location.updateSpatialCanvas(
-          { canvasWidth: 1500, canvasHeight: null, northAngle: 45 },
-          'test-user',
-          new Date()
-        );
-      }).toThrow(InvalidArgumentException);
-    });
-
-    it('should preserve canvas dimensions when only north angle is updated', () => {
-      const location = Location.create({
-        ...defaultProps,
-        canvasWidth: 1000,
-        canvasHeight: 1500,
-        northAngle: 45
-      });
-
-      location.updateSpatialCanvas({ northAngle: 90 }, 'test-user', new Date());
-
-      expect(location.canvasWidth).toBe(1000);
-      expect(location.canvasHeight).toBe(1500);
-      expect(location.northAngle).toBe(90);
-    });
-
-    it('should preserve north angle when only canvas dimensions are updated', () => {
-      const location = Location.create({
-        ...defaultProps,
-        canvasWidth: 1000,
-        canvasHeight: 1500,
-        northAngle: 45
-      });
-
-      location.updateSpatialCanvas(
-        { canvasWidth: 2000, canvasHeight: 3000 },
-        'test-user',
-        new Date()
-      );
-
-      expect(location.canvasWidth).toBe(2000);
-      expect(location.canvasHeight).toBe(3000);
-      expect(location.northAngle).toBe(45);
-    });
-
-    it('should clear canvas dimensions while preserving north angle when dimensions are explicitly null', () => {
-      const location = Location.create({
-        ...defaultProps,
-        canvasWidth: 1000,
-        canvasHeight: 1500,
-        northAngle: 45
-      });
-
-      location.updateSpatialCanvas(
-        { canvasWidth: null, canvasHeight: null },
-        'test-user',
-        new Date()
-      );
-
-      expect(location.canvasWidth).toBeUndefined();
-      expect(location.canvasHeight).toBeUndefined();
-      expect(location.northAngle).toBe(45);
-    });
-
-    it('should clear north angle while preserving canvas dimensions when north angle is explicitly null', () => {
-      const location = Location.create({
-        ...defaultProps,
-        canvasWidth: 1000,
-        canvasHeight: 1500,
-        northAngle: 45
-      });
+      const updateTime = new Date();
 
       location.updateSpatialCanvas(
         { northAngle: null },
         'test-user',
-        new Date()
+        updateTime
       );
 
-      expect(location.canvasWidth).toBe(1000);
-      expect(location.canvasHeight).toBe(1500);
       expect(location.northAngle).toBeUndefined();
+      expect(location.metadata.updatedBy).toBe('test-user');
+      expect(location.metadata.updatedAt).toEqual(updateTime);
+    });
+
+    it('is a no-op when north angle does not change', () => {
+      const location = Location.create({
+        ...defaultProps,
+        northAngle: 45
+      });
+      const before = location.metadata.updatedAt;
+
+      location.updateSpatialCanvas(
+        { northAngle: 45 },
+        'test-user',
+        new Date(before.getTime() + 1000)
+      );
+
+      expect(location.metadata.updatedAt).toEqual(before);
+    });
+
+    it('throws InvalidArgumentException when north angle is out of bounds', () => {
+      const location = Location.create(defaultProps);
+
+      const updateAction = () =>
+        location.updateSpatialCanvas(
+          { northAngle: 400 },
+          'test-user',
+          new Date()
+        );
+
+      expect(updateAction).toThrow(InvalidArgumentException);
     });
   });
 });

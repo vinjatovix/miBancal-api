@@ -19,8 +19,6 @@ export type LocationResponse = {
   name: string;
   latitude?: number;
   longitude?: number;
-  width?: number;
-  height?: number;
   northAngle?: number;
   createdAt: Date;
   createdBy: string;
@@ -51,12 +49,6 @@ const fromPrimitives = (
   ...(primitives.latitude !== undefined && { latitude: primitives.latitude }),
   ...(primitives.longitude !== undefined && {
     longitude: primitives.longitude
-  }),
-  ...(primitives.canvasWidth !== undefined && {
-    width: primitives.canvasWidth
-  }),
-  ...(primitives.canvasHeight !== undefined && {
-    height: primitives.canvasHeight
   }),
   ...(primitives.northAngle !== undefined && {
     northAngle: primitives.northAngle

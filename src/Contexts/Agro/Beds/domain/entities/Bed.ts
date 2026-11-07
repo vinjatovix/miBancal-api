@@ -262,8 +262,10 @@ export class Bed extends AggregateRoot<BedId> {
       throw new DomainConflictException('Cannot modify deleted bed');
     }
 
-    if (position.x < 0 || position.y < 0) {
-      throw new InvalidArgumentException('Bed position x and y must be >= 0');
+    if (!Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+      throw new InvalidArgumentException(
+        'Bed position coordinates must be finite numbers'
+      );
     }
 
     const rotation = new BedRotation(bedRotation);

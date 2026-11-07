@@ -28,27 +28,18 @@ describe('BedCollisionDetector', () => {
       expect(obb.vertices[3].x).toBeCloseTo(-40);
       expect(obb.vertices[3].y).toBeCloseTo(20);
     });
-  });
 
-  describe('checkContainment', () => {
-    it.each([
-      [{ x: 10, y: 10 }, 10, 10, 0, 100, 100, true],
-      [{ x: 0, y: 0 }, 100, 100, 0, 100, 100, true],
-      [{ x: -1, y: 10 }, 10, 10, 0, 100, 100, false],
-      [{ x: 10, y: -1 }, 10, 10, 0, 100, 100, false],
-      [{ x: 95, y: 10 }, 10, 10, 0, 100, 100, false],
-      [{ x: 10, y: 95 }, 10, 10, 0, 100, 100, false],
-      [{ x: 50, y: 0 }, 10, 10, 90, 100, 100, true],
-      [{ x: 0, y: 0 }, 10, 10, 45, 100, 100, false]
-    ])(
-      'should check containment for pos %j, %sx%s rot %s in %sx%s as %s',
-      (pos, w, h, rot, cw, ch, expected) => {
-        const obb = BedCollisionDetector.getOBB(pos, w, h, rot);
-        expect(BedCollisionDetector.checkContainment(obb, cw, ch)).toBe(
-          expected
-        );
-      }
-    );
+    it('should generate unrotated OBB correctly at negative coordinates', () => {
+      const obb = BedCollisionDetector.getOBB({ x: -100, y: -50 }, 100, 50, 0);
+      expect(obb.vertices[0].x).toBeCloseTo(-100);
+      expect(obb.vertices[0].y).toBeCloseTo(-50);
+      expect(obb.vertices[1].x).toBeCloseTo(0);
+      expect(obb.vertices[1].y).toBeCloseTo(-50);
+      expect(obb.vertices[2].x).toBeCloseTo(0);
+      expect(obb.vertices[2].y).toBeCloseTo(0);
+      expect(obb.vertices[3].x).toBeCloseTo(-100);
+      expect(obb.vertices[3].y).toBeCloseTo(0);
+    });
   });
 
   describe('checkCollision', () => {
@@ -60,7 +51,11 @@ describe('BedCollisionDetector', () => {
       [{ x: 0, y: 0 }, 10, 10, 45, { x: 20, y: 0 }, 10, 10, 45, false],
       [{ x: 0, y: 0 }, 10, 10, 45, { x: 7, y: 7 }, 10, 10, 45, true],
       [{ x: 0, y: 0 }, 10, 10, 0, { x: 9, y: 9 }, 10, 10, 0, true],
-      [{ x: 0, y: 0 }, 10, 10, 0, { x: 10.01, y: 10.01 }, 10, 10, 0, false]
+      [{ x: 0, y: 0 }, 10, 10, 0, { x: 10.01, y: 10.01 }, 10, 10, 0, false],
+      [{ x: -100, y: -100 }, 50, 50, 0, { x: -80, y: -80 }, 50, 50, 0, true],
+      [{ x: -100, y: -100 }, 50, 50, 0, { x: -40, y: -40 }, 50, 50, 0, false],
+      [{ x: -30, y: -30 }, 50, 50, 0, { x: 10, y: 10 }, 50, 50, 0, true],
+      [{ x: -50, y: 10 }, 50, 50, 0, { x: 10, y: 10 }, 50, 50, 0, false]
     ])(
       'should detect collision between obb1 and obb2 correctly',
       (p1, w1, h1, r1, p2, w2, h2, r2, expected) => {

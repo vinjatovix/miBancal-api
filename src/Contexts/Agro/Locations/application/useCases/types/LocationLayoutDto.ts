@@ -24,8 +24,6 @@ export interface LocationCanvasSummary {
   readonly id: string;
   readonly name: string;
   readonly northAngle?: number | undefined;
-  readonly width?: number | undefined;
-  readonly height?: number | undefined;
   readonly version: number;
 }
 

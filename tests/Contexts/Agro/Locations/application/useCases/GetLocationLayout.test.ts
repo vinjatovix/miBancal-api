@@ -43,9 +43,7 @@ describe('GetLocationLayout', () => {
   it('partitions placed and unplaced beds correctly', async () => {
     const location = LocationFactory.domainBase({
       userId: createUserId(USER_ID),
-      northAngle: 45,
-      canvasWidth: 2000,
-      canvasHeight: 1500
+      northAngle: 45
     });
     locationRepository.addToStorage(location);
 
@@ -70,8 +68,6 @@ describe('GetLocationLayout', () => {
 
     expect(layout.location.id).toBe(location.id);
     expect(layout.location.northAngle).toBe(45);
-    expect(layout.location.width).toBe(2000);
-    expect(layout.location.height).toBe(1500);
 
     expect(layout.placedBeds).toHaveLength(1);
     expect(layout.placedBeds[0]?.id).toBe(placedBed.id);
@@ -89,9 +85,7 @@ describe('GetLocationLayout', () => {
   it('evaluates cross-bed companion edges while strictly excluding crops in unplaced beds', async () => {
     const location = LocationFactory.domainBase({
       userId: createUserId(USER_ID),
-      northAngle: 0,
-      canvasWidth: 3000,
-      canvasHeight: 2000
+      northAngle: 0
     });
     locationRepository.addToStorage(location);
 

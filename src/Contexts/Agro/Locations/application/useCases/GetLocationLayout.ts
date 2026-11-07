@@ -111,12 +111,6 @@ export class GetLocationLayout {
         ...(location.northAngle !== undefined && {
           northAngle: location.northAngle
         }),
-        ...(location.canvasWidth !== undefined && {
-          width: location.canvasWidth
-        }),
-        ...(location.canvasHeight !== undefined && {
-          height: location.canvasHeight
-        }),
         version: location.version
       },
       placedBeds: placedSummaries,

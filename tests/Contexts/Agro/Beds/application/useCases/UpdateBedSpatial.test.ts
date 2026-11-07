@@ -39,43 +39,45 @@ describe('UpdateBed Spatial Placement', () => {
     });
   });
 
-  it('places a bed within canvas boundaries and calculates net orientation', async () => {
-    const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      northAngle: 45,
-      canvasWidth: 2000,
-      canvasHeight: 1500
-    });
-    locationRepository.addToStorage(location);
+  it.each([
+    [{ x: 300, y: 150 }, 'positive'],
+    [{ x: -261.58, y: -90.5 }, 'negative']
+  ])(
+    'places a bed at %s coordinates and calculates net orientation',
+    async (position) => {
+      const location = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        northAngle: 45
+      });
+      locationRepository.addToStorage(location);
 
-    const bed = BedFactory.create({
-      userId: createUserId(USER.id),
-      locationId: location.id,
-      width: PositiveNumber.create(100),
-      height: PositiveNumber.create(200)
-    });
-    repository.addToStorage(bed);
+      const bed = BedFactory.create({
+        userId: createUserId(USER.id),
+        locationId: location.id,
+        width: PositiveNumber.create(100),
+        height: PositiveNumber.create(200)
+      });
+      repository.addToStorage(bed);
 
-    const { bed: updated } = await useCase.execute(
-      {
-        id: bed.id,
-        position: { x: 300, y: 150 },
-        rotation: 90
-      },
-      USER,
-      [CURRENT_VERSION]
-    );
+      const { bed: updated } = await useCase.execute(
+        {
+          id: bed.id,
+          position,
+          rotation: 90
+        },
+        USER,
+        [CURRENT_VERSION]
+      );
 
-    expect(updated.position).toEqual({ x: 300, y: 150 });
-    expect(updated.rotation).toBe(90);
-    expect(updated.netOrientation).toBe(135);
-  });
+      expect(updated.position).toEqual(position);
+      expect(updated.rotation).toBe(90);
+      expect(updated.netOrientation).toBe(135);
+    }
+  );
 
   it('increments parent location version when bed is placed', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 2000,
-      canvasHeight: 1500
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 
@@ -158,40 +160,9 @@ describe('UpdateBed Spatial Placement', () => {
     await expect(execution).rejects.toBeInstanceOf(InvalidArgumentException);
   });
 
-  it('throws an invalid argument exception when bed exceeds canvas boundaries', async () => {
-    const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 500,
-      canvasHeight: 500
-    });
-    locationRepository.addToStorage(location);
-
-    const bed = BedFactory.create({
-      userId: createUserId(USER.id),
-      locationId: location.id,
-      width: PositiveNumber.create(200),
-      height: PositiveNumber.create(300)
-    });
-    repository.addToStorage(bed);
-
-    const execution = useCase.execute(
-      {
-        id: bed.id,
-        position: { x: 400, y: 100 },
-        rotation: 0
-      },
-      USER,
-      [CURRENT_VERSION]
-    );
-
-    await expect(execution).rejects.toBeInstanceOf(InvalidArgumentException);
-  });
-
   it('throws a domain conflict exception when bed collides with an existing placed bed in the same location', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 2000,
-      canvasHeight: 2000
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 
@@ -228,9 +199,7 @@ describe('UpdateBed Spatial Placement', () => {
 
   it('does not detect collision with itself when re-positioning an already placed bed', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 2000,
-      canvasHeight: 2000
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 
