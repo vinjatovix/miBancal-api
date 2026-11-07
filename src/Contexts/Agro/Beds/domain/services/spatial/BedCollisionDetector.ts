@@ -34,28 +34,6 @@ export class BedCollisionDetector {
   }
 
   /**
-   * Checks if an OBB is fully contained within the given canvas dimensions.
-   */
-  static checkContainment(
-    obb: OrientedBoundingBox,
-    canvasWidth: number,
-    canvasHeight: number
-  ): boolean {
-    for (const v of obb.vertices) {
-      // Allow floating point tolerance for boundaries
-      if (
-        v.x < -1e-8 ||
-        v.y < -1e-8 ||
-        v.x > canvasWidth + 1e-8 ||
-        v.y > canvasHeight + 1e-8
-      ) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
    * Uses Separating Axis Theorem (SAT) to check collision between two OBBs.
    * Returns true if there IS a collision, false if they are disjoint.
    */

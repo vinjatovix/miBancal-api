@@ -10,8 +10,6 @@ Feature: Location Beds Layout Batch Persistence
             {
                 "id": "11111111-1111-4111-8111-111111111199",
                 "name": "Batch Layout Garden",
-                "width": 3000,
-                "height": 2000,
                 "northAngle": 90
             }
             """
@@ -112,9 +110,7 @@ Feature: Location Beds Layout Batch Persistence
             """
             {
                 "id": "11111111-1111-4111-8111-111111111188",
-                "name": "Collision Test Garden",
-                "width": 2000,
-                "height": 2000
+                "name": "Collision Test Garden"
             }
             """
         Then the response status code should be 201
@@ -187,9 +183,7 @@ Feature: Location Beds Layout Batch Persistence
             """
             {
                 "id": "11111111-1111-4111-8111-111111111177",
-                "name": "Stale ETag Test Garden",
-                "width": 2000,
-                "height": 2000
+                "name": "Stale ETag Test Garden"
             }
             """
         Then the response status code should be 201
@@ -232,3 +226,82 @@ Feature: Location Beds Layout Batch Persistence
         Then the response status code should be 200
         And response matches OpenAPI contract
         And the response should have ETag '"0"'
+
+    Scenario: Batch update beds layout placing beds at negative coordinates across quadrants
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "11111111-1111-4111-8111-111111111166",
+                "name": "Negative Coordinates Layout Garden"
+            }
+            """
+        Then the response status code should be 201
+        And response matches OpenAPI contract
+
+        When a POST user request to "/api/v1/beds" with body
+            """
+            {
+                "id": "22222222-2222-4222-8222-222222222255",
+                "name": "Northwest Bed",
+                "width": 100,
+                "height": 100,
+                "depth": 30,
+                "locationId": "11111111-1111-4111-8111-111111111166"
+            }
+            """
+        Then the response status code should be 201
+        And response matches OpenAPI contract
+
+        When a POST user request to "/api/v1/beds" with body
+            """
+            {
+                "id": "22222222-2222-4222-8222-222222222256",
+                "name": "Southwest Bed",
+                "width": 100,
+                "height": 100,
+                "depth": 30,
+                "locationId": "11111111-1111-4111-8111-111111111166"
+            }
+            """
+        Then the response status code should be 201
+        And response matches OpenAPI contract
+
+        Given I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/locations/11111111-1111-4111-8111-111111111166/beds-layout" with body
+            """
+            [
+                {
+                    "id": "22222222-2222-4222-8222-222222222255",
+                    "position": { "x": -260.5, "y": 90.5 },
+                    "rotation": 90
+                },
+                {
+                    "id": "22222222-2222-4222-8222-222222222256",
+                    "position": { "x": -150.0, "y": -300.0 },
+                    "rotation": 0
+                }
+            ]
+            """
+        Then the response status code should be 204
+        And response matches OpenAPI contract
+
+        When I send a GET user request to "/api/v1/locations/11111111-1111-4111-8111-111111111166/layout"
+        Then the response status code should be 200
+        And response matches OpenAPI contract
+        And the response body should contain
+            """
+            {
+                "placedBeds": [
+                    {
+                        "id": "22222222-2222-4222-8222-222222222255",
+                        "position": { "x": -260.5, "y": 90.5 },
+                        "rotation": 90
+                    },
+                    {
+                        "id": "22222222-2222-4222-8222-222222222256",
+                        "position": { "x": -150, "y": -300 },
+                        "rotation": 0
+                    }
+                ]
+            }
+            """

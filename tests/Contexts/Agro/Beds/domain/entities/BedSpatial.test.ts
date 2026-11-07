@@ -20,15 +20,23 @@ describe('Bed Spatial Configuration', () => {
   };
 
   describe('Placement', () => {
-    it('places a bed and calculates net orientation', () => {
-      const bed = Bed.create(defaultProps);
+    it.each([
+      [{ x: 10, y: 20 }],
+      [{ x: -150, y: 200 }],
+      [{ x: 150, y: -200 }],
+      [{ x: -261.58, y: -90.5 }]
+    ])(
+      'places a bed at position %j with full numeric fidelity and calculates net orientation',
+      (position) => {
+        const bed = Bed.create(defaultProps);
 
-      bed.place({ x: 10, y: 20 }, 90, 45, 'test-user', new Date());
+        bed.place(position, 90, 45, 'test-user', new Date());
 
-      expect(bed.position).toEqual({ x: 10, y: 20 });
-      expect(bed.rotation).toBe(90);
-      expect(bed.netOrientation).toBe(135);
-    });
+        expect(bed.position).toEqual(position);
+        expect(bed.rotation).toBe(90);
+        expect(bed.netOrientation).toBe(135);
+      }
+    );
 
     it('handles rotation wrap-around in net orientation', () => {
       const bed = Bed.create(defaultProps);
@@ -46,14 +54,20 @@ describe('Bed Spatial Configuration', () => {
       expect(bed.netOrientation).toBe(90);
     });
 
-    it.each([[{ x: -10, y: 20 }], [{ x: 10, y: -20 }]])(
-      'throws InvalidArgumentException when placing bed with negative position %j',
+    it.each([
+      [{ x: Number.NaN, y: 20 }],
+      [{ x: 20, y: Number.NaN }],
+      [{ x: Number.POSITIVE_INFINITY, y: 20 }],
+      [{ x: 20, y: Number.NEGATIVE_INFINITY }]
+    ])(
+      'throws InvalidArgumentException when placing bed with non-finite position %j',
       (position) => {
         const bed = Bed.create(defaultProps);
 
-        expect(() => {
+        const placeAction = () =>
           bed.place(position, 90, 45, 'test-user', new Date());
-        }).toThrow(InvalidArgumentException);
+
+        expect(placeAction).toThrow(InvalidArgumentException);
       }
     );
 

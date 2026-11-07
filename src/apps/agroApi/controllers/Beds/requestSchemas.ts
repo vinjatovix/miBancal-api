@@ -81,8 +81,8 @@ export const getBedByIdRequest = {
 } satisfies RequestSchemas;
 
 const positionSchema = z.object({
-  x: z.number().min(0),
-  y: z.number().min(0)
+  x: z.number().finite(),
+  y: z.number().finite()
 });
 const nullablePositionSchema = z.union([positionSchema, z.null()]);
 const rotationSchema = z.number().int().min(0).max(359);

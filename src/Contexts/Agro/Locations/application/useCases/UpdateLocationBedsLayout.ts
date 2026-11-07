@@ -74,7 +74,6 @@ export class UpdateLocationBedsLayout {
       input.layouts
     );
 
-    this.validateCanvasContainment(location, effectivePlacements);
     this.validateNoCollisions(effectivePlacements);
 
     const at = new Date();
@@ -144,41 +143,6 @@ export class UpdateLocationBedsLayout {
         rotation: layout.rotation ?? bed.rotation ?? 0
       };
     });
-  }
-
-  private validateCanvasContainment(
-    location: Location,
-    placements: readonly EffectiveBedPlacement[]
-  ): void {
-    if (
-      location.canvasWidth === undefined ||
-      location.canvasHeight === undefined
-    ) {
-      return;
-    }
-
-    for (const placement of placements) {
-      if (placement.position === undefined) continue;
-
-      const obb = BedCollisionDetector.getOBB(
-        placement.position,
-        placement.bed.width.value,
-        placement.bed.height.value,
-        placement.rotation
-      );
-
-      if (
-        !BedCollisionDetector.checkContainment(
-          obb,
-          location.canvasWidth,
-          location.canvasHeight
-        )
-      ) {
-        throw new InvalidArgumentException(
-          `Bed placement exceeds location canvas boundaries: ${placement.bed.id}`
-        );
-      }
-    }
   }
 
   private validateNoCollisions(

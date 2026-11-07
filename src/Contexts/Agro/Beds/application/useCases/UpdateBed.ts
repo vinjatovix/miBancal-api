@@ -159,23 +159,6 @@ export class UpdateBed {
       rotation
     );
 
-    if (
-      location.canvasWidth !== undefined &&
-      location.canvasHeight !== undefined
-    ) {
-      if (
-        !BedCollisionDetector.checkContainment(
-          targetObb,
-          location.canvasWidth,
-          location.canvasHeight
-        )
-      ) {
-        throw new InvalidArgumentException(
-          'Bed placement exceeds location canvas boundaries'
-        );
-      }
-    }
-
     const siblings = await this.bedRepository.findByUserId(userId, {
       locationId: bed.locationId
     });

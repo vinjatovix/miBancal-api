@@ -71,19 +71,9 @@ export class UpdateLocation {
     user: string,
     at: Date
   ): void {
-    if (
-      changes.canvasWidth !== undefined ||
-      changes.canvasHeight !== undefined ||
-      changes.northAngle !== undefined
-    ) {
+    if (changes.northAngle !== undefined) {
       location.updateSpatialCanvas(
         {
-          ...(changes.canvasWidth !== undefined && {
-            canvasWidth: changes.canvasWidth
-          }),
-          ...(changes.canvasHeight !== undefined && {
-            canvasHeight: changes.canvasHeight
-          }),
           ...(changes.northAngle !== undefined && {
             northAngle: changes.northAngle
           })

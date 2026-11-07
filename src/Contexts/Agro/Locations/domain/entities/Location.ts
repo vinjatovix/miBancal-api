@@ -12,7 +12,6 @@ import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import type { LocationId } from '../LocationId.js';
 import { Latitude } from '../value-objects/Latitude.js';
 import { Longitude } from '../value-objects/Longitude.js';
-import { CanvasDimensions } from '../valueObjects/CanvasDimensions.js';
 import { NorthAngle } from '../valueObjects/NorthAngle.js';
 import type { LocationProps } from './types/LocationProps.js';
 import type { LocationStatus } from './types/LocationStatus.js';
@@ -70,14 +69,6 @@ export class Location extends AggregateRoot<LocationId> {
   }
 
   private static assertSpatialConsistency(props: LocationProps): void {
-    if (props.canvasWidth !== undefined || props.canvasHeight !== undefined) {
-      if (props.canvasWidth === undefined || props.canvasHeight === undefined) {
-        throw new InvalidArgumentException(
-          '<Location> canvasWidth and canvasHeight must both be provided together'
-        );
-      }
-      new CanvasDimensions(props.canvasWidth, props.canvasHeight);
-    }
     if (props.northAngle !== undefined) {
       new NorthAngle(props.northAngle);
     }
@@ -97,14 +88,6 @@ export class Location extends AggregateRoot<LocationId> {
 
   get longitude(): number | undefined {
     return this.props.longitude;
-  }
-
-  get canvasWidth(): number | undefined {
-    return this.props.canvasWidth;
-  }
-
-  get canvasHeight(): number | undefined {
-    return this.props.canvasHeight;
   }
 
   get northAngle(): number | undefined {
@@ -202,8 +185,6 @@ export class Location extends AggregateRoot<LocationId> {
 
   updateSpatialCanvas(
     spatial: {
-      canvasWidth?: number | null;
-      canvasHeight?: number | null;
       northAngle?: number | null;
     },
     actor: string,
@@ -211,50 +192,18 @@ export class Location extends AggregateRoot<LocationId> {
   ): void {
     this.assertActive();
 
-    const { nextWidth, nextHeight } = this.resolveNextCanvasDimensions(
-      spatial.canvasWidth,
-      spatial.canvasHeight
-    );
     const nextNorthAngle = this.resolveNextNorthAngle(spatial.northAngle);
 
-    if (
-      this.props.canvasWidth === nextWidth &&
-      this.props.canvasHeight === nextHeight &&
-      this.props.northAngle === nextNorthAngle
-    ) {
+    if (this.props.northAngle === nextNorthAngle) {
       return;
     }
 
     this.commit(
       {
-        canvasWidth: nextWidth,
-        canvasHeight: nextHeight,
         northAngle: nextNorthAngle
       },
       actor,
       at
-    );
-  }
-
-  private resolveNextCanvasDimensions(
-    canvasWidth?: number | null,
-    canvasHeight?: number | null
-  ): { nextWidth: number | undefined; nextHeight: number | undefined } {
-    if (canvasWidth === undefined && canvasHeight === undefined) {
-      return {
-        nextWidth: this.props.canvasWidth,
-        nextHeight: this.props.canvasHeight
-      };
-    }
-    if (canvasWidth === null && canvasHeight === null) {
-      return { nextWidth: undefined, nextHeight: undefined };
-    }
-    if (typeof canvasWidth === 'number' && typeof canvasHeight === 'number') {
-      new CanvasDimensions(canvasWidth, canvasHeight);
-      return { nextWidth: canvasWidth, nextHeight: canvasHeight };
-    }
-    throw new InvalidArgumentException(
-      '<Location> canvasWidth and canvasHeight must both be provided together'
     );
   }
 

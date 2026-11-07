@@ -16,8 +16,6 @@ const longitudeSchema = z.number().finite().min(-180).max(180);
 const nullableLatitudeSchema = z.union([latitudeSchema, z.null()]);
 const nullableLongitudeSchema = z.union([longitudeSchema, z.null()]);
 
-const dimensionSchema = z.number().positive();
-const nullableDimensionSchema = z.union([dimensionSchema, z.null()]);
 const angleSchema = z.number().int().min(0).max(359);
 const nullableAngleSchema = z.union([angleSchema, z.null()]);
 
@@ -27,8 +25,6 @@ const createLocationBody = z
     name: requiredShortTextSchema,
     latitude: latitudeSchema.exactOptional(),
     longitude: longitudeSchema.exactOptional(),
-    width: dimensionSchema.exactOptional(),
-    height: dimensionSchema.exactOptional(),
     northAngle: angleSchema.exactOptional()
   })
   .strict()
@@ -38,14 +34,6 @@ const createLocationBody = z
       (data.latitude !== undefined && data.longitude !== undefined),
     {
       message: 'Both latitude and longitude must be provided together'
-    }
-  )
-  .refine(
-    (data) =>
-      (data.width === undefined && data.height === undefined) ||
-      (data.width !== undefined && data.height !== undefined),
-    {
-      message: 'Both width and height must be provided together'
     }
   );
 
@@ -60,8 +48,6 @@ const updateLocationBody = z
     name: requiredShortTextSchema.exactOptional(),
     latitude: nullableLatitudeSchema.exactOptional(),
     longitude: nullableLongitudeSchema.exactOptional(),
-    width: nullableDimensionSchema.exactOptional(),
-    height: nullableDimensionSchema.exactOptional(),
     northAngle: nullableAngleSchema.exactOptional()
   })
   .strict()
@@ -78,21 +64,6 @@ const updateLocationBody = z
     },
     {
       message: 'Both latitude and longitude must be provided together'
-    }
-  )
-  .refine(
-    (data) => {
-      const hasWidth = data.width !== undefined;
-      const hasHeight = data.height !== undefined;
-      if (!hasWidth && !hasHeight) return true;
-      if (!hasWidth || !hasHeight) return false;
-      const bothNull = data.width === null && data.height === null;
-      const bothNumbers =
-        typeof data.width === 'number' && typeof data.height === 'number';
-      return bothNull || bothNumbers;
-    },
-    {
-      message: 'Both width and height must be provided together'
     }
   );
 
@@ -132,8 +103,8 @@ export const listLocationsRequest = {
 } satisfies RequestSchemas;
 
 const bedPositionSchema = z.object({
-  x: z.number().min(0),
-  y: z.number().min(0)
+  x: z.number().finite(),
+  y: z.number().finite()
 });
 
 const bedLayoutPlacementItemSchema = z.object({

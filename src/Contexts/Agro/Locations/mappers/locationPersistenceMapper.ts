@@ -16,12 +16,6 @@ export const locationPersistenceMapper: LocationPersistenceMapper = {
       name: document.name,
       ...(document.latitude != null && { latitude: document.latitude }),
       ...(document.longitude != null && { longitude: document.longitude }),
-      ...(document.canvasWidth != null && {
-        canvasWidth: document.canvasWidth
-      }),
-      ...(document.canvasHeight != null && {
-        canvasHeight: document.canvasHeight
-      }),
       ...(document.northAngle != null && { northAngle: document.northAngle }),
       status: document.status,
       ...(document.deletedAt !== undefined && {
@@ -40,12 +34,6 @@ export const locationPersistenceMapper: LocationPersistenceMapper = {
       ...(location.latitude !== undefined && { latitude: location.latitude }),
       ...(location.longitude !== undefined && {
         longitude: location.longitude
-      }),
-      ...(location.canvasWidth !== undefined && {
-        canvasWidth: location.canvasWidth
-      }),
-      ...(location.canvasHeight !== undefined && {
-        canvasHeight: location.canvasHeight
       }),
       ...(location.northAngle !== undefined && {
         northAngle: location.northAngle

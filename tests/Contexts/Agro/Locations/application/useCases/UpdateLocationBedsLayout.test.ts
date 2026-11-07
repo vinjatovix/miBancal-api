@@ -35,57 +35,71 @@ describe('UpdateLocationBedsLayout', () => {
     });
   });
 
-  it('updates positions and rotations for multiple beds and increments location version', async () => {
-    const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      northAngle: 45,
-      canvasWidth: 2000,
-      canvasHeight: 2000
-    });
-    locationRepository.addToStorage(location);
+  it.each([
+    [
+      'positive coordinates',
+      { x: 100, y: 100 },
+      { x: 400, y: 100 },
+      { x: 100, y: 100 },
+      { x: 400, y: 100 }
+    ],
+    [
+      'negative coordinates across multiple quadrants',
+      { x: -261.58, y: 90.5 },
+      { x: -150.0, y: -300.0 },
+      { x: -261.58, y: 90.5 },
+      { x: -150, y: -300 }
+    ]
+  ])(
+    'updates positions and rotations for multiple beds with %s and increments location version',
+    async (_desc, posA, posB, expectedPosA, expectedPosB) => {
+      const location = LocationFactory.domainBase({
+        userId: createUserId(USER.id),
+        northAngle: 45
+      });
+      locationRepository.addToStorage(location);
 
-    const bedA = BedFactory.create({
-      userId: createUserId(USER.id),
-      locationId: location.id,
-      width: PositiveNumber.create(100),
-      height: PositiveNumber.create(200)
-    });
-    const bedB = BedFactory.create({
-      userId: createUserId(USER.id),
-      locationId: location.id,
-      width: PositiveNumber.create(100),
-      height: PositiveNumber.create(200)
-    });
-    bedRepository.addToStorage(bedA);
-    bedRepository.addToStorage(bedB);
-
-    const updatedLocation = await useCase.execute(
-      {
+      const bedA = BedFactory.create({
+        userId: createUserId(USER.id),
         locationId: location.id,
-        userId: USER.id,
-        layouts: [
-          { id: bedA.id, position: { x: 100, y: 100 }, rotation: 0 },
-          { id: bedB.id, position: { x: 400, y: 100 }, rotation: 90 }
-        ]
-      },
-      USER,
-      [CURRENT_VERSION]
-    );
+        width: PositiveNumber.create(100),
+        height: PositiveNumber.create(200)
+      });
+      const bedB = BedFactory.create({
+        userId: createUserId(USER.id),
+        locationId: location.id,
+        width: PositiveNumber.create(100),
+        height: PositiveNumber.create(200)
+      });
+      bedRepository.addToStorage(bedA);
+      bedRepository.addToStorage(bedB);
 
-    expect(updatedLocation.version).toBe(CURRENT_VERSION + 1);
-    expect(bedA.position).toEqual({ x: 100, y: 100 });
-    expect(bedA.rotation).toBe(0);
-    expect(bedA.netOrientation).toBe(45);
-    expect(bedB.position).toEqual({ x: 400, y: 100 });
-    expect(bedB.rotation).toBe(90);
-    expect(bedB.netOrientation).toBe(135);
-  });
+      const updatedLocation = await useCase.execute(
+        {
+          locationId: location.id,
+          userId: USER.id,
+          layouts: [
+            { id: bedA.id, position: posA, rotation: 0 },
+            { id: bedB.id, position: posB, rotation: 90 }
+          ]
+        },
+        USER,
+        [CURRENT_VERSION]
+      );
+
+      expect(updatedLocation.version).toBe(CURRENT_VERSION + 1);
+      expect(bedA.position).toEqual(expectedPosA);
+      expect(bedA.rotation).toBe(0);
+      expect(bedA.netOrientation).toBe(45);
+      expect(bedB.position).toEqual(expectedPosB);
+      expect(bedB.rotation).toBe(90);
+      expect(bedB.netOrientation).toBe(135);
+    }
+  );
 
   it('preserves coordinates and rotation for beds omitted from the layout update', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 2000,
-      canvasHeight: 2000
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 
@@ -202,7 +216,6 @@ describe('UpdateLocationBedsLayout', () => {
       locationId: random.uuid()
     });
     bedRepository.addToStorage(externalBed);
-
     const execution = useCase.execute(
       {
         locationId: location.id,
@@ -214,44 +227,12 @@ describe('UpdateLocationBedsLayout', () => {
       USER,
       [CURRENT_VERSION]
     );
-
     await expect(execution).rejects.toBeInstanceOf(DomainNotFoundException);
-  });
-
-  it('throws invalid argument exception when a placed bed extends outside canvas boundaries', async () => {
-    const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 500,
-      canvasHeight: 500
-    });
-    locationRepository.addToStorage(location);
-
-    const bed = BedFactory.create({
-      userId: createUserId(USER.id),
-      locationId: location.id,
-      width: PositiveNumber.create(200),
-      height: PositiveNumber.create(200)
-    });
-    bedRepository.addToStorage(bed);
-
-    const execution = useCase.execute(
-      {
-        locationId: location.id,
-        userId: USER.id,
-        layouts: [{ id: bed.id, position: { x: 400, y: 400 }, rotation: 0 }]
-      },
-      USER,
-      [CURRENT_VERSION]
-    );
-
-    await expect(execution).rejects.toBeInstanceOf(InvalidArgumentException);
   });
 
   it('throws invalid argument exception when two beds in the batch overlap', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 2000,
-      canvasHeight: 2000
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 
@@ -288,9 +269,7 @@ describe('UpdateLocationBedsLayout', () => {
 
   it('throws invalid argument exception when a batch bed overlaps an existing omitted placed bed', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 2000,
-      canvasHeight: 2000
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 
@@ -328,9 +307,7 @@ describe('UpdateLocationBedsLayout', () => {
 
   it('places 50 beds well within the 150ms latency budget', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 10000,
-      canvasHeight: 10000
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 
@@ -383,9 +360,7 @@ describe('UpdateLocationBedsLayout', () => {
 
   it('throws invalid argument exception when layout input contains duplicate bed ids', async () => {
     const location = LocationFactory.domainBase({
-      userId: createUserId(USER.id),
-      canvasWidth: 2000,
-      canvasHeight: 2000
+      userId: createUserId(USER.id)
     });
     locationRepository.addToStorage(location);
 

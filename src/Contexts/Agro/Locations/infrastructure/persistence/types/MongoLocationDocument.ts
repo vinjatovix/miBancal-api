@@ -7,8 +7,6 @@ export type MongoLocationDocument = {
   name: string;
   latitude?: number | null;
   longitude?: number | null;
-  canvasWidth?: number | null;
-  canvasHeight?: number | null;
   northAngle?: number | null;
   status: LocationPrimitives['status'];
   deletedAt?: string;

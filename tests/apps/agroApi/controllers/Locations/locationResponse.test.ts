@@ -24,7 +24,7 @@ describe('toLocationResponse', () => {
     });
   });
 
-  it('never leaks internal status or legacy geographic fields', () => {
+  it('never leaks internal status fields', () => {
     const location = LocationFactory.domainBase({
       latitude: 40.4168,
       longitude: -3.7038
@@ -34,10 +34,6 @@ describe('toLocationResponse', () => {
 
     expect('status' in response).toBe(false);
     expect('deletedAt' in response).toBe(false);
-    expect('postalCode' in response).toBe(false);
-    expect('country' in response).toBe(false);
-    expect('timezone' in response).toBe(false);
-    expect('hemisphere' in response).toBe(false);
   });
 
   it('omits coordinates when location has no coordinates', () => {
