@@ -109,6 +109,19 @@ When(
 );
 
 When(
+  'I send a DELETE {role} request to {string} with body',
+  function (this: AgroWorld, role: Role, route: string, body: string) {
+    prepareRequest(this, {
+      method: 'DELETE',
+      route,
+      role,
+      body,
+      conditional: false
+    });
+  }
+);
+
+When(
   'I send a DELETE request to {string}',
   function (this: AgroWorld, route: string) {
     prepareRequest(this, { method: 'DELETE', route, conditional: true });

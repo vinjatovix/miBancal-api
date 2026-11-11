@@ -137,10 +137,11 @@ All dimensional comparisons rely on `PositiveNumber` value objects.
 ### 5.1.1 Geometric 2D Collision (Ground/Raised Beds) `[TARGET STATE (Pending [Iteration 56](../../roadmap.md#iteration-56-build-2d-euclidean-proximity-calculator))]`
 
 - Used for `raised_bed` and `in_ground` bed types.
-- Evaluated as 2D proximity models using the biological spacing of the plants:
-  - **Current & Definitive State (Agronomically Safe):** To ensure that the space vital of the most demanding species is respected, the distance between any two plants $P_1$ and $P_2$ must not be less than the maximum of their mature advisory spacing values:
-    $$\text{distance}(P_1, P_2) \ge \max(\text{spacingCm}_1, \text{spacingCm}_2)$$
-    where `spacingCm` corresponds to the value of the species' biological spacing (the codebase currently uses the `spacingCm.max` property from the catalog). This formula is agronomically correct because it prevents larger crops (like a Tomato requiring 50cm) from having their root zone or canopy space invaded by smaller companions (like a Tagete requiring 40cm), which would occur under simpler subdivision models.
+- Evaluated as 2D proximity models using the **vital radius** of each plant:
+  - **Current & Definitive State (Vital-Radius Overlap)** `[IMPLEMENTED — [Feature 054](../../specs/054-vital-radius-collision/spec.md)]`**:** Each plant occupies a vital circle whose radius is half of its minimum planting spacing, $r_i = \text{spacingCm}_i.\text{min} / 2$ (the same circle the frontend renders). Two plants $P_1$ and $P_2$ collide only when the Euclidean distance between their centers is **strictly less** than the sum of their vital radii:
+    $$\text{distance}(P_1, P_2) < r_1 + r_2 \quad\text{where}\quad r_i = \frac{\text{spacingCm}_i.\text{min}}{2}$$
+    Touching at exactly $r_1 + r_2$ does **not** collide. This matches the vital circles drawn on the canvas and the agronomic notion of each plant's minimum own space, so it rejects only a genuine overlap of vital space. Agronomically valid close placements that the previous `\max(\text{spacingCm}.\text{max})` frame wrongly rejected (e.g. a Tomato of radius 25cm and a Basil of radius 15cm at 40.32cm between centers) are now accepted. A neighbor with no vital space (radius 0, e.g. its catalog plant is missing) never triggers a collision.
+    > _Historical note: earlier revisions required $\text{distance} \ge \max(\text{spacingCm}_1.\text{max}, \text{spacingCm}_2.\text{max})$ (the full optimal planting frame). Feature 054 replaced that frame-based rule with the vital-radius overlap above, because the frame rejected agronomically valid plantings and did not match the circles shown to the user._
 - Boundary checks verify that the center coordinate $(x, y)$ of each plant lies within the $(0, 0)$ to $(\text{width}, \text{height})$ coordinate plane.
 
 ### 5.1.2 Volumetric Collision & Soil Constraint (Containers) `[TARGET STATE (Pending [Iteration 58](../../roadmap.md#iteration-58-implement-container-volumetric-capacity-validation))]`
