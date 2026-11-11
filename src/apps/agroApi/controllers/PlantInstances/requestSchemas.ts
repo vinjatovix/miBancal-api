@@ -88,3 +88,77 @@ export const listPlantInstancesRequest = {
   query: listPlantInstancesQuery,
   body: emptyBody
 } satisfies RequestSchemas;
+
+const hasUniqueIds = (items: Array<{ id: string }>): boolean =>
+  new Set(items.map((item) => item.id)).size === items.length;
+
+export const batchPlacePlantInstanceItemSchema = z.object({
+  id: z.uuid(),
+  plantId: z.uuid(),
+  position: coordinatesSchema.exactOptional(),
+  growthStatus: cropGrowthStatusSchema
+    .exactOptional()
+    .default(CropGrowthStatus.PLANTED),
+  variety: z.string().min(1).max(100).nullable().exactOptional(),
+  notes: z.string().max(1000).nullable().exactOptional()
+});
+
+export const batchPlacePlantInstancesBody = z.object({
+  bedId: z.uuid(),
+  items: z
+    .array(batchPlacePlantInstanceItemSchema)
+    .min(1)
+    .max(100)
+    .refine(hasUniqueIds, {
+      message: 'Duplicate item IDs within batch'
+    })
+});
+
+export const batchPlacePlantInstancesRequest = {
+  query: emptyQuery,
+  body: batchPlacePlantInstancesBody
+} satisfies RequestSchemas;
+
+export const batchUpdatePlantInstanceItemSchema = z.object({
+  id: z.uuid(),
+  version: z.number().int().min(0),
+  position: coordinatesSchema.exactOptional(),
+  growthStatus: cropGrowthStatusSchema.exactOptional(),
+  variety: z.string().min(1).max(100).nullable().exactOptional(),
+  notes: z.string().max(1000).nullable().exactOptional()
+});
+
+export const batchUpdatePlantInstancesBody = z.object({
+  items: z
+    .array(batchUpdatePlantInstanceItemSchema)
+    .min(1)
+    .max(100)
+    .refine(hasUniqueIds, {
+      message: 'Duplicate item IDs within batch'
+    })
+});
+
+export const batchUpdatePlantInstancesRequest = {
+  query: emptyQuery,
+  body: batchUpdatePlantInstancesBody
+} satisfies RequestSchemas;
+
+export const batchRemovePlantInstanceItemSchema = z.object({
+  id: z.uuid(),
+  version: z.number().int().min(0)
+});
+
+export const batchRemovePlantInstancesBody = z.object({
+  items: z
+    .array(batchRemovePlantInstanceItemSchema)
+    .min(1)
+    .max(100)
+    .refine(hasUniqueIds, {
+      message: 'Duplicate item IDs within batch'
+    })
+});
+
+export const batchRemovePlantInstancesRequest = {
+  query: emptyQuery,
+  body: batchRemovePlantInstancesBody
+} satisfies RequestSchemas;

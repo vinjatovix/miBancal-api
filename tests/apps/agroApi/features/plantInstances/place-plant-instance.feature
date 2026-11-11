@@ -122,6 +122,96 @@ Feature: Place a Crop in a Bed
         Then the response status code should be 404
         And response matches OpenAPI contract
 
+    Scenario: Placing crops whose vital circles only touch is accepted (reported real case)
+        Given a family exists
+        And a bed exists
+        And a crop of a plant with min spacing 50 exists in the bed at 50, 50
+        And a plant with min spacing 30 exists
+        When I send a POST user request to "/api/v1/plant-instances" with body
+            """
+            {
+                "id": "e7b0e1b2-5f11-4a12-8e12-9c12345678a0",
+                "bedId": "<bedId>",
+                "plantId": "<plantId>",
+                "position": {
+                    "x": 90.32,
+                    "y": 50
+                }
+            }
+            """
+        Then the response status code should be 201
+        And response matches OpenAPI contract
+        And the response crop should be active
+        And the crop with id "e7b0e1b2-5f11-4a12-8e12-9c12345678a0" should be stored at 90.32, 50
+        And the bed stored version should be 1
+
+    Scenario: Placing crops exactly at the sum of their vital radii is accepted
+        Given a family exists
+        And a bed exists
+        And a crop of a plant with min spacing 50 exists in the bed at 50, 50
+        And a plant with min spacing 30 exists
+        When I send a POST user request to "/api/v1/plant-instances" with body
+            """
+            {
+                "id": "e7b0e1b2-5f11-4a12-8e12-9c12345678a1",
+                "bedId": "<bedId>",
+                "plantId": "<plantId>",
+                "position": {
+                    "x": 90,
+                    "y": 50
+                }
+            }
+            """
+        Then the response status code should be 201
+        And response matches OpenAPI contract
+        And the response crop should be active
+        And the crop with id "e7b0e1b2-5f11-4a12-8e12-9c12345678a1" should be stored at 90, 50
+        And the bed stored version should be 1
+
+    Scenario: Placing a crop whose vital circle overlaps a neighbor returns a 409 conflict
+        Given a family exists
+        And a bed exists
+        And a crop of a plant with min spacing 50 exists in the bed at 50, 50
+        And a plant with min spacing 30 exists
+        When I send a POST user request to "/api/v1/plant-instances" with body
+            """
+            {
+                "id": "e7b0e1b2-5f11-4a12-8e12-9c12345678a2",
+                "bedId": "<bedId>",
+                "plantId": "<plantId>",
+                "position": {
+                    "x": 89,
+                    "y": 50
+                }
+            }
+            """
+        Then the response status code should be 409
+        And response matches OpenAPI contract
+        And no crop should be stored with id "e7b0e1b2-5f11-4a12-8e12-9c12345678a2"
+        And the bed stored version should be 0
+
+    Scenario: Placing a crop near the bed border lets its vital circle overflow
+        Given a family exists
+        And a plant exists
+        And a bed exists
+        When I send a POST user request to "/api/v1/plant-instances" with body
+            """
+            {
+                "id": "e7b0e1b2-5f11-4a12-8e12-9c12345678a3",
+                "bedId": "<bedId>",
+                "plantId": "<plantId>",
+                "position": {
+                    "x": 1,
+                    "y": 1
+                }
+            }
+            """
+        Then the response status code should be 201
+        And response matches OpenAPI contract
+        And the response crop should be active
+        And the crop with id "e7b0e1b2-5f11-4a12-8e12-9c12345678a3" should be stored at 1, 1
+        And the bed stored version should be 1
+
     Scenario: Placing a crop with an id already used by another user's crop returns a 409
         Given a family exists
         And a plant exists

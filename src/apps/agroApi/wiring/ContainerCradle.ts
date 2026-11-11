@@ -63,8 +63,11 @@ import type {
   GetPlantInstanceById,
   ListPlantInstances,
   PlacePlantInstance,
+  PlacePlantInstanceBatch,
   RemovePlantInstance,
-  UpdatePlantInstance
+  RemovePlantInstanceBatch,
+  UpdatePlantInstance,
+  UpdatePlantInstanceBatch
 } from '../../../Contexts/Agro/PlantInstances/application/useCases/index.js';
 import type { CropSpatialService } from '../../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import type { MongoPlantInstanceRepository } from '../../../Contexts/Agro/PlantInstances/infrastructure/persistence/MongoPlantInstanceRepository.js';
@@ -198,8 +201,11 @@ import type {
   GetPlantInstanceByIdController,
   ListPlantInstancesController,
   PlacePlantInstanceController,
+  PlacePlantInstanceBatchController,
   RemovePlantInstanceController,
-  UpdatePlantInstanceController
+  RemovePlantInstanceBatchController,
+  UpdatePlantInstanceController,
+  UpdatePlantInstanceBatchController
 } from '../controllers/PlantInstances/index.js';
 import type {
   CheckPlantLikeController,
@@ -333,10 +339,13 @@ export type ContainerCradle = {
   updateBed: UpdateBed;
   deleteBed: DeleteBed;
   placePlantInstance: PlacePlantInstance;
+  placePlantInstanceBatch: PlacePlantInstanceBatch;
   getPlantInstanceById: GetPlantInstanceById;
   listPlantInstances: ListPlantInstances;
   updatePlantInstance: UpdatePlantInstance;
+  updatePlantInstanceBatch: UpdatePlantInstanceBatch;
   removePlantInstance: RemovePlantInstance;
+  removePlantInstanceBatch: RemovePlantInstanceBatch;
   addPlantBookmark: AddPlantBookmark;
   removePlantBookmark: RemovePlantBookmark;
   getUserBookmarks: GetUserBookmarks;
@@ -402,10 +411,13 @@ export type ContainerCradle = {
   updatePlantRelationController: UpdatePlantRelationController;
   deletePlantRelationController: DeletePlantRelationController;
   placePlantInstanceController: PlacePlantInstanceController;
+  placePlantInstanceBatchController: PlacePlantInstanceBatchController;
   getPlantInstanceByIdController: GetPlantInstanceByIdController;
   listPlantInstancesController: ListPlantInstancesController;
   updatePlantInstanceController: UpdatePlantInstanceController;
+  updatePlantInstanceBatchController: UpdatePlantInstanceBatchController;
   removePlantInstanceController: RemovePlantInstanceController;
+  removePlantInstanceBatchController: RemovePlantInstanceBatchController;
   addPlantBookmarkController: AddPlantBookmarkController;
   removePlantBookmarkController: RemovePlantBookmarkController;
   getUserBookmarksController: GetUserBookmarksController;

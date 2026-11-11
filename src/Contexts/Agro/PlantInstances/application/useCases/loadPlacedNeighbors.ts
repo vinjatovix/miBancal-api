@@ -9,12 +9,14 @@ export type LoadPlacedNeighborsParams = {
 };
 
 /**
- * Active crops of a bed that hold a position, with the spacing of their plant,
- * as the spatial service needs them. Plants are fetched in one query.
+ * Active crops of a bed that hold a position, with the vital radius of their
+ * plant, as the spatial service needs them. Plants are fetched in one query.
+ * The vital radius is half the minimum planting spacing (`spacingCm.min / 2`),
+ * matching the vital circle the frontend draws.
  *
  * Plants are only soft-deleted and `findByIds` still returns them, so a
- * neighbor plant is missing only with inconsistent data. Its spacing then
- * counts as 0 and the spacing of the crop being placed decides alone.
+ * neighbor plant is missing only with inconsistent data. Its vital radius then
+ * counts as 0 and never triggers a collision on its own.
  */
 export const loadPlacedNeighbors = async (
   plantInstanceRepository: PlantInstanceRepository,
@@ -32,13 +34,13 @@ export const loadPlacedNeighbors = async (
   const plants = await plantRepository.findByIds([
     ...new Set(placedCrops.map((crop) => crop.plantId))
   ]);
-  const spacingByPlantId = new Map(
-    plants.map((plant) => [plant.id, plant.traits.spacingCm.max])
+  const vitalRadiusByPlantId = new Map(
+    plants.map((plant) => [plant.id, plant.traits.spacingCm.min / 2])
   );
 
   return placedCrops.map((crop) => ({
     id: crop.id,
     position: crop.position && { x: crop.position.x, y: crop.position.y },
-    spacingCm: spacingByPlantId.get(crop.plantId) ?? 0
+    vitalRadiusCm: vitalRadiusByPlantId.get(crop.plantId) ?? 0
   }));
 };
