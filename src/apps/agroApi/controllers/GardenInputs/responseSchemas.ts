@@ -3,8 +3,8 @@ import { z } from 'zod';
 import type { GardenInputField } from '../../../../Contexts/Agro/GardenInputs/application/queries/GardenInputReadView.js';
 import {
   GARDEN_INPUT_ACTIONS,
-  GARDEN_INPUT_CATEGORIES,
-  GARDEN_INPUT_DOSAGE_METHODS
+  GARDEN_INPUT_APPLICATION_METHODS,
+  GARDEN_INPUT_CATEGORIES
 } from '../../../../Contexts/Agro/GardenInputs/domain/entities/types/index.js';
 import { SUPPORT_RESOURCE_TYPES } from '../../../../Contexts/Agro/shared/domain/supportResource/index.js';
 import {
@@ -38,7 +38,7 @@ const ingredientResponseSchema = z.object({
 });
 
 const dosageResponseSchema = z.object({
-  method: z.enum(GARDEN_INPUT_DOSAGE_METHODS),
+  method: z.enum(GARDEN_INPUT_APPLICATION_METHODS),
   dilution: requiredShortTextResponseSchema,
   frequency: requiredShortTextResponseSchema
 });

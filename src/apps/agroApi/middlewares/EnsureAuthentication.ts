@@ -32,14 +32,17 @@ const getAdminDenyReason = (user: unknown): string | null => {
   return null;
 };
 
-const CATALOG_MAINTAINER_ROLES: readonly string[] = ['admin', 'collaborator'];
+const CATALOG_MAINTAINER_ROLES: ReadonlySet<string> = new Set([
+  'admin',
+  'collaborator'
+]);
 
 const getCatalogMaintainerDenyReason = (user: unknown): string | null => {
   if (!user || !Array.isArray((user as { roles?: unknown }).roles))
     return 'missing_roles';
   if (
     !(user as { roles: string[] }).roles.some((role) =>
-      CATALOG_MAINTAINER_ROLES.includes(role)
+      CATALOG_MAINTAINER_ROLES.has(role)
     )
   )
     return 'insufficient_role';

@@ -28,13 +28,16 @@ export class GetAnomalyBySlug {
     const canSeeDeleted = canSeeDeletedAnomalies(user);
     const byId = UuidValidator.isValid(idOrSlug);
 
-    const found = byId
-      ? canSeeDeleted
+    let found: AnomalySparseView | null;
+    if (byId) {
+      found = canSeeDeleted
         ? await this.anomalyReadRepository.findById(idOrSlug, options)
-        : await this.anomalyReadRepository.findActiveById(idOrSlug, options)
-      : canSeeDeleted
+        : await this.anomalyReadRepository.findActiveById(idOrSlug, options);
+    } else {
+      found = canSeeDeleted
         ? await this.anomalyReadRepository.findBySlug(idOrSlug, options)
         : await this.anomalyReadRepository.findActiveBySlug(idOrSlug, options);
+    }
 
     return ensureFound(found, 'Anomaly', idOrSlug, byId ? undefined : 'slug');
   }

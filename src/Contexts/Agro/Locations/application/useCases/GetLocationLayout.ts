@@ -184,16 +184,16 @@ export class GetLocationLayout {
       if (!plant) continue;
 
       projected.push(
-        this.spatialProjectionService.projectPlant(
-          crop.id,
-          crop.plantId,
-          bed.id,
-          plant.identity.scientificName,
-          crop.position,
-          bed.position,
-          bed.rotation ?? 0,
-          plant.identity.family
-        )
+        this.spatialProjectionService.projectPlant({
+          plantInstanceId: crop.id,
+          plantId: crop.plantId,
+          bedId: bed.id,
+          scientificName: plant.identity.scientificName,
+          localCoordinates: crop.position,
+          bedPosition: bed.position,
+          bedRotation: bed.rotation ?? 0,
+          familyId: plant.identity.family
+        })
       );
     }
 

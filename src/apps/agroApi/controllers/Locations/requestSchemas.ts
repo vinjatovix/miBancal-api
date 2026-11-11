@@ -108,7 +108,7 @@ const bedPositionSchema = z.object({
 });
 
 const bedLayoutPlacementItemSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   position: z.union([bedPositionSchema, z.null()]),
   rotation: z.number().int().min(0).max(359).optional()
 });

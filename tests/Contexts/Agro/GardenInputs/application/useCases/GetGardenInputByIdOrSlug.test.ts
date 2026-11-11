@@ -87,4 +87,24 @@ describe('GetGardenInputByIdOrSlug', () => {
 
     expect(result).toEqual(view);
   });
+
+  it('allows curator to read soft-deleted garden input by UUID', async () => {
+    const id = random.uuid();
+    const view = { ...GardenInputReadViewMother.deleted(), id };
+    repository.addToStorage(view);
+
+    const result = await useCase.execute(id, curator);
+
+    expect(result).toEqual(view);
+  });
+
+  it('hides soft-deleted garden input by UUID from anonymous visitor', async () => {
+    const id = random.uuid();
+    const view = { ...GardenInputReadViewMother.deleted(), id };
+    repository.addToStorage(view);
+
+    const executeAction = useCase.execute(id, undefined);
+
+    await expect(executeAction).rejects.toBeInstanceOf(DomainNotFoundException);
+  });
 });

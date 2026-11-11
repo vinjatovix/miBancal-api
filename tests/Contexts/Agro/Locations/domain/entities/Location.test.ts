@@ -68,6 +68,44 @@ describe('Location aggregate', () => {
       }
     );
 
+    it.each([-91, 91, Number.NaN])(
+      'rejects invalid latitude %p on creation',
+      (invalidLatitude) => {
+        const createLocation = () =>
+          LocationFactory.domainBase({
+            latitude: invalidLatitude,
+            longitude: 0
+          });
+
+        expect(createLocation).toThrow(InvalidArgumentException);
+      }
+    );
+
+    it.each([-181, 181, Number.NaN])(
+      'rejects invalid longitude %p on creation',
+      (invalidLongitude) => {
+        const createLocation = () =>
+          LocationFactory.domainBase({
+            latitude: 0,
+            longitude: invalidLongitude
+          });
+
+        expect(createLocation).toThrow(InvalidArgumentException);
+      }
+    );
+
+    it.each([-1, 360, 45.5])(
+      'rejects invalid northAngle %p on creation',
+      (invalidNorthAngle) => {
+        const createLocation = () =>
+          LocationFactory.domainBase({
+            northAngle: invalidNorthAngle
+          });
+
+        expect(createLocation).toThrow(InvalidArgumentException);
+      }
+    );
+
     it.each([-90.0001, -91, 90.0001, 91, Number.NaN, Number.POSITIVE_INFINITY])(
       'rejects invalid latitude %p',
       (latitude) => {

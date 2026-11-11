@@ -27,13 +27,11 @@ export class Vector2D {
   }
 
   magnitude(): number {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
+    return Math.hypot(this.x, this.y);
   }
 
   distanceTo(other: Point2D): number {
-    const dx = this.x - other.x;
-    const dy = this.y - other.y;
-    return Math.sqrt(dx * dx + dy * dy);
+    return Math.hypot(this.x - other.x, this.y - other.y);
   }
 
   normalize(): Vector2D {

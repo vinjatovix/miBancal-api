@@ -64,13 +64,13 @@ export class Location extends AggregateRoot<LocationId> {
         '<Location> latitude and longitude must both be provided together'
       );
     }
-    new Latitude(props.latitude);
-    new Longitude(props.longitude);
+    Latitude.assertValid(props.latitude);
+    Longitude.assertValid(props.longitude);
   }
 
   private static assertSpatialConsistency(props: LocationProps): void {
     if (props.northAngle !== undefined) {
-      new NorthAngle(props.northAngle);
+      NorthAngle.assertValid(props.northAngle);
     }
   }
 
@@ -163,8 +163,8 @@ export class Location extends AggregateRoot<LocationId> {
       );
     }
 
-    new Latitude(coords.latitude);
-    new Longitude(coords.longitude);
+    Latitude.assertValid(coords.latitude);
+    Longitude.assertValid(coords.longitude);
 
     if (
       this.props.latitude === coords.latitude &&
@@ -216,7 +216,7 @@ export class Location extends AggregateRoot<LocationId> {
     if (northAngle === null) {
       return undefined;
     }
-    new NorthAngle(northAngle);
+    NorthAngle.assertValid(northAngle);
     return northAngle;
   }
 

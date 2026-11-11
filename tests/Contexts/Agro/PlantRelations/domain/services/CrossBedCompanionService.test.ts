@@ -1,7 +1,9 @@
 import { CrossBedCompanionService } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/services/CrossBedCompanionService.js';
 import type { ProjectedPlant } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/services/types/ProjectedPlant.js';
 import { ProximityDistance } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/ProximityDistance.js';
+import { TaxonomicScope } from '../../../../../../src/Contexts/Agro/PlantRelations/domain/valueObjects/TaxonomicScope.js';
 import { createPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
+import { random } from '../../../../shared/fixtures/random.js';
 import { PlantRelationMother } from '../mothers/PlantRelationMother.js';
 
 describe('CrossBedCompanionService', () => {
@@ -9,6 +11,8 @@ describe('CrossBedCompanionService', () => {
 
   const MARIGOLD_ID = createPlantId('0192e200-0000-7000-8000-000000000001');
   const TOMATO_ID = createPlantId('0192e200-0000-7000-8000-000000000002');
+  const ASTERACEAE_FAMILY_ID = random.uuid();
+  const SOLANACEAE_FAMILY_ID = random.uuid();
 
   const beneficialRule = PlantRelationMother.beneficial(
     MARIGOLD_ID,
@@ -16,6 +20,15 @@ describe('CrossBedCompanionService', () => {
     {
       proximity: ProximityDistance.create(0, 100),
       reason: 'Pest repellent synergy across beds'
+    }
+  );
+
+  const familyRule = PlantRelationMother.scoped(
+    TaxonomicScope.family(ASTERACEAE_FAMILY_ID),
+    TaxonomicScope.family(SOLANACEAE_FAMILY_ID),
+    {
+      proximity: ProximityDistance.create(0, 100),
+      reason: 'Family-level companion synergy across beds'
     }
   );
 
@@ -108,5 +121,35 @@ describe('CrossBedCompanionService', () => {
     );
 
     expect(edges).toHaveLength(0);
+  });
+
+  it('propagates familyId and evaluates layout plants across beds', () => {
+    const marigoldBedA: ProjectedPlant = {
+      plantInstanceId: 'crop-marigold-1',
+      plantId: MARIGOLD_ID,
+      bedId: 'bed-a',
+      scientificName: 'Tagetes patula',
+      familyId: ASTERACEAE_FAMILY_ID,
+      globalPosition: { x: 10, y: 10 },
+      localPosition: { x: 10, y: 10 }
+    };
+    const tomatoBedB: ProjectedPlant = {
+      plantInstanceId: 'crop-tomato-1',
+      plantId: TOMATO_ID,
+      bedId: 'bed-b',
+      scientificName: 'Solanum lycopersicum',
+      familyId: SOLANACEAE_FAMILY_ID,
+      globalPosition: { x: 40, y: 10 },
+      localPosition: { x: 40, y: 10 }
+    };
+
+    const edges = service.evaluateLayout(
+      [marigoldBedA, tomatoBedB],
+      [familyRule]
+    );
+
+    expect(edges).toHaveLength(1);
+    expect(edges[0]?.distanceCm).toBe(30);
+    expect(edges[0]?.scope).toBe('cross_bed');
   });
 });

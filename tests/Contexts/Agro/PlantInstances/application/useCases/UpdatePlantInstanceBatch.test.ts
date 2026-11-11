@@ -417,4 +417,58 @@ describe('UpdatePlantInstanceBatch', () => {
     const storedBed = await bedRepository.findById(bed.id);
     expect(storedBed?.version).toBe(bed.version);
   });
+
+  it('preserves existing crop position when item position is omitted in batch update', async () => {
+    const bed = BedFactory.fromUser(user);
+    bedRepository.addToStorage(bed);
+
+    const plant = PlantFactory.random();
+    plantRepository.addToStorage(plant);
+
+    const crop = PlantInstanceMother.create({
+      bedId: bed.id,
+      userId: createUserId(user.id),
+      plantId: plant.id,
+      position: new Coordinates(30, 40),
+      version: 0
+    });
+    plantInstanceRepository.addToStorage(crop);
+
+    const input = {
+      items: [{ id: crop.id, version: 0, notes: 'Updated notes' }]
+    };
+
+    await useCase.execute(input, user);
+
+    const storedCrop = plantInstanceRepository.getStored(crop.id);
+    expect(storedCrop?.position).toEqual(new Coordinates(30, 40));
+    expect(storedCrop?.notes).toBe('Updated notes');
+  });
+
+  it('keeps position undefined when both item position and crop position are undefined', async () => {
+    const bed = BedFactory.fromUser(user);
+    bedRepository.addToStorage(bed);
+
+    const plant = PlantFactory.random();
+    plantRepository.addToStorage(plant);
+
+    const crop = PlantInstanceMother.create({
+      bedId: bed.id,
+      userId: createUserId(user.id),
+      plantId: plant.id,
+      position: undefined,
+      version: 0
+    });
+    plantInstanceRepository.addToStorage(crop);
+
+    const input = {
+      items: [{ id: crop.id, version: 0, notes: 'Unplaced crop notes' }]
+    };
+
+    await useCase.execute(input, user);
+
+    const storedCrop = plantInstanceRepository.getStored(crop.id);
+    expect(storedCrop?.position).toBeUndefined();
+    expect(storedCrop?.notes).toBe('Unplaced crop notes');
+  });
 });

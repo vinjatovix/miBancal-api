@@ -1,12 +1,6 @@
 import { Coordinates } from '../../../../../shared/domain/value-objects/Coordinates.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
 import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
-import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
-import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
-import {
-  DomainNotFoundException,
-  InvalidArgumentException
-} from '../../../../shared/domain/errors/index.js';
 import type { WriteOutcome } from '../../../../shared/domain/repositories/WriteOutcome.js';
 import type { BedRepository } from '../../../Beds/domain/repositories/interfaces/BedRepository.js';
 import { createPlantId } from '../../../Plants/domain/PlantId.js';
@@ -20,6 +14,7 @@ import { createPlantInstanceId } from '../../domain/PlantInstanceId.js';
 import type { PlantInstanceRepository } from '../../domain/repositories/interfaces/PlantInstanceRepository.js';
 import type { CropSpatialService } from '../../domain/services/CropSpatialService.js';
 import { loadPlacedNeighbors } from './loadPlacedNeighbors.js';
+import { validatePlantInstanceBatch } from './validatePlantInstanceBatch.js';
 
 export type UpdatePlantInstanceBatchItemInput = {
   id: string;
@@ -33,6 +28,19 @@ export type UpdatePlantInstanceBatchItemInput = {
 export type UpdatePlantInstanceBatchInput = {
   items: UpdatePlantInstanceBatchItemInput[];
 };
+
+function resolveItemPosition(
+  itemPosition?: { x: number; y: number },
+  cropPosition?: { x: number; y: number }
+): { x: number; y: number } | undefined {
+  if (itemPosition !== undefined) {
+    return itemPosition;
+  }
+  if (cropPosition !== undefined) {
+    return { x: cropPosition.x, y: cropPosition.y };
+  }
+  return undefined;
+}
 
 export type UpdatePlantInstanceBatchDependencies = {
   bedRepository: BedRepository;
@@ -67,39 +75,12 @@ export class UpdatePlantInstanceBatch {
     input: UpdatePlantInstanceBatchInput,
     user: UserSessionInfo
   ): Promise<PlantInstance[]> {
-    const requestedIds = input.items.map((it) => createPlantInstanceId(it.id));
-    const foundCrops = await this.plantInstanceRepository.findOwnedActiveByIds(
-      requestedIds,
-      user.id
-    );
-
-    if (foundCrops.length !== input.items.length) {
-      const foundIds = new Set(foundCrops.map((c) => c.id));
-      const missingId = requestedIds.find((id) => !foundIds.has(id))!;
-      throw new DomainNotFoundException(
-        `PlantInstance not found: ${missingId}`
-      );
-    }
-
-    const bedIds = new Set(foundCrops.map((c) => c.bedId));
-    if (bedIds.size !== 1) {
-      throw new InvalidArgumentException(
-        'All items in batch must belong to the same bed'
-      );
-    }
-
-    const bedId = foundCrops[0]!.bedId;
-    const bed = ensureFound(
-      await this.bedRepository.findOwnedActiveById(bedId, user.id),
-      'Bed',
-      bedId
-    );
-
-    const cropsMap = new Map(foundCrops.map((c) => [c.id, c]));
-    for (const item of input.items) {
-      const crop = cropsMap.get(createPlantInstanceId(item.id))!;
-      ensureVersion(crop.version, [item.version], 'PlantInstance', item.id);
-    }
+    const { bed, foundCrops, cropsMap } = await validatePlantInstanceBatch({
+      items: input.items,
+      userId: user.id,
+      plantInstanceRepository: this.plantInstanceRepository,
+      bedRepository: this.bedRepository
+    });
 
     const uniquePlantIds = [...new Set(foundCrops.map((c) => c.plantId))].map(
       (id) => createPlantId(id)
@@ -111,12 +92,7 @@ export class UpdatePlantInstanceBatch {
 
     const batchSpatialItems = input.items.map((item, index) => {
       const crop = cropsMap.get(createPlantInstanceId(item.id))!;
-      const position =
-        item.position !== undefined
-          ? item.position
-          : crop.position
-            ? { x: crop.position.x, y: crop.position.y }
-            : undefined;
+      const position = resolveItemPosition(item.position, crop.position);
 
       return {
         itemIndex: index,
