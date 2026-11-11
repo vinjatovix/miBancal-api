@@ -75,8 +75,7 @@ export const scopedCreatePlantRelationBody = z
       !(
         data.source.scope === data.target.scope &&
         data.source.value !== undefined &&
-        data.target.value !== undefined &&
-        data.source.value.toLowerCase() === data.target.value.toLowerCase()
+        data.source.value.toLowerCase() === data.target.value?.toLowerCase()
       ),
     {
       message:

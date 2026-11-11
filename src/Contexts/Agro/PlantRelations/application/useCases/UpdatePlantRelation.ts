@@ -34,15 +34,10 @@ export class UpdatePlantRelation {
       input.id
     );
 
-    const type = input.type !== undefined ? input.type : existingRelation.type;
-    const mechanism =
-      input.mechanism !== undefined
-        ? input.mechanism
-        : existingRelation.mechanism;
-    const strength =
-      input.strength !== undefined ? input.strength : existingRelation.strength;
-    const reason =
-      input.reason !== undefined ? input.reason : existingRelation.reason;
+    const type = input.type ?? existingRelation.type;
+    const mechanism = input.mechanism ?? existingRelation.mechanism;
+    const strength = input.strength ?? existingRelation.strength;
+    const reason = input.reason ?? existingRelation.reason;
     const proximity =
       input.proximity !== undefined
         ? ProximityDistance.create(

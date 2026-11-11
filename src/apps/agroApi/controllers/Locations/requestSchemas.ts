@@ -11,8 +11,8 @@ const locationIdParams = z.object({
   id: z.uuid()
 });
 
-const latitudeSchema = z.number().finite().min(-90).max(90);
-const longitudeSchema = z.number().finite().min(-180).max(180);
+const latitudeSchema = z.number().min(-90).max(90);
+const longitudeSchema = z.number().min(-180).max(180);
 const nullableLatitudeSchema = z.union([latitudeSchema, z.null()]);
 const nullableLongitudeSchema = z.union([longitudeSchema, z.null()]);
 
@@ -103,8 +103,8 @@ export const listLocationsRequest = {
 } satisfies RequestSchemas;
 
 const bedPositionSchema = z.object({
-  x: z.number().finite(),
-  y: z.number().finite()
+  x: z.number(),
+  y: z.number()
 });
 
 const bedLayoutPlacementItemSchema = z.object({

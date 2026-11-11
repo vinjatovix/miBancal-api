@@ -43,10 +43,7 @@ export class BedCollisionDetector {
   ): boolean {
     const polys: Vector2D[][] = [obb1.vertices, obb2.vertices];
 
-    for (let i = 0; i < polys.length; i++) {
-      const poly = polys[i];
-      if (!poly) continue;
-
+    for (const poly of polys) {
       for (let j = 0; j < poly.length; j++) {
         const p1 = poly[j];
         const p2 = poly[(j + 1) % poly.length];

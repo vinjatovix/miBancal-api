@@ -506,7 +506,7 @@ describe('MongoPlantReadRepository', () => {
         filter: { genus: { eq: 'Allium' } }
       });
 
-      expect(data.length).toBe(2);
+      expect(data).toHaveLength(2);
       expect(data.every((p) => p.identity?.genus === 'Allium')).toBe(true);
     });
 
@@ -515,7 +515,7 @@ describe('MongoPlantReadRepository', () => {
         filter: { genus: { eq: 'allium' } }
       });
 
-      expect(data.length).toBe(2);
+      expect(data).toHaveLength(2);
       expect(data.every((p) => p.identity?.genus === 'Allium')).toBe(true);
     });
 
@@ -524,7 +524,7 @@ describe('MongoPlantReadRepository', () => {
         filter: { genus: { in: ['Allium', 'Ocimum'] } }
       });
 
-      expect(data.length).toBe(3);
+      expect(data).toHaveLength(3);
       expect(
         data.every(
           (p) =>

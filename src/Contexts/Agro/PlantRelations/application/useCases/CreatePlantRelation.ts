@@ -34,14 +34,8 @@ export class CreatePlantRelation {
     dto: CreatePlantRelationDto,
     user: string
   ): Promise<PlantRelation> {
-    const source = this.resolveParticipant(
-      'source' in dto ? dto.source : undefined,
-      'sourcePlantId' in dto ? dto.sourcePlantId : undefined
-    );
-    const target = this.resolveParticipant(
-      'target' in dto ? dto.target : undefined,
-      'targetPlantId' in dto ? dto.targetPlantId : undefined
-    );
+    const source = this.resolveParticipant(dto.source, dto.sourcePlantId);
+    const target = this.resolveParticipant(dto.target, dto.targetPlantId);
 
     if (!source || !target) {
       throw new InvalidArgumentException(
@@ -97,8 +91,7 @@ export class CreatePlantRelation {
     if (
       source.scope === target.scope &&
       source.value !== undefined &&
-      target.value !== undefined &&
-      source.value.toLowerCase() === target.value.toLowerCase()
+      source.value.toLowerCase() === target.value?.toLowerCase()
     ) {
       throw new InvalidArgumentException(
         '<PlantRelation> source and target participants must be distinct'

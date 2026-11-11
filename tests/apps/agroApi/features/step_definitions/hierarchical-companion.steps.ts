@@ -30,13 +30,11 @@ const getContext = (world: AgroWorld): HierarchicalResolutionContext => {
   const dynamicWorld = world as unknown as {
     __hierarchicalContext?: HierarchicalResolutionContext;
   };
-  if (!dynamicWorld.__hierarchicalContext) {
-    dynamicWorld.__hierarchicalContext = {
-      plants: new Map(),
-      families: new Map(),
-      candidateRules: []
-    };
-  }
+  dynamicWorld.__hierarchicalContext ??= {
+    plants: new Map(),
+    families: new Map(),
+    candidateRules: []
+  };
   return dynamicWorld.__hierarchicalContext;
 };
 
@@ -211,7 +209,7 @@ Given(
 );
 
 When(
-  'I evaluate companions for {string} at \\({int}, {int}\\) and {string} at \\({int}, {int}\\)',
+  String.raw`I evaluate companions for {string} at \({int}, {int}\) and {string} at \({int}, {int}\)`,
   function (
     this: AgroWorld,
     cropAName: string,
