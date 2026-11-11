@@ -256,7 +256,11 @@ describe('Bed requestSchemas', () => {
       ['an empty body', {}],
       ['only the name', { name: 'Bed' }],
       ['only the depth', { depth: 40 }],
-      ['every field', buildUpdateBedBody()]
+      ['every field', buildUpdateBedBody()],
+      ['a valid position', { position: { x: 10, y: -20 } }],
+      ['a null position', { position: null }],
+      ['a valid rotation at lower bound', { rotation: 0 }],
+      ['a valid rotation at upper bound', { rotation: 359 }]
     ])('should accept %s', async (_label, body) => {
       const parsed = await parsedOf(updateBedRequest, {
         params: bedParams(),
@@ -279,6 +283,31 @@ describe('Bed requestSchemas', () => {
       ['a null name', { name: null }, 'name'],
       ['a blank name', { name: '  ' }, 'name'],
       ['a null locationId', { locationId: null }, 'locationId'],
+      [
+        'an Infinity position x',
+        { position: { x: Infinity, y: 10 } },
+        'position'
+      ],
+      [
+        '-Infinity position x',
+        { position: { x: -Infinity, y: 10 } },
+        'position'
+      ],
+      ['a NaN position x', { position: { x: NaN, y: 10 } }, 'position'],
+      [
+        'an Infinity position y',
+        { position: { x: 10, y: Infinity } },
+        'position'
+      ],
+      [
+        '-Infinity position y',
+        { position: { x: 10, y: -Infinity } },
+        'position'
+      ],
+      ['a NaN position y', { position: { x: 10, y: NaN } }, 'position'],
+      ['a negative rotation', { rotation: -1 }, 'rotation'],
+      ['a rotation above 359', { rotation: 360 }, 'rotation'],
+      ['a non-integer rotation', { rotation: 45.5 }, 'rotation'],
       ...DIMENSIONS.flatMap((field): InvalidCase[] => [
         [`a null ${field}`, { [field]: null }, field],
         [`a zero ${field}`, { [field]: 0 }, field]

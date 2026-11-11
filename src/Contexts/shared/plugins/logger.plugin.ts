@@ -65,13 +65,11 @@ const buildTransports = (): winston.transport[] => {
 let rootLoggerInstance: winston.Logger | undefined;
 
 const getRootLogger = (): winston.Logger => {
-  if (!rootLoggerInstance) {
-    rootLoggerInstance = winston.createLogger({
-      level: 'info',
-      format: combine(timestamp(), json()),
-      transports: buildTransports()
-    });
-  }
+  rootLoggerInstance ??= winston.createLogger({
+    level: 'info',
+    format: combine(timestamp(), json()),
+    transports: buildTransports()
+  });
   return rootLoggerInstance;
 };
 

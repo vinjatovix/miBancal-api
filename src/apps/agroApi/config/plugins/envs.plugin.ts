@@ -81,9 +81,7 @@ export type Envs = ReturnType<typeof loadEnvs>;
 let cachedEnvs: Envs | undefined;
 
 export const getEnvs = (): Envs => {
-  if (!cachedEnvs) {
-    cachedEnvs = loadEnvs();
-  }
+  cachedEnvs ??= loadEnvs();
   return cachedEnvs;
 };
 

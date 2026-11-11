@@ -269,8 +269,7 @@ export class PlantRelation extends AggregateRoot<PlantRelationId> {
     if (
       source.scope === target.scope &&
       source.value !== undefined &&
-      target.value !== undefined &&
-      source.value.toLowerCase() === target.value.toLowerCase()
+      source.value.toLowerCase() === target.value?.toLowerCase()
     ) {
       throw new InvalidArgumentException(
         '<PlantRelation> source and target participants must be distinct'

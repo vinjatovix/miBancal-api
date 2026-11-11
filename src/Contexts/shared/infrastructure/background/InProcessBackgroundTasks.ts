@@ -34,7 +34,7 @@ export class InProcessBackgroundTasks implements BackgroundTasks {
   async idle(): Promise<void> {
     // Tasks started while waiting are awaited too.
     while (this.pending.size > 0) {
-      await Promise.all([...this.pending]);
+      await Promise.all(this.pending);
     }
   }
 

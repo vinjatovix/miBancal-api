@@ -63,6 +63,7 @@ export class RemovePlantInstanceBatch {
 
     await this.unitOfWork.run(async () => {
       await this.bedRepository.conditionalIncrementVersion(bed.id, bed.version);
+      // NOSONAR: MongoDB client sessions cannot execute concurrent operations within a transaction
       for (const { current, updated } of diffs) {
         await this.plantInstanceRepository.updateWithDiff(current, updated);
       }

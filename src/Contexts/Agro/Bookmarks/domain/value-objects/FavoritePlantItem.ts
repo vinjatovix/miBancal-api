@@ -24,7 +24,7 @@ export class FavoritePlantItem implements Serializable<FavoritePlantItemPrimitiv
     }
 
     this.plantId = plantId;
-    this.bookmarkedAt = new Date(bookmarkedAt.getTime());
+    this.bookmarkedAt = new Date(bookmarkedAt);
   }
 
   equals(other: FavoritePlantItem): boolean {

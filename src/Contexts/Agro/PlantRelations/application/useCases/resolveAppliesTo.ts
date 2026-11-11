@@ -1,4 +1,3 @@
-import { deriveGenus } from '../../../../../shared/domain/utils/deriveGenus.js';
 import type { AppliesToScope } from '../../domain/entities/types/PlantRelationFilter.js';
 import type {
   TaxonomicScopePrimitives,
@@ -12,7 +11,7 @@ import type {
 
 // The genus derivation is a shared botanical rule (plant catalog and relations
 // derive it identically); re-exported so existing importers keep their path.
-export { deriveGenus };
+export { deriveGenus } from '../../../../../shared/domain/utils/deriveGenus.js';
 
 /** Narrower tiers shadow broader ones; a tie between sides is won by `target`. */
 const SPECIFICITY: Record<AppliesVia, number> = {
@@ -23,7 +22,7 @@ const SPECIFICITY: Record<AppliesVia, number> = {
 };
 
 const sameId = (a: string | undefined, b: string | undefined): boolean =>
-  a !== undefined && b !== undefined && a.toLowerCase() === b.toLowerCase();
+  a !== undefined && a.toLowerCase() === b?.toLowerCase();
 
 const matchVia = (
   scope: TaxonomicSourceScopePrimitives | TaxonomicScopePrimitives,

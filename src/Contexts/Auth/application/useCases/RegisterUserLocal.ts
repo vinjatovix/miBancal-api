@@ -225,8 +225,7 @@ export class RegisterUserLocal {
     at: Date
   ): Promise<void> {
     const holders = await this.authRepository.findByQuery({ username });
-    const replaced =
-      existing !== null && existing.isReplaceableAt(at) ? existing.id : null;
+    const replaced = existing?.isReplaceableAt(at) ? existing.id : null;
 
     if (holders.some((holder) => holder.id !== replaced)) {
       throw new DomainConflictException(USERNAME_TAKEN_MESSAGE);

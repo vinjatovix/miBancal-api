@@ -13,9 +13,7 @@ export const ensureAnomaliesExist = async (
   if (slugs === undefined || slugs === null) return;
 
   const unique = [
-    ...new Set(
-      slugs.map((slug) => slug.trim().toLowerCase()).filter((slug) => slug)
-    )
+    ...new Set(slugs.map((slug) => slug.trim().toLowerCase()).filter(Boolean))
   ];
   if (unique.length === 0) return;
 

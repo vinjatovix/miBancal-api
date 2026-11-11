@@ -46,8 +46,23 @@ const RESET_TOKEN_ISSUED_AGO_MS: Record<SeededResetToken, number> = {
   expired: PASSWORD_RESET_TOKEN_TTL_MS + HOUR_MS
 };
 
+export type SeededUser = {
+  id: string;
+  username: string;
+  email: string;
+  password: string;
+  /** Plain activation token, for pending states that hold one. */
+  activationToken?: string;
+  /** Plain password reset token, when one was seeded. */
+  resetToken?: string;
+};
+
+export type RequiredSeededUserCredentials = Required<
+  Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>
+>;
+
 const buildGoogleOnlyUser = (
-  seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
+  seed: RequiredSeededUserCredentials,
   googleSub: string | undefined,
   now: Date
 ): User =>
@@ -66,17 +81,6 @@ const buildGoogleOnlyUser = (
     roles: new UserRoles(['user']),
     metadata: Metadata.create(seed.username, now)
   });
-
-export type SeededUser = {
-  id: string;
-  username: string;
-  email: string;
-  password: string;
-  /** Plain activation token, for pending states that hold one. */
-  activationToken?: string;
-  /** Plain password reset token, when one was seeded. */
-  resetToken?: string;
-};
 
 export type UserSeedOptions = Partial<
   Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>
@@ -106,7 +110,7 @@ export const UserSeeder = ({
   oneTimeToken
 }: UserSeederDependencies) => {
   const register = async (
-    seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
+    seed: RequiredSeededUserCredentials,
     tokenHash: string,
     { issuedAt, expiresAt }: { issuedAt: Date; expiresAt: Date }
   ): Promise<User> =>
@@ -124,7 +128,7 @@ export const UserSeeder = ({
     });
 
   const build = async (
-    seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
+    seed: RequiredSeededUserCredentials,
     { state = 'active', googleSub, githubUserId }: UserSeedOptions
   ): Promise<{ user: User; activationToken?: string }> => {
     const now = new Date();
@@ -182,7 +186,7 @@ export const UserSeeder = ({
 
   const buildSeedDefaults = (
     options: UserSeedOptions
-  ): Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>> => ({
+  ): RequiredSeededUserCredentials => ({
     id: options.id ?? random.uuid(),
     username: options.username ?? random.word({ min: 8, max: 20 }),
     email: options.email ?? `${random.word({ min: 8, max: 20 })}@seeded.com`,

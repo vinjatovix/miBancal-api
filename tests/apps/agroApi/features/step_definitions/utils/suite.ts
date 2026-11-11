@@ -182,33 +182,35 @@ export const seedSuiteUsers = async (db: Db): Promise<void> => {
   const suiteRes = suite();
   const rolesToSeed: SuiteRole[] = ['user', 'anotherUser'];
 
-  for (const role of rolesToSeed) {
-    const id = suiteRes.ids[role];
-    const username = suiteRes.usernames[role];
-    const email = SUITE_USERS[role].email;
-    const roles = SUITE_USERS[role].roles;
+  await Promise.all(
+    rolesToSeed.map((role) => {
+      const id = suiteRes.ids[role];
+      const username = suiteRes.usernames[role];
+      const email = SUITE_USERS[role].email;
+      const roles = SUITE_USERS[role].roles;
 
-    await usersCollection.updateOne(
-      { _id: toMongoId(id) },
-      {
-        $setOnInsert: {
-          _id: toMongoId(id),
-          email,
-          username,
-          emailValidated: true,
-          roles,
-          metadata: {
-            createdAt: now,
-            createdBy: username,
-            updatedAt: now,
-            updatedBy: username
-          },
-          version: 0
-        }
-      },
-      { upsert: true }
-    );
-  }
+      return usersCollection.updateOne(
+        { _id: toMongoId(id) },
+        {
+          $setOnInsert: {
+            _id: toMongoId(id),
+            email,
+            username,
+            emailValidated: true,
+            roles,
+            metadata: {
+              createdAt: now,
+              createdBy: username,
+              updatedAt: now,
+              updatedBy: username
+            },
+            version: 0
+          }
+        },
+        { upsert: true }
+      );
+    })
+  );
 };
 
 class SuiteHolder {
