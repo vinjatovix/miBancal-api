@@ -10,9 +10,6 @@ export const GARDEN_INPUT_APPLICATION_METHODS = [
   'other'
 ] as const satisfies ReadonlyArray<GardenInputApplicationMethod>;
 
-export const GARDEN_INPUT_DOSAGE_METHODS = GARDEN_INPUT_APPLICATION_METHODS;
-export type GardenInputDosageMethod = GardenInputApplicationMethod;
-
 export interface GardenInputDosagePrimitives {
   method: GardenInputApplicationMethod;
   dilution: string;

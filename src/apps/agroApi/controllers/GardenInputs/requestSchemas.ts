@@ -7,8 +7,8 @@ import {
 import type { GardenInputFilter } from '../../../../Contexts/Agro/GardenInputs/domain/entities/types/GardenInputFilter.js';
 import {
   GARDEN_INPUT_ACTIONS,
-  GARDEN_INPUT_CATEGORIES,
-  GARDEN_INPUT_DOSAGE_METHODS
+  GARDEN_INPUT_APPLICATION_METHODS,
+  GARDEN_INPUT_CATEGORIES
 } from '../../../../Contexts/Agro/GardenInputs/domain/entities/types/index.js';
 import type { QueryOptions } from '../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { RequestSchemas } from '../../middlewares/validateRequest.js';
@@ -45,7 +45,7 @@ const gardenInputSlugSchema = z
 
 const categorySchema = z.enum(GARDEN_INPUT_CATEGORIES);
 const actionSchema = z.enum(GARDEN_INPUT_ACTIONS);
-const dosageMethodSchema = z.enum(GARDEN_INPUT_DOSAGE_METHODS);
+const dosageMethodSchema = z.enum(GARDEN_INPUT_APPLICATION_METHODS);
 
 const ingredientInputSchema = z.object({
   item: requiredShortTextSchema,

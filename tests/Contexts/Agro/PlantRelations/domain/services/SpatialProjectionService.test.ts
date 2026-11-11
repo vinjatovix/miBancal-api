@@ -42,24 +42,23 @@ describe('SpatialProjectionService', () => {
   });
 
   it('projects Marigold in Bed A and Tomato in Bed B with exact 60 cm distance across aisle', () => {
-    const marigold = service.projectPlant(
-      'crop-marigold',
-      'plant-marigold',
-      'bed-a',
-      'Tagetes patula',
-      { x: 110, y: 50 },
-      { x: 0, y: 0 },
-      0
-    );
-    const tomato = service.projectPlant(
-      'crop-tomato',
-      'plant-tomato',
-      'bed-b',
-      'Solanum lycopersicum',
-      { x: 10, y: 50 },
-      { x: 160, y: 0 },
-      0
-    );
+    const marigold = service.projectPlant({
+      plantInstanceId: 'crop-marigold',
+      plantId: 'plant-marigold',
+      bedId: 'bed-a',
+      scientificName: 'Tagetes patula',
+      localCoordinates: { x: 110, y: 50 },
+      bedPosition: { x: 0, y: 0 },
+      bedRotation: 0
+    });
+    const tomato = service.projectPlant({
+      plantInstanceId: 'crop-tomato',
+      plantId: 'plant-tomato',
+      bedId: 'bed-b',
+      scientificName: 'Solanum lycopersicum',
+      localCoordinates: { x: 10, y: 50 },
+      bedPosition: { x: 160, y: 0 }
+    });
 
     expect(marigold.globalPosition).toEqual({ x: 110, y: 50 });
     expect(tomato.globalPosition).toEqual({ x: 170, y: 50 });

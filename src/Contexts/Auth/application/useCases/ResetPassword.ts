@@ -51,7 +51,7 @@ export class ResetPassword {
     password,
     repeatPassword
   }: ResetPasswordRequest): Promise<void> {
-    new PlainPassword(password);
+    const plainPassword = new PlainPassword(password);
     if (password !== repeatPassword) {
       throw new InvalidArgumentException(PASSWORDS_DO_NOT_MATCH_MESSAGE);
     }
@@ -66,7 +66,9 @@ export class ResetPassword {
     }
 
     const before = user.toPrimitives();
-    const passwordHash = new PasswordHash(await this.encrypter.hash(password));
+    const passwordHash = new PasswordHash(
+      await this.encrypter.hash(plainPassword.value)
+    );
     const now = new Date();
     user.resetPassword(tokenHash, passwordHash, now);
 

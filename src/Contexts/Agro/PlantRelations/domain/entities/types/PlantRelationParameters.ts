@@ -13,8 +13,6 @@ export type PlantRelationParameters = {
   reason: string;
 };
 
-export type UpdatePlantRelationParameters = PlantRelationParameters;
-
 export type CreatePlantRelationParams = {
   id?: PlantRelationId | undefined;
   source?: TaxonomicScope | undefined;

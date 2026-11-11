@@ -4,11 +4,11 @@ export class Longitude {
   readonly value: number;
 
   constructor(value: number) {
-    this.ensureIsValid(value);
+    Longitude.assertValid(value);
     this.value = value;
   }
 
-  private ensureIsValid(value: number): void {
+  static assertValid(value: number): void {
     if (
       typeof value !== 'number' ||
       !Number.isFinite(value) ||

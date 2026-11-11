@@ -7,6 +7,16 @@ import type {
 } from './types/CompanionGraphEdge.js';
 import type { ProjectedPlant } from './types/ProjectedPlant.js';
 
+function toCropPlacement(plant: ProjectedPlant): CropPlacement {
+  return {
+    id: plant.plantInstanceId,
+    plantId: plant.plantId,
+    scientificName: plant.scientificName,
+    ...(plant.familyId !== undefined && { familyId: plant.familyId }),
+    position: plant.globalPosition
+  };
+}
+
 export class CrossBedCompanionService {
   private readonly companionEvaluationService: CompanionEvaluationService;
 
@@ -30,48 +40,41 @@ export class CrossBedCompanionService {
         const plantB = projectedPlants[j];
         if (!plantB) continue;
 
-        const cropA: CropPlacement = {
-          id: plantA.plantInstanceId,
-          plantId: plantA.plantId,
-          scientificName: plantA.scientificName,
-          ...(plantA.familyId !== undefined && { familyId: plantA.familyId }),
-          position: plantA.globalPosition
-        };
-
-        const cropB: CropPlacement = {
-          id: plantB.plantInstanceId,
-          plantId: plantB.plantId,
-          scientificName: plantB.scientificName,
-          ...(plantB.familyId !== undefined && { familyId: plantB.familyId }),
-          position: plantB.globalPosition
-        };
-
-        const evaluation = this.companionEvaluationService.evaluatePair(
-          cropA,
-          cropB,
-          candidateRules
-        );
-
-        const scope: CompanionScope =
-          plantA.bedId === plantB.bedId ? 'intra_bed' : 'cross_bed';
-
-        for (const relation of evaluation.activeRelations) {
-          edges.push({
-            sourcePlantInstanceId: plantA.plantInstanceId,
-            targetPlantInstanceId: plantB.plantInstanceId,
-            sourceBedId: plantA.bedId,
-            targetBedId: plantB.bedId,
-            relationType: relation.type,
-            mechanism: relation.mechanism,
-            strength: relation.strength,
-            distanceCm: evaluation.distanceCm,
-            scope,
-            reason: relation.reason
-          });
-        }
+        edges.push(...this.evaluatePlantPair(plantA, plantB, candidateRules));
       }
     }
 
     return edges;
+  }
+
+  private evaluatePlantPair(
+    plantA: ProjectedPlant,
+    plantB: ProjectedPlant,
+    candidateRules: readonly PlantRelation[]
+  ): CompanionGraphEdge[] {
+    const cropA = toCropPlacement(plantA);
+    const cropB = toCropPlacement(plantB);
+
+    const evaluation = this.companionEvaluationService.evaluatePair(
+      cropA,
+      cropB,
+      candidateRules
+    );
+
+    const scope: CompanionScope =
+      plantA.bedId === plantB.bedId ? 'intra_bed' : 'cross_bed';
+
+    return evaluation.activeRelations.map((relation) => ({
+      sourcePlantInstanceId: plantA.plantInstanceId,
+      targetPlantInstanceId: plantB.plantInstanceId,
+      sourceBedId: plantA.bedId,
+      targetBedId: plantB.bedId,
+      relationType: relation.type,
+      mechanism: relation.mechanism,
+      strength: relation.strength,
+      distanceCm: evaluation.distanceCm,
+      scope,
+      reason: relation.reason
+    }));
   }
 }

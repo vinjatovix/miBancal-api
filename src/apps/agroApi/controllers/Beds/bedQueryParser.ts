@@ -7,10 +7,10 @@ export const parseBedIncludes = (include?: string): ParsedBedIncludes => {
   if (!include) {
     return { embedCrops: false, embedLocation: false };
   }
-  const parts = include.split(',').map((s) => s.trim());
+  const parts = new Set(include.split(',').map((s) => s.trim()));
   return {
-    embedCrops: parts.includes('plantInstances'),
-    embedLocation: parts.includes('location')
+    embedCrops: parts.has('plantInstances'),
+    embedLocation: parts.has('location')
   };
 };
 

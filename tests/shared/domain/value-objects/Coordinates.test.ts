@@ -20,6 +20,24 @@ describe('Coordinates', () => {
     expect(a.distanceTo(b)).toBe(5);
   });
 
+  it.each([
+    [0, 0, 3, 4, 5],
+    [1, 1, 4, 5, 5],
+    [0, 0, 0, 0, 0],
+    [-3, -4, 0, 0, 5],
+    [10, 20, 10, 20, 0]
+  ])(
+    'calculates Euclidean distance from (%s, %s) to (%s, %s) as %s',
+    (x1, y1, x2, y2, expected) => {
+      const a = new Coordinates(x1, y1);
+      const b = new Coordinates(x2, y2);
+
+      const distance = a.distanceTo(b);
+
+      expect(distance).toBe(expected);
+    }
+  );
+
   it('should be symmetric', () => {
     const a = new Coordinates(10, 10);
     const b = new Coordinates(20, 20);

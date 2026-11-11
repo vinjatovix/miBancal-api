@@ -30,16 +30,22 @@ export class GetGardenInputByIdOrSlug {
     const canSeeDeleted = canSeeDeletedGardenInputs(user);
     const byId = UuidValidator.isValid(idOrSlug);
 
-    const found = byId
-      ? canSeeDeleted
+    let found: GardenInputSparseView | null;
+    if (byId) {
+      found = canSeeDeleted
         ? await this.gardenInputReadRepository.findById(idOrSlug, options)
-        : await this.gardenInputReadRepository.findActiveById(idOrSlug, options)
-      : canSeeDeleted
+        : await this.gardenInputReadRepository.findActiveById(
+            idOrSlug,
+            options
+          );
+    } else {
+      found = canSeeDeleted
         ? await this.gardenInputReadRepository.findBySlug(idOrSlug, options)
         : await this.gardenInputReadRepository.findActiveBySlug(
             idOrSlug,
             options
           );
+    }
 
     return ensureFound(
       found,

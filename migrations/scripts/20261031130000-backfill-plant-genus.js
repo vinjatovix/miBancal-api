@@ -20,7 +20,8 @@ const slugify = (text) =>
     .replace(/\s+/g, '-')
     .replace(/[^\w-]+/g, '')
     .replace(/--+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 
 export const up = async (db) => {
   const collection = db.collection('plants');

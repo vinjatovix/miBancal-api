@@ -61,4 +61,24 @@ describe('GetAnomalyBySlug', () => {
 
     await expect(useCase.execute(id, undefined)).resolves.toEqual(view);
   });
+
+  it('lets a curator read a soft-deleted anomaly by UUID', async () => {
+    const id = random.uuid();
+    const view = { ...AnomalyReadViewMother.deleted(), id };
+    repository.addToStorage(view);
+
+    const result = await useCase.execute(id, curator);
+
+    expect(result).toEqual(view);
+  });
+
+  it('hides a soft-deleted anomaly by UUID from an anonymous caller', async () => {
+    const id = random.uuid();
+    const view = { ...AnomalyReadViewMother.deleted(), id };
+    repository.addToStorage(view);
+
+    const executeAction = useCase.execute(id, undefined);
+
+    await expect(executeAction).rejects.toBeInstanceOf(DomainNotFoundException);
+  });
 });

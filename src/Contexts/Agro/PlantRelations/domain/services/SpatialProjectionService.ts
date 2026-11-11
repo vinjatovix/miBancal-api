@@ -1,5 +1,16 @@
 import type { ProjectedPlant } from './types/ProjectedPlant.js';
 
+export type ProjectPlantOptions = {
+  plantInstanceId: string;
+  plantId: string;
+  bedId: string;
+  scientificName: string;
+  localCoordinates: { readonly x: number; readonly y: number };
+  bedPosition: { readonly x: number; readonly y: number };
+  bedRotation?: number;
+  familyId?: string;
+};
+
 export class SpatialProjectionService {
   projectPoint(
     localPoint: { readonly x: number; readonly y: number },
@@ -22,32 +33,24 @@ export class SpatialProjectionService {
     };
   }
 
-  projectPlant(
-    plantInstanceId: string,
-    plantId: string,
-    bedId: string,
-    scientificName: string,
-    localCoordinates: { readonly x: number; readonly y: number },
-    bedPosition: { readonly x: number; readonly y: number },
-    bedRotation: number = 0,
-    familyId?: string
-  ): ProjectedPlant {
+  projectPlant(options: ProjectPlantOptions): ProjectedPlant {
+    const bedRotation = options.bedRotation ?? 0;
     const globalPosition = this.projectPoint(
-      localCoordinates,
-      bedPosition,
+      options.localCoordinates,
+      options.bedPosition,
       bedRotation
     );
 
     return {
-      plantInstanceId,
-      plantId,
-      bedId,
-      scientificName,
-      ...(familyId !== undefined && { familyId }),
+      plantInstanceId: options.plantInstanceId,
+      plantId: options.plantId,
+      bedId: options.bedId,
+      scientificName: options.scientificName,
+      ...(options.familyId !== undefined && { familyId: options.familyId }),
       globalPosition,
       localPosition: {
-        x: localCoordinates.x,
-        y: localCoordinates.y
+        x: options.localCoordinates.x,
+        y: options.localCoordinates.y
       }
     };
   }

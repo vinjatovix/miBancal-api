@@ -55,6 +55,36 @@ describe('Latitude', () => {
       }
     );
   });
+
+  describe('assertValid', () => {
+    it.each([-90, -45.5, 0, 40.4168, 90])(
+      'accepts valid latitude %p without throwing',
+      (validValue) => {
+        const assertAction = () => Latitude.assertValid(validValue);
+
+        expect(assertAction).not.toThrow();
+      }
+    );
+
+    it.each([
+      -90.0001,
+      -91,
+      -180,
+      90.0001,
+      91,
+      180,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY
+    ])(
+      'throws InvalidArgumentException for out-of-range or non-finite latitude %p',
+      (invalidValue) => {
+        const assertAction = () => Latitude.assertValid(invalidValue);
+
+        expect(assertAction).toThrow(InvalidArgumentException);
+      }
+    );
+  });
 });
 
 describe('Longitude', () => {
@@ -105,6 +135,36 @@ describe('Longitude', () => {
         const createLongitude = () => new Longitude(invalidValue);
 
         expect(createLongitude).toThrow(InvalidArgumentException);
+      }
+    );
+  });
+
+  describe('assertValid', () => {
+    it.each([-180, -90, 0, -3.7038, 180])(
+      'accepts valid longitude %p without throwing',
+      (validValue) => {
+        const assertAction = () => Longitude.assertValid(validValue);
+
+        expect(assertAction).not.toThrow();
+      }
+    );
+
+    it.each([
+      -180.0001,
+      -181,
+      -360,
+      180.0001,
+      181,
+      360,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY
+    ])(
+      'throws InvalidArgumentException for out-of-range or non-finite longitude %p',
+      (invalidValue) => {
+        const assertAction = () => Longitude.assertValid(invalidValue);
+
+        expect(assertAction).toThrow(InvalidArgumentException);
       }
     );
   });

@@ -2,6 +2,10 @@ import { InvalidArgumentException } from '../../../../shared/domain/errors/Inval
 
 export class NorthAngle {
   constructor(public readonly value: number) {
+    NorthAngle.assertValid(value);
+  }
+
+  static assertValid(value: number): void {
     if (!Number.isInteger(value)) {
       throw new InvalidArgumentException('North angle must be an integer');
     }
