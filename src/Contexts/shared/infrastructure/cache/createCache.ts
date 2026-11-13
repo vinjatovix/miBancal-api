@@ -42,24 +42,32 @@ class NoOpCache implements CacheRepository {
   }
 }
 
-const defaultRedisClientFactory = (
-  url: string,
-  commandTimeoutMs: number
-): RedisClientLike => {
-  const client = new Redis(url, {
-    lazyConnect: true,
-    commandTimeout: commandTimeoutMs,
-    maxRetriesPerRequest: 1,
-    enableOfflineQueue: false
-  });
-  client.on('error', () => undefined);
-  return client;
-};
+const createDefaultRedisClientFactory =
+  (logger: AppLogger) =>
+  (url: string, commandTimeoutMs: number): RedisClientLike => {
+    const client = new Redis(url, {
+      // Railway's private network (*.railway.internal) is IPv6-only; family 0
+      // lets DNS resolve either stack instead of ioredis' IPv4-only default.
+      family: 0,
+      lazyConnect: true,
+      commandTimeout: commandTimeoutMs,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false
+    });
+    let hasLoggedError = false;
+    client.on('error', (error: Error) => {
+      if (!hasLoggedError) {
+        hasLoggedError = true;
+        logger.warn('Redis cache client connection error', error);
+      }
+    });
+    return client;
+  };
 
 export function createCache({
   settings,
   logger,
-  redisClientFactory = defaultRedisClientFactory
+  redisClientFactory
 }: CreateCacheDeps): CacheRepository {
   const isCachingDisabled = !settings.enabled;
   if (isCachingDisabled) {
@@ -76,10 +84,8 @@ export function createCache({
     return fallback;
   }
 
-  const client = redisClientFactory(
-    settings.redisUrl,
-    settings.backendTimeoutMs
-  );
+  const factory = redisClientFactory ?? createDefaultRedisClientFactory(logger);
+  const client = factory(settings.redisUrl, settings.backendTimeoutMs);
   return new ResilientCache({
     primary: new RedisCache({ client }),
     fallback,
