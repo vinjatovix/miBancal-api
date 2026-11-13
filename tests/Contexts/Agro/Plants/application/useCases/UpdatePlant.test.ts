@@ -1,12 +1,18 @@
 import { UpdatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/index.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import { plantDomainMapper } from '../../../../../../src/Contexts/Agro/Plants/mappers/plantDomainMapper.js';
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
 import { ensureFound } from '../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
 import {
   DomainNotFoundException,
   DomainStaleVersionException,
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/index.js';
 import { AnomalyReadRepositoryMock } from '../../../Anomalies/__mocks__/AnomalyReadRepositoryMock.js';
 import { AnomalyReadViewMother } from '../../../Anomalies/application/queries/AnomalyReadViewMother.js';
@@ -20,6 +26,7 @@ describe('UpdatePlant use case', () => {
   let repository: PlantRepositoryMock;
   let familyRepository: FamilyRepositoryMock;
   let anomalyReadRepository: AnomalyReadRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: UpdatePlant;
 
   const findExisting = async (id: string): Promise<Plant> =>
@@ -29,11 +36,70 @@ describe('UpdatePlant use case', () => {
     repository = new PlantRepositoryMock();
     familyRepository = new FamilyRepositoryMock();
     anomalyReadRepository = new AnomalyReadRepositoryMock();
+    cache = new CacheRepositoryFake();
     useCase = new UpdatePlant({
       plantRepository: repository,
       familyRepository,
-      anomalyReadRepository
+      anomalyReadRepository,
+      cacheRepository: cache
     });
+  });
+
+  it('invalidates the entry and bumps the generation after a successful update', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+
+    await useCase.execute(
+      { id: plant.id, identity: { name: { primary: 'New name' } } },
+      'user-1',
+      [CURRENT_VERSION]
+    );
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('plants', plant.id)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('plants', plant.identity.slug)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('plants')
+    );
+  });
+
+  it('does not invalidate the cache when the version is stale', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+
+    await expect(
+      useCase.execute(
+        { id: plant.id, identity: { name: { primary: 'New name' } } },
+        'user-1',
+        [CURRENT_VERSION + 1]
+      )
+    ).rejects.toBeInstanceOf(DomainStaleVersionException);
+
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
+    expect(cache.deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('invalidates both the previous and the new slug when scientificName changes', async () => {
+    const plant = PlantFactory.random();
+    repository.addToStorage(plant);
+    const previousSlug = plant.identity.slug;
+
+    const updated = await useCase.execute(
+      { id: plant.id, identity: { scientificName: 'Totally renamed species' } },
+      'user-1',
+      [CURRENT_VERSION]
+    );
+
+    expect(updated.identity.slug).not.toBe(previousSlug);
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('plants', previousSlug)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('plants', updated.identity.slug)
+    );
   });
 
   it('should update plant name', async () => {

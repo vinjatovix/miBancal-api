@@ -21,12 +21,34 @@ describe('plantResponseSchema', () => {
     expect(plantResponseSchema.parse(view)).toEqual(view);
   });
 
+  it('accepts metadata dates as ISO strings and normalizes them to Date instances', () => {
+    const view = fullPlantView();
+    const withIsoDates = {
+      ...view,
+      metadata: {
+        ...view.metadata,
+        createdAt: view.metadata.createdAt.toISOString(),
+        updatedAt: view.metadata.updatedAt.toISOString()
+      }
+    };
+
+    const parsed = plantResponseSchema.parse(withIsoDates);
+
+    expect(parsed.metadata.createdAt).toBeInstanceOf(Date);
+    expect(parsed.metadata.createdAt.toISOString()).toBe(
+      view.metadata.createdAt.toISOString()
+    );
+    expect(parsed.metadata.updatedAt).toBeInstanceOf(Date);
+    expect(parsed.metadata.updatedAt.toISOString()).toBe(
+      view.metadata.updatedAt.toISOString()
+    );
+  });
+
   it('keeps absent optional fields absent', () => {
     const view = minimalPlantView();
 
     const parsed = plantResponseSchema.parse(view);
 
-    // Strict: an absent field that came back as an `undefined` key would fail.
     expect(parsed).toStrictEqual(view);
   });
 

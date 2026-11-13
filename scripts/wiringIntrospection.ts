@@ -22,6 +22,8 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'familySummaryReader',
   'plantSummaryReader',
   'mailer',
+  'cacheRepository',
+  'cacheCatalogTtlSeconds',
   'backgroundTasks',
   'accountNotifier',
   'providerUserResolver',

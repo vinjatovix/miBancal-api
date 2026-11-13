@@ -7,6 +7,7 @@ import {
   createDbTestContext,
   type DbTestContext
 } from '../../../../../../shared/infrastructure/persistence/mongo/dbTestContext.js';
+import { random } from '../../../../../shared/fixtures/random.js';
 
 describe('MongoPlantLikesCounterRepository (integration)', () => {
   let context: DbTestContext;
@@ -18,6 +19,21 @@ describe('MongoPlantLikesCounterRepository (integration)', () => {
   const insertPlant = async (likesCount?: number): Promise<void> => {
     const document: { _id: string | Binary; likesCount?: number } = {
       _id: toMongoId(plantId)
+    };
+    if (likesCount !== undefined) {
+      document.likesCount = likesCount;
+    }
+    await db
+      .collection<{ _id: string | Binary; likesCount?: number }>('plants')
+      .insertOne(document);
+  };
+
+  const insertPlantWithId = async (
+    id: string,
+    likesCount?: number
+  ): Promise<void> => {
+    const document: { _id: string | Binary; likesCount?: number } = {
+      _id: toMongoId(id)
     };
     if (likesCount !== undefined) {
       document.likesCount = likesCount;
@@ -96,6 +112,78 @@ describe('MongoPlantLikesCounterRepository (integration)', () => {
       await repository.decrement(plantId);
 
       expect(await storedLikesCount()).toBeUndefined();
+    });
+  });
+
+  describe('getLikesCount', () => {
+    it.each([
+      {
+        scenario: 'returns stored likesCount when present',
+        seedCount: 7,
+        expected: 7
+      },
+      {
+        scenario: 'returns zero when likesCount field does not exist',
+        seedCount: undefined,
+        expected: 0
+      }
+    ])('$scenario', async ({ seedCount, expected }) => {
+      await insertPlant(seedCount);
+
+      const count = await repository.getLikesCount(plantId);
+
+      expect(count).toBe(expected);
+    });
+
+    it('returns zero for a plant that does not exist in storage', async () => {
+      const nonExistentPlantId = random.uuid();
+
+      const count = await repository.getLikesCount(nonExistentPlantId);
+
+      expect(count).toBe(0);
+    });
+  });
+
+  describe('getLikesCounts', () => {
+    it('returns counts mapped by plant id for multiple existing plants', async () => {
+      const firstId = random.uuid();
+      const secondId = random.uuid();
+      await insertPlantWithId(firstId, 5);
+      await insertPlantWithId(secondId, 12);
+
+      const counts = await repository.getLikesCounts([firstId, secondId]);
+
+      expect(counts.get(firstId)).toBe(5);
+      expect(counts.get(secondId)).toBe(12);
+    });
+
+    it('returns zero for missing documents or plants without likesCount field', async () => {
+      const existingWithoutLikes = random.uuid();
+      const nonExistentId = random.uuid();
+      await insertPlantWithId(existingWithoutLikes);
+
+      const counts = await repository.getLikesCounts([
+        existingWithoutLikes,
+        nonExistentId
+      ]);
+
+      expect(counts.get(existingWithoutLikes)).toBe(0);
+      expect(counts.get(nonExistentId)).toBeUndefined();
+    });
+
+    it.each([
+      {
+        scenario: 'empty input array',
+        ids: [] as string[]
+      },
+      {
+        scenario: 'input array with invalid UUIDs only',
+        ids: ['not-a-uuid', 'invalid']
+      }
+    ])('returns an empty map for $scenario', async ({ ids }) => {
+      const counts = await repository.getLikesCounts(ids);
+
+      expect(counts.size).toBe(0);
     });
   });
 });

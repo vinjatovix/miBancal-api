@@ -33,13 +33,11 @@ import {
 
 export type SuiteRole = 'admin' | 'user' | 'anotherUser' | 'collaborator';
 
-/** Resources built once per run and shared, read-only, by every scenario. */
 export interface SuiteResources {
   readonly app: AgroBackApp;
   readonly httpServer: Server;
   readonly client: MongoClient;
   readonly container: AppContainer;
-  /** The container serving the API's requests (its mailer, its tasks). */
   readonly appContainer: AppContainer;
   readonly environmentArranger: EnvironmentArranger;
   readonly tokens: Readonly<Record<SuiteRole, string>>;
@@ -233,16 +231,12 @@ class SuiteHolder {
   }
 
   async stop(): Promise<void> {
-    // A failed start leaves nothing to stop; throwing here would hide its error.
     if (!this.#resources) {
       return;
     }
 
     const { app, client, container } = this.#resources;
 
-    // HTTP first, then the database. `app.stop` already closes the factory's
-    // cached client; closing ours again is a no-op that keeps this teardown
-    // independent of that cache. The client closes even if the HTTP stop fails.
     try {
       await app.stop(container.resolve('logger'));
     } finally {
@@ -259,3 +253,20 @@ export const startSuite = (): Promise<void> => holder.start();
 export const suite = (): Readonly<SuiteResources> => holder.get();
 
 export const stopSuite = (): Promise<void> => holder.stop();
+
+interface ClearableCache {
+  clear: () => void;
+}
+
+const isClearable = (value: unknown): value is ClearableCache =>
+  typeof (value as { clear?: unknown }).clear === 'function';
+
+export const resetSuiteCache = (): void => {
+  const { container, appContainer } = suite();
+  for (const current of new Set([container, appContainer])) {
+    const cache: unknown = current.resolve('cacheRepository');
+    if (isClearable(cache)) {
+      cache.clear();
+    }
+  }
+};

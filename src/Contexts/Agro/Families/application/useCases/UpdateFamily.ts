@@ -1,3 +1,9 @@
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
@@ -9,13 +15,16 @@ import type { UpdateFamilyInput } from './interfaces/UpdateFamilyInput.js';
 
 export type UpdateFamilyDependencies = {
   familyRepository: FamilyRepository;
+  cacheRepository: CacheRepository;
 };
 
 export class UpdateFamily {
   private readonly familyRepository: FamilyRepository;
+  private readonly cacheRepository: CacheRepository;
 
-  constructor({ familyRepository }: UpdateFamilyDependencies) {
+  constructor({ familyRepository, cacheRepository }: UpdateFamilyDependencies) {
     this.familyRepository = familyRepository;
+    this.cacheRepository = cacheRepository;
   }
 
   async execute(
@@ -27,6 +36,7 @@ export class UpdateFamily {
 
     ensureVersion(family.version, expectedVersions, 'Family', family.idValue);
 
+    const previousSlug = family.slug;
     const changes = familyInputMapper.toChanges(input);
     const before = familyDomainMapper.toPrimitives(family);
 
@@ -34,15 +44,22 @@ export class UpdateFamily {
 
     const after = familyDomainMapper.toPrimitives(family);
 
-    // Always called: an empty diff is still confirmed against storage.
     family.syncVersion(
       await this.familyRepository.updateWithDiff(before, after)
     );
 
+    await this.cacheRepository.delete(catalogIdKey('families', family.idValue));
+    await this.cacheRepository.delete(catalogSlugKey('families', previousSlug));
+    if (family.slug !== previousSlug) {
+      await this.cacheRepository.delete(
+        catalogSlugKey('families', family.slug)
+      );
+    }
+    await this.cacheRepository.bumpGeneration(catalogNamespace('families'));
+
     return family;
   }
 
-  /** One read of the aggregate, by id when the key is a UUID, else by slug. */
   private async findFamily(idOrSlug: string): Promise<Family> {
     if (UuidValidator.isValid(idOrSlug)) {
       return ensureFound(

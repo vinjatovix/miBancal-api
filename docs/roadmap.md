@@ -743,20 +743,24 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHAT: Add a per-user Location aggregate (collection `locations`) holding a name plus optional postalCode, country, timezone and hemisphere, with owner-scoped CRUD. Remove the geographic fields from the User profile; Location is the single source of truth. CreateBed accepts an optional locationId and snapshots that location's geographic fields as static, immutable properties inside the Bed document on creation; without a locationId the bed has no geographic context.
   ```
 
-## Iteration 30: Build Redis Cache Repository with Memory Fallback
+## Iteration 30: Build Redis Cache Foundation with Memory Fallback (+ Catalog Read Caching)
 
-**Spec Module(s)**: [auth.md](spec/modules/auth.md), [persistence.md](spec/modules/persistence.md)
+**Spec Module(s)**: [persistence.md](spec/modules/persistence.md), [api-layer.md](spec/modules/api-layer.md)
 
-- **Value delivered**: Enables rapid access to geographic contexts without database bottlenecks.
-- **Note (2026-11-02, from the Iteration 29 re-spec)**: the "geographic context" cached here is now the user's `Location` documents (potentially several), not a single profile context. What is cached changes; the Redis + local-memory-fallback mechanism does not.
-- **Definition of Done**: `RedisCacheRepository` implemented with immediate local memory fallback for resilience.
-- **Dependencies**: Iteration 29.
-- **Risks**: Redis connection drops causing hangs.
+- **Status**: Completed (2026-11-13)
+- **Outcome**: A domain-neutral `CacheRepository` port (`get` / `set`-with-TTL / `delete` / generation-based listing invalidation) plus a `cacheAside` helper with process-local single-flight. The resilience stack is a `ResilientCache` decorator over an `ioredis`-backed `RedisCache` and a bounded, short-lived in-memory LRU fallback: every Redis call races a 50 ms ceiling, backend errors are swallowed and logged once per state transition, and the backend auto-recovers. With no `REDIS_URL` the factory returns the in-memory cache alone, so tests and local dev need no Redis. The four reference catalogs (plants, families, anomalies, garden inputs) are cached in their read use cases with a 24 h TTL and invalidated from the write use cases (delete the affected id/slug keys and bump the catalog generation). Curator reads and sparse single-entry reads bypass the cache, so soft-deleted records never populate the public cache and single-entry keys hold only the full canonical representation. The plant `likesCount` is excluded from the cached projection and merged live on every read (single read for one plant, one batch read for a listing). Volatile aggregates (beds, plant instances, locations) are never cached. No OpenAPI change and no migration.
+- **Spec**: `specs/058-redis-caching-integration/`.
+- **Re-scoped (2026-11-13)**: the original premise — caching the user's `Location` documents — is dropped. Location documents are tiny and owner-scoped, so caching them adds little. This iteration instead delivers (1) a reusable, resilient cache **foundation** (a storage-agnostic `CacheRepository` port backed by Redis with an immediate, short-lived local-memory fallback) and (2) caching of the **read-only reference catalogs** — plants, families, anomalies, garden inputs — with a long TTL and active invalidation on curator writes. It is the smallest slice that proves Redis + Railway + fallback end to end against endpoints that already exist, with no new external dependency.
+- **Value delivered**: Removes the database from the hot path for the rarely-changing reference catalogs, and establishes the caching capability the weather and idempotence features later reuse.
+- **Explicitly out of scope / deferred to reuse this foundation**: Open-Meteo weather forecasts cached ~2 h by geographic cell (needs the weather integration built first — see Iteration 83) and the consumer-idempotence TTL store (Iteration 50). Volatile aggregates — beds, plant instances, locations — are **never** cached (they can change minute to minute).
+- **Definition of Done**: a `CacheRepository` port (read / write-with-TTL / delete) with an immediate, bounded, short-lived local-memory fallback; the four catalog read paths served from cache with a long TTL and invalidated on write; the API degrades gracefully (no hangs, no cache-induced errors) when Redis is unreachable, and the test suite and local dev run with no Redis provisioned.
+- **Dependencies**: None blocking (the catalog endpoints already exist). Iteration 29 is no longer a prerequisite now that Location caching is dropped.
+- **Risks**: Redis connection drops causing hangs (mitigated by the bounded-timeout + local-memory fallback); long-TTL staleness hiding curator edits (mitigated by invalidation on write); the plant `likesCount` projection lagging within the TTL (accepted as eventually consistent, or excluded from the cached projection).
 - **Prompt for /speckit.specify**:
   ```text
-  BUILD REDIS CACHE REPOSITORY WITH MEMORY FALLBACK
-  WHY: Dynamic geolocalized queries must utilize high-performance, resilient caching to avoid DB lag.
-  WHAT: Build a CacheRepository port using Redis, incorporating an immediate, short-lived local memory fallback on connection failure.
+  BUILD REDIS CACHE FOUNDATION WITH MEMORY FALLBACK AND CATALOG READ CACHING
+  WHY: The read-only reference catalogs (plants, families, anomalies, garden inputs) rarely change yet are read repeatedly, and future features (external weather forecasts, duplicate-message suppression) need a shared, resilient cache. Operating on Railway, an unreachable cache must never make the API slower or more fragile.
+  WHAT: Build a storage-agnostic CacheRepository port backed by Redis with an immediate, short-lived, bounded local-memory fallback. Cache the four catalog read paths with a long TTL and invalidate on curator writes. Never cache volatile aggregates (beds, plant instances, locations). Degrade gracefully when Redis is down; require no Redis for tests or local dev.
   ```
 
 ## Iteration 30b: Admin Manages User Roles (with Admin Account Lookup)

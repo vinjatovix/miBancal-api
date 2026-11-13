@@ -1,3 +1,9 @@
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
@@ -7,13 +13,19 @@ import { anomalyDomainMapper } from '../../mappers/anomalyDomainMapper.js';
 
 export type DeleteAnomalyDependencies = {
   anomalyRepository: AnomalyRepository;
+  cacheRepository: CacheRepository;
 };
 
 export class DeleteAnomaly {
   private readonly anomalyRepository: AnomalyRepository;
+  private readonly cacheRepository: CacheRepository;
 
-  constructor({ anomalyRepository }: DeleteAnomalyDependencies) {
+  constructor({
+    anomalyRepository,
+    cacheRepository
+  }: DeleteAnomalyDependencies) {
     this.anomalyRepository = anomalyRepository;
+    this.cacheRepository = cacheRepository;
   }
 
   async execute(
@@ -35,9 +47,16 @@ export class DeleteAnomaly {
     const deleted = anomalyDomainMapper.toPrimitives(anomaly);
 
     await this.anomalyRepository.updateWithDiff(current, deleted);
+
+    await this.cacheRepository.delete(
+      catalogIdKey('anomalies', anomaly.idValue)
+    );
+    await this.cacheRepository.delete(
+      catalogSlugKey('anomalies', anomaly.slug)
+    );
+    await this.cacheRepository.bumpGeneration(catalogNamespace('anomalies'));
   }
 
-  /** One read of the active aggregate, by id when the key is a UUID, else by slug. */
   private async findAnomaly(idOrSlug: string): Promise<Anomaly> {
     if (UuidValidator.isValid(idOrSlug)) {
       return ensureFound(

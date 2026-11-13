@@ -1,3 +1,9 @@
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
@@ -7,13 +13,19 @@ import { gardenInputDomainMapper } from '../../mappers/gardenInputDomainMapper.j
 
 export type DeleteGardenInputDependencies = {
   gardenInputRepository: GardenInputRepository;
+  cacheRepository: CacheRepository;
 };
 
 export class DeleteGardenInput {
   private readonly gardenInputRepository: GardenInputRepository;
+  private readonly cacheRepository: CacheRepository;
 
-  constructor({ gardenInputRepository }: DeleteGardenInputDependencies) {
+  constructor({
+    gardenInputRepository,
+    cacheRepository
+  }: DeleteGardenInputDependencies) {
     this.gardenInputRepository = gardenInputRepository;
+    this.cacheRepository = cacheRepository;
   }
 
   async execute(
@@ -35,6 +47,14 @@ export class DeleteGardenInput {
     const deleted = gardenInputDomainMapper.toPrimitives(gardenInput);
 
     await this.gardenInputRepository.updateWithDiff(current, deleted);
+
+    await this.cacheRepository.delete(
+      catalogIdKey('gardenInputs', gardenInput.idValue)
+    );
+    await this.cacheRepository.delete(
+      catalogSlugKey('gardenInputs', gardenInput.slug)
+    );
+    await this.cacheRepository.bumpGeneration(catalogNamespace('gardenInputs'));
   }
 
   private async findGardenInput(idOrSlug: string): Promise<GardenInput> {

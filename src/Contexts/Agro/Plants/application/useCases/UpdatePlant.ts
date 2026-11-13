@@ -1,3 +1,9 @@
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { InvalidArgumentException } from '../../../../shared/domain/errors/index.js';
@@ -17,21 +23,25 @@ export type UpdatePlantDependencies = {
   plantRepository: PlantRepository;
   familyRepository: FamilyRepository;
   anomalyReadRepository: AnomalyReadRepository;
+  cacheRepository: CacheRepository;
 };
 
 export class UpdatePlant {
   private readonly plantRepository: PlantRepository;
   private readonly familyRepository: FamilyRepository;
   private readonly anomalyReadRepository: AnomalyReadRepository;
+  private readonly cacheRepository: CacheRepository;
 
   constructor({
     plantRepository,
     familyRepository,
-    anomalyReadRepository
+    anomalyReadRepository,
+    cacheRepository
   }: UpdatePlantDependencies) {
     this.plantRepository = plantRepository;
     this.familyRepository = familyRepository;
     this.anomalyReadRepository = anomalyReadRepository;
+    this.cacheRepository = cacheRepository;
   }
 
   async execute(
@@ -46,13 +56,13 @@ export class UpdatePlant {
     );
     ensureVersion(plant.version, expectedVersions, 'Plant', input.id);
 
+    const previousSlug = plant.identity.slug;
     const changes = plantInputMapper.toChanges(input);
 
     await this.ensureFamilyExists(plant, changes);
     await ensureAnomaliesExist(this.anomalyReadRepository, changes.anomalies);
 
     const before = plantDomainMapper.toPrimitives(plant);
-    // One timestamp for the whole request, whatever sections it touches.
     const at = new Date();
 
     if (changes.identity) plant.updateIdentity(changes.identity, user, at);
@@ -64,18 +74,20 @@ export class UpdatePlant {
 
     const after = plantDomainMapper.toPrimitives(plant);
 
-    // Always called: an empty diff is still confirmed against storage.
     plant.syncVersion(await this.plantRepository.updateWithDiff(before, after));
+
+    await this.cacheRepository.delete(catalogIdKey('plants', plant.id));
+    await this.cacheRepository.delete(catalogSlugKey('plants', previousSlug));
+    if (plant.identity.slug !== previousSlug) {
+      await this.cacheRepository.delete(
+        catalogSlugKey('plants', plant.identity.slug)
+      );
+    }
+    await this.cacheRepository.bumpGeneration(catalogNamespace('plants'));
 
     return plant;
   }
 
-  /**
-   * A new family the changes point to must exist. `PlantIdentity` trims and
-   * validates it first, without touching the plant, so a blank or malformed
-   * id is rejected before the lookup. The current family is not looked up
-   * again.
-   */
   private async ensureFamilyExists(
     plant: Plant,
     changes: PlantChanges

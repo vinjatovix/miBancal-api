@@ -1,3 +1,9 @@
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
@@ -9,13 +15,19 @@ import type { UpdateGardenInputInput } from './interfaces/UpdateGardenInputInput
 
 export type UpdateGardenInputDependencies = {
   gardenInputRepository: GardenInputRepository;
+  cacheRepository: CacheRepository;
 };
 
 export class UpdateGardenInput {
   private readonly gardenInputRepository: GardenInputRepository;
+  private readonly cacheRepository: CacheRepository;
 
-  constructor({ gardenInputRepository }: UpdateGardenInputDependencies) {
+  constructor({
+    gardenInputRepository,
+    cacheRepository
+  }: UpdateGardenInputDependencies) {
     this.gardenInputRepository = gardenInputRepository;
+    this.cacheRepository = cacheRepository;
   }
 
   async execute(
@@ -42,6 +54,14 @@ export class UpdateGardenInput {
     gardenInput.syncVersion(
       await this.gardenInputRepository.updateWithDiff(before, after)
     );
+
+    await this.cacheRepository.delete(
+      catalogIdKey('gardenInputs', gardenInput.idValue)
+    );
+    await this.cacheRepository.delete(
+      catalogSlugKey('gardenInputs', gardenInput.slug)
+    );
+    await this.cacheRepository.bumpGeneration(catalogNamespace('gardenInputs'));
 
     return gardenInput;
   }

@@ -10,6 +10,7 @@ import {
 import { up as seedRolesIndexAndGuard } from '../../../../../migrations/scripts/20261018120000-users-roles-index-and-admin-guard.js';
 import {
   AgroWorld,
+  resetSuiteCache,
   seedMockGardenInputs,
   seedSuiteUsers,
   settledMailbox,
@@ -27,12 +28,9 @@ setWorldConstructor(AgroWorld);
 BeforeAll(startSuite);
 
 Before(async () => {
-  // Emails still leaving from the previous scenario must not land in this one.
   (await settledMailbox()).clear();
+  resetSuiteCache();
   await suite().environmentArranger.arrange();
-  // `arrange` empties every collection, including the migration-seeded
-  // `roleGuards` singleton the admin-mutating transaction reserves. Re-seed it
-  // (idempotent, same path as production) so revoke scenarios find it present.
   await seedRolesIndexAndGuard(suite().client.db());
   await seedMockGardenInputs(suite().client.db());
   await seedSuiteUsers(suite().client.db());

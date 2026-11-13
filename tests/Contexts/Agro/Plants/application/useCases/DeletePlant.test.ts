@@ -1,8 +1,14 @@
 import { DeletePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/DeletePlant.js';
 import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
+import {
   DomainNotFoundException,
   DomainStaleVersionException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
 import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
@@ -10,12 +16,43 @@ import { PlantFactory } from '../../domain/mothers/PlantFactory.js';
 describe('DeletePlant use case', () => {
   const CURRENT_VERSION = 0;
   let repository: PlantRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: DeletePlant;
   const USERNAME = 'test-user';
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
-    useCase = new DeletePlant({ plantRepository: repository });
+    cache = new CacheRepositoryFake();
+    useCase = new DeletePlant({
+      plantRepository: repository,
+      cacheRepository: cache
+    });
+  });
+
+  it('invalidates the entry and bumps the generation after a soft delete', async () => {
+    const plant = PlantFactory.create();
+    repository.addToStorage(plant);
+
+    await useCase.execute(plant.id, USERNAME, [CURRENT_VERSION]);
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('plants', plant.id)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('plants', plant.identity.slug)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('plants')
+    );
+  });
+
+  it('does not touch the cache when delete fails', async () => {
+    await expect(
+      useCase.execute(random.uuid(), USERNAME, [CURRENT_VERSION])
+    ).rejects.toBeInstanceOf(DomainNotFoundException);
+
+    expect(cache.deleteMock).not.toHaveBeenCalled();
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
   });
 
   it('should mark plant as deleted via updateWithDiff', async () => {
