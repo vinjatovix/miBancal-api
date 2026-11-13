@@ -1,8 +1,14 @@
 import { UpdateAnomaly } from '../../../../../../src/Contexts/Agro/Anomalies/application/useCases/UpdateAnomaly.js';
 import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
+import {
   DomainNotFoundException,
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { AnomalyReadRepositoryMock } from '../../__mocks__/AnomalyReadRepositoryMock.js';
 import { AnomalyRepositoryMock } from '../../__mocks__/AnomalyRepositoryMock.js';
@@ -14,14 +20,17 @@ const USER = 'curator';
 describe('UpdateAnomaly', () => {
   let repository: AnomalyRepositoryMock;
   let readRepository: AnomalyReadRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: UpdateAnomaly;
 
   beforeEach(() => {
     repository = new AnomalyRepositoryMock();
     readRepository = new AnomalyReadRepositoryMock();
+    cache = new CacheRepositoryFake();
     useCase = new UpdateAnomaly({
       anomalyRepository: repository,
-      anomalyReadRepository: readRepository
+      anomalyReadRepository: readRepository,
+      cacheRepository: cache
     });
   });
 
@@ -40,6 +49,35 @@ describe('UpdateAnomaly', () => {
     expect(updated.name).toBe('Áfido');
     expect(updated.description).toBeUndefined();
     repository.assertUpdateCalled();
+  });
+
+  it('invalidates the entry and bumps the generation after a successful update', async () => {
+    const anomaly = AnomalyScenarios.domainBase();
+    repository.addToStorage(anomaly);
+
+    await useCase.execute({ idOrSlug: anomaly.slug, name: 'Áfido' }, USER, [0]);
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('anomalies', anomaly.idValue)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('anomalies', anomaly.slug)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('anomalies')
+    );
+  });
+
+  it('does not invalidate the cache when the expected version does not match', async () => {
+    const anomaly = AnomalyScenarios.domainBase();
+    repository.addToStorage(anomaly);
+
+    await expect(
+      useCase.execute({ idOrSlug: anomaly.slug, name: 'x' }, USER, [99])
+    ).rejects.toThrow();
+
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
+    expect(cache.deleteMock).not.toHaveBeenCalled();
   });
 
   it('throws when the expected version does not match', async () => {

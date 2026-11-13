@@ -27,8 +27,10 @@ import {
   ProviderUserResolver,
   SessionTokenIssuer
 } from '../../Contexts/Auth/application/services/index.js';
+import type { CacheRepository } from '../../Contexts/shared/application/cache/index.js';
 import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
 import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
+import { createCache } from '../../Contexts/shared/infrastructure/cache/index.js';
 import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
 import { MongoUnitOfWork } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import {
@@ -55,7 +57,6 @@ const pkg = JSON.parse(
   readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')
 ) as { version: string };
 
-/** Components registered by hand rather than discovered by `scanComponents`. */
 export function buildExplicitRegistrations({
   db,
   client
@@ -67,25 +68,25 @@ export function buildExplicitRegistrations({
   const envs = getEnvs();
 
   return {
-    db: asValue(db), // Runtime Mongo database instance connected at start-up
-    DBClient: asValue(client), // Runtime Mongo client connection handle
-    appVersion: asValue(pkg.version), // Service release version read from package.json
-    logger: asValue<AppLogger>(logger), // Contextual root logger instance
-    bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
-    familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
-    anomalyPersistenceMapper: asValue(anomalyPersistenceMapper), // Plain persistence mapper without class state
-    gardenInputPersistenceMapper: asValue(gardenInputPersistenceMapper), // Plain persistence mapper without class state
-    locationPersistenceMapper: asValue(locationPersistenceMapper), // Plain persistence mapper without class state
-    plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
-    plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
-    userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper), // Plain persistence mapper without class state
-    plantLikePersistenceMapper: asValue(plantLikePersistenceMapper), // Plain persistence mapper without class state
-    plantRelationPersistenceMapper: asValue(plantRelationPersistenceMapper), // Plain persistence mapper without class state
-    cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
-    companionEvaluationService: asClass(CompanionEvaluationService).singleton(), // Multi-tier taxonomic companion resolution engine
-    unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
-    familySummaryReader: aliasTo('familyReadRepository'), // Plants' port, served by the family read side
-    plantSummaryReader: aliasTo('plantReadRepository'), // PlantRelations' port, served by the plant read side
+    db: asValue(db),
+    DBClient: asValue(client),
+    appVersion: asValue(pkg.version),
+    logger: asValue<AppLogger>(logger),
+    bedPersistenceMapper: asValue(bedPersistenceMapper),
+    familyPersistenceMapper: asValue(familyPersistenceMapper),
+    anomalyPersistenceMapper: asValue(anomalyPersistenceMapper),
+    gardenInputPersistenceMapper: asValue(gardenInputPersistenceMapper),
+    locationPersistenceMapper: asValue(locationPersistenceMapper),
+    plantPersistenceMapper: asValue(plantPersistenceMapper),
+    plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper),
+    userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper),
+    plantLikePersistenceMapper: asValue(plantLikePersistenceMapper),
+    plantRelationPersistenceMapper: asValue(plantRelationPersistenceMapper),
+    cropSpatialService: asClass(CropSpatialService).singleton(),
+    companionEvaluationService: asClass(CompanionEvaluationService).singleton(),
+    unitOfWork: asClass(MongoUnitOfWork).singleton(),
+    familySummaryReader: aliasTo('familyReadRepository'),
+    plantSummaryReader: aliasTo('plantReadRepository'),
     mailer: asValue<Mailer>(
       createMailer({
         nodeEnv: envs.NODE_ENV,
@@ -98,21 +99,33 @@ export function buildExplicitRegistrations({
         logger,
         appVersion: pkg.version
       })
-    ), // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
-    backgroundTasks: asClass(InProcessBackgroundTasks).singleton(), // Work started after the answer (emails); drained on shutdown
-    accountNotifier: asClass(MailerAccountNotifier).singleton(), // Spanish account emails, sent in the background
-    providerUserResolver: asClass(ProviderUserResolver).singleton(), // Shared find-by-id → by-email → link/create step for every provider
-    sessionTokenIssuer: asClass(SessionTokenIssuer).singleton(), // Mints the session token shared by password, Google and GitHub logins
-    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL), // Frontend the account emails link to (activation, password reset)
-    googleClientId: asValue(envs.GOOGLE_CLIENT_ID), // Only audience accepted in Google ID tokens (the web client)
-    githubClientId: asValue(envs.GITHUB_CLIENT_ID), // GitHub OAuth app client id used in the code exchange
-    githubClientSecret: asValue(envs.GITHUB_CLIENT_SECRET), // GitHub OAuth app secret; never leaves the server or is logged
-    githubRedirectUri: asValue(envs.GITHUB_REDIRECT_URI) // Redirect URI registered with the GitHub app (server-side only)
+    ),
+    cacheRepository: asValue<CacheRepository>(
+      createCache({
+        settings: {
+          enabled: envs.CACHE_ENABLED,
+          redisUrl: envs.REDIS_URL,
+          backendTimeoutMs: envs.CACHE_BACKEND_TIMEOUT_MS,
+          fallbackTtlSeconds: envs.CACHE_FALLBACK_TTL_SECONDS,
+          fallbackMaxEntries: envs.CACHE_FALLBACK_MAX_ENTRIES
+        },
+        logger
+      })
+    ),
+    cacheCatalogTtlSeconds: asValue(envs.CACHE_CATALOG_TTL_SECONDS),
+    backgroundTasks: asClass(InProcessBackgroundTasks).singleton(),
+    accountNotifier: asClass(MailerAccountNotifier).singleton(),
+    providerUserResolver: asClass(ProviderUserResolver).singleton(),
+    sessionTokenIssuer: asClass(SessionTokenIssuer).singleton(),
+    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL),
+    googleClientId: asValue(envs.GOOGLE_CLIENT_ID),
+    githubClientId: asValue(envs.GITHUB_CLIENT_ID),
+    githubClientSecret: asValue(envs.GITHUB_CLIENT_SECRET),
+    githubRedirectUri: asValue(envs.GITHUB_REDIRECT_URI)
   };
 }
 
 export type CreateAppContainerDeps = ContainerDeps & {
-  /** Test doubles for external providers; production passes nothing. */
   overrides?: NameAndRegistrationPair<ContainerCradle>;
 };
 

@@ -33,5 +33,20 @@ services:
     command:
       ['--replSet', 'rs0', '--bind_ip_all', '--keyFile', '/data/replica.key']
 
+  agro-api-redis:
+    image: redis:7.4-alpine
+    container_name: agro-api-redis
+    ports:
+      - 6379:6379
+    volumes:
+      - agro_api_redis_data:/data
+    command: ['redis-server', '--appendonly', 'no', '--save', '']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 volumes:
   agro_api_mongo_data:
+  agro_api_redis_data:

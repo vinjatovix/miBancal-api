@@ -1,5 +1,11 @@
 import type { ReadOptions } from '../../../../../shared/domain/query/interfaces/QueryOptions.js';
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
+import {
+  cacheAside,
+  catalogIdKey,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
 import type {
@@ -11,15 +17,23 @@ import { canSeeDeletedGardenInputs } from './canSeeDeletedGardenInputs.js';
 
 export type GetGardenInputByIdOrSlugDependencies = {
   gardenInputReadRepository: GardenInputReadRepository;
+  cacheRepository: CacheRepository;
+  cacheCatalogTtlSeconds: number;
 };
 
 export class GetGardenInputByIdOrSlug {
   private readonly gardenInputReadRepository: GardenInputReadRepository;
+  private readonly cacheRepository: CacheRepository;
+  private readonly cacheCatalogTtlSeconds: number;
 
   constructor({
-    gardenInputReadRepository
+    gardenInputReadRepository,
+    cacheRepository,
+    cacheCatalogTtlSeconds
   }: GetGardenInputByIdOrSlugDependencies) {
     this.gardenInputReadRepository = gardenInputReadRepository;
+    this.cacheRepository = cacheRepository;
+    this.cacheCatalogTtlSeconds = cacheCatalogTtlSeconds;
   }
 
   async execute(
@@ -27,31 +41,51 @@ export class GetGardenInputByIdOrSlug {
     user: UserSessionInfo | undefined,
     options: ReadOptions<GardenInputField> = {}
   ): Promise<GardenInputSparseView> {
-    const canSeeDeleted = canSeeDeletedGardenInputs(user);
+    const isPrivilegedRead = canSeeDeletedGardenInputs(user);
+    const isSparseFieldRead = options.fields !== undefined;
+    const shouldBypassCatalogCache = isPrivilegedRead || isSparseFieldRead;
     const byId = UuidValidator.isValid(idOrSlug);
 
-    let found: GardenInputSparseView | null;
-    if (byId) {
-      found = canSeeDeleted
-        ? await this.gardenInputReadRepository.findById(idOrSlug, options)
-        : await this.gardenInputReadRepository.findActiveById(
-            idOrSlug,
-            options
-          );
-    } else {
-      found = canSeeDeleted
-        ? await this.gardenInputReadRepository.findBySlug(idOrSlug, options)
-        : await this.gardenInputReadRepository.findActiveBySlug(
-            idOrSlug,
-            options
-          );
+    if (shouldBypassCatalogCache) {
+      return ensureFound(
+        await this.readFor(idOrSlug, byId, isPrivilegedRead, options),
+        'GardenInput',
+        idOrSlug,
+        byId ? undefined : 'slug'
+      );
     }
 
-    return ensureFound(
-      found,
-      'GardenInput',
-      idOrSlug,
-      byId ? undefined : 'slug'
+    const key = byId
+      ? catalogIdKey('gardenInputs', idOrSlug)
+      : catalogSlugKey('gardenInputs', idOrSlug);
+
+    return cacheAside(
+      this.cacheRepository,
+      key,
+      this.cacheCatalogTtlSeconds,
+      async () =>
+        ensureFound(
+          await this.readFor(idOrSlug, byId, false, {}),
+          'GardenInput',
+          idOrSlug,
+          byId ? undefined : 'slug'
+        )
     );
+  }
+
+  private readFor(
+    idOrSlug: string,
+    byId: boolean,
+    canSeeDeleted: boolean,
+    options: ReadOptions<GardenInputField>
+  ): Promise<GardenInputSparseView | null> {
+    if (byId) {
+      return canSeeDeleted
+        ? this.gardenInputReadRepository.findById(idOrSlug, options)
+        : this.gardenInputReadRepository.findActiveById(idOrSlug, options);
+    }
+    return canSeeDeleted
+      ? this.gardenInputReadRepository.findBySlug(idOrSlug, options)
+      : this.gardenInputReadRepository.findActiveBySlug(idOrSlug, options);
   }
 }

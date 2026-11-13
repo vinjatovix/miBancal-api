@@ -1,9 +1,16 @@
 import { GetAnomalyBySlug } from '../../../../../../src/Contexts/Agro/Anomalies/application/useCases/GetAnomalyBySlug.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import {
+  catalogIdKey,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { AnomalyReadRepositoryMock } from '../../__mocks__/AnomalyReadRepositoryMock.js';
 import { AnomalyReadViewMother } from '../queries/AnomalyReadViewMother.js';
+
+const CATALOG_TTL = 86400;
 
 const curator: UserSessionInfo = {
   id: 'id',
@@ -14,11 +21,17 @@ const curator: UserSessionInfo = {
 
 describe('GetAnomalyBySlug', () => {
   let repository: AnomalyReadRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: GetAnomalyBySlug;
 
   beforeEach(() => {
     repository = new AnomalyReadRepositoryMock();
-    useCase = new GetAnomalyBySlug({ anomalyReadRepository: repository });
+    cache = new CacheRepositoryFake();
+    useCase = new GetAnomalyBySlug({
+      anomalyReadRepository: repository,
+      cacheRepository: cache,
+      cacheCatalogTtlSeconds: CATALOG_TTL
+    });
   });
 
   it('returns an active anomaly by slug for an anonymous caller', async () => {
@@ -80,5 +93,66 @@ describe('GetAnomalyBySlug', () => {
     const executeAction = useCase.execute(id, undefined);
 
     await expect(executeAction).rejects.toBeInstanceOf(DomainNotFoundException);
+  });
+
+  it.each([
+    {
+      identifierType: 'slug',
+      getKey: (view: ReturnType<typeof AnomalyReadViewMother.base>) =>
+        view.slug,
+      expectedCacheKey: (view: ReturnType<typeof AnomalyReadViewMother.base>) =>
+        catalogSlugKey('anomalies', view.slug)
+    },
+    {
+      identifierType: 'id',
+      getKey: (view: ReturnType<typeof AnomalyReadViewMother.base>) => view.id,
+      expectedCacheKey: (view: ReturnType<typeof AnomalyReadViewMother.base>) =>
+        catalogIdKey('anomalies', view.id)
+    }
+  ])(
+    'caches the active entry for a public read by $identifierType with the catalog TTL',
+    async ({ getKey, expectedCacheKey }) => {
+      const view = AnomalyReadViewMother.base();
+      repository.addToStorage(view);
+
+      await useCase.execute(getKey(view), undefined);
+
+      expect(cache.setMock).toHaveBeenCalledWith(
+        expectedCacheKey(view),
+        view,
+        CATALOG_TTL
+      );
+    }
+  );
+
+  it('serves a repeated public read from cache without re-querying', async () => {
+    const view = AnomalyReadViewMother.base();
+    repository.addToStorage(view);
+    const findActiveBySlug = jest.spyOn(repository, 'findActiveBySlug');
+
+    await useCase.execute(view.slug, undefined);
+    await useCase.execute(view.slug, undefined);
+
+    expect(findActiveBySlug).toHaveBeenCalledTimes(1);
+  });
+
+  it('bypasses the cache entirely for a curator read', async () => {
+    const view = AnomalyReadViewMother.base();
+    repository.addToStorage(view);
+
+    await useCase.execute(view.slug, curator);
+
+    expect(cache.getMock).not.toHaveBeenCalled();
+    expect(cache.setMock).not.toHaveBeenCalled();
+  });
+
+  it('bypasses the cache for a sparse fieldset read', async () => {
+    const view = AnomalyReadViewMother.base();
+    repository.addToStorage(view);
+
+    await useCase.execute(view.slug, undefined, { fields: ['name'] });
+
+    expect(cache.getMock).not.toHaveBeenCalled();
+    expect(cache.setMock).not.toHaveBeenCalled();
   });
 });

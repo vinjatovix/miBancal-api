@@ -17,6 +17,7 @@
 - Awilix DI container per request scope
 - OpenAPI-driven contract validation
 - MongoDB persistence layer
+- Resilient cache (Redis with in-memory fallback; optional, degrades gracefully)
 - Jest + Cucumber testing pyramid (unit / feature / contract)
 
 ## Installation
@@ -69,7 +70,7 @@ npm run docker:local
 
 ### Setup Local Persistence
 
-- Starts the mongo db
+- Starts the Mongo database (and the optional Redis cache, see below)
 
 ```bash
 npm run docker:mongo
@@ -89,6 +90,31 @@ npm run restoreDump $ENV
 ```
 
 > Note this will only work if previous data for such `$ENV` was dumped and restored before
+
+### Cache (Redis, optional)
+
+The read-only reference catalogs (plants, families, anomalies, garden inputs) are
+served through a resilient cache. **Redis is optional**: with an empty `REDIS_URL`
+the app caches in process memory, so dev and tests need no Redis and never fail
+when it is absent.
+
+`npm run docker:mongo` also starts a local Redis (`agro-api-redis`, port `6379`).
+To make the app use it, set in your `.env`:
+
+```bash
+REDIS_URL=redis://localhost:6379
+```
+
+Then `npm run dev`. Leave `REDIS_URL` empty (or unset) to stay in memory-only mode.
+Keep it empty in `.env.test` — the test suite must run without Redis.
+
+Inspect and exercise it:
+
+```bash
+docker exec agro-api-redis redis-cli KEYS 'agro:v1:*'   # cached catalog keys
+docker stop agro-api-redis                              # degrade: API keeps serving (memory/DB), one warn logged
+docker start agro-api-redis                             # recovers automatically, one info logged
+```
 
 ---
 

@@ -48,7 +48,9 @@ const statusesOf = async (
 ): Promise<number[]> => {
   const statuses: number[] = [];
   for (let sent = 0; sent < count; sent += 1) {
-    statuses.push((await request(app).post('/limited')).status);
+    statuses.push(
+      (await request(app).post('/limited').set('Connection', 'close')).status
+    );
   }
 
   return statuses;
@@ -62,7 +64,12 @@ const statusesForUser = async (
   const statuses: number[] = [];
   for (let sent = 0; sent < count; sent += 1) {
     statuses.push(
-      (await request(app).post('/limited').set('x-user', userId)).status
+      (
+        await request(app)
+          .post('/limited')
+          .set('x-user', userId)
+          .set('Connection', 'close')
+      ).status
     );
   }
 

@@ -1,3 +1,9 @@
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
 import type { Anomaly } from '../../domain/entities/Anomaly.js';
 import type { AnomalyRepository } from '../../domain/repositories/interfaces/AnomalyRepository.js';
@@ -9,18 +15,22 @@ import type { CreateAnomalyDto } from './interfaces/CreateAnomalyDto.js';
 export type CreateAnomalyDependencies = {
   anomalyRepository: AnomalyRepository;
   anomalyReadRepository: AnomalyReadRepository;
+  cacheRepository: CacheRepository;
 };
 
 export class CreateAnomaly {
   private readonly anomalyRepository: AnomalyRepository;
   private readonly anomalyReadRepository: AnomalyReadRepository;
+  private readonly cacheRepository: CacheRepository;
 
   constructor({
     anomalyRepository,
-    anomalyReadRepository
+    anomalyReadRepository,
+    cacheRepository
   }: CreateAnomalyDependencies) {
     this.anomalyRepository = anomalyRepository;
     this.anomalyReadRepository = anomalyReadRepository;
+    this.cacheRepository = cacheRepository;
   }
 
   async execute(dto: CreateAnomalyDto, user: string): Promise<Anomaly> {
@@ -30,8 +40,6 @@ export class CreateAnomaly {
       throw new DomainConflictException(`Anomaly already exists: ${dto.id}`);
     }
 
-    // Non-transactional pre-check: every confusedWith slug must already exist
-    // (ACTIVE); an unknown slug rejects the write before any persistence.
     await ensureConfusedWithExist(
       this.anomalyReadRepository,
       dto.confusedWith,
@@ -40,8 +48,15 @@ export class CreateAnomaly {
 
     const anomaly = anomalyInputMapper.fromCreateDto(dto, user);
 
-    // A duplicate slug surfaces as a Mongo duplicate-key error mapped to 409.
     await this.anomalyRepository.save(anomaly);
+
+    await this.cacheRepository.delete(
+      catalogIdKey('anomalies', anomaly.idValue)
+    );
+    await this.cacheRepository.delete(
+      catalogSlugKey('anomalies', anomaly.slug)
+    );
+    await this.cacheRepository.bumpGeneration(catalogNamespace('anomalies'));
 
     return anomaly;
   }

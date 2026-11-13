@@ -1,9 +1,15 @@
 import { CreateAnomaly } from '../../../../../../src/Contexts/Agro/Anomalies/application/useCases/CreateAnomaly.js';
 import { createAnomalyId } from '../../../../../../src/Contexts/Agro/Anomalies/domain/AnomalyId.js';
 import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
+import {
   DomainConflictException,
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { AnomalyReadRepositoryMock } from '../../__mocks__/AnomalyReadRepositoryMock.js';
 import { AnomalyRepositoryMock } from '../../__mocks__/AnomalyRepositoryMock.js';
@@ -15,14 +21,17 @@ const USER = 'curator';
 describe('CreateAnomaly', () => {
   let repository: AnomalyRepositoryMock;
   let readRepository: AnomalyReadRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: CreateAnomaly;
 
   beforeEach(() => {
     repository = new AnomalyRepositoryMock();
     readRepository = new AnomalyReadRepositoryMock();
+    cache = new CacheRepositoryFake();
     useCase = new CreateAnomaly({
       anomalyRepository: repository,
-      anomalyReadRepository: readRepository
+      anomalyReadRepository: readRepository,
+      cacheRepository: cache
     });
   });
 
@@ -38,6 +47,36 @@ describe('CreateAnomaly', () => {
     expect(anomaly.category).toBe(dto.category);
     repository.assertExistsCalledWith(dto.id);
     repository.assertSaveHasBeenCalledWith(anomaly);
+  });
+
+  it('invalidates the created entry keys and bumps the catalog generation', async () => {
+    const dto = AnomalyScenarios.createDtoBase();
+
+    const anomaly = await useCase.execute(dto, USER);
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('anomalies', anomaly.idValue)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('anomalies', anomaly.slug)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('anomalies')
+    );
+  });
+
+  it('does not touch the cache when creation is rejected', async () => {
+    const id = random.uuid();
+    repository.addToStorage(
+      AnomalyScenarios.domainBase({ id: createAnomalyId(id) })
+    );
+
+    await expect(
+      useCase.execute(AnomalyScenarios.createDtoBase({ id }), USER)
+    ).rejects.toBeInstanceOf(DomainConflictException);
+
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
+    expect(cache.deleteMock).not.toHaveBeenCalled();
   });
 
   it('throws a conflict when the id already exists', async () => {

@@ -133,6 +133,7 @@ import type {
 import type { MongoAuthRepository } from '../../../Contexts/Auth/infrastructure/persistence/MongoAuthRepository.js';
 import type { CheckHealth } from '../../../Contexts/health/application/useCases/CheckHealth.js';
 import type { BackgroundTasks } from '../../../Contexts/shared/application/background/index.js';
+import type { CacheRepository } from '../../../Contexts/shared/application/cache/index.js';
 import type { UnitOfWork } from '../../../Contexts/shared/application/interfaces/index.js';
 import type { Mailer } from '../../../Contexts/shared/application/mailer/index.js';
 import type {
@@ -234,7 +235,6 @@ import type {
 } from '../controllers/Users/index.js';
 
 export type ContainerCradle = {
-  // Explicit values
   db: Db;
   DBClient: MongoClient;
   appVersion: string;
@@ -255,6 +255,8 @@ export type ContainerCradle = {
   familySummaryReader: FamilySummaryReader & PlantRelationFamilySummaryReader;
   plantSummaryReader: PlantSummaryReader;
   mailer: Mailer;
+  cacheRepository: CacheRepository;
+  cacheCatalogTtlSeconds: number;
   backgroundTasks: BackgroundTasks;
   accountNotifier: AccountNotifier;
   providerUserResolver: ProviderUserResolver;
@@ -265,7 +267,6 @@ export type ContainerCradle = {
   githubClientSecret: string;
   githubRedirectUri: string;
 
-  // Singletons
   environmentArranger: DBEnvironmentArranger;
   encrypter: EncrypterTool;
   googleIdTokenVerifier: GoogleIdTokenVerifierTool;
@@ -291,7 +292,6 @@ export type ContainerCradle = {
   plantRelationQueryMapper: PlantRelationQueryMapper;
   plantQueryMapper: PlantQueryMapper;
 
-  // Scoped use cases
   checkHealth: CheckHealth;
   registerUserLocal: RegisterUserLocal;
   loginUserLocal: LoginUserLocal;
@@ -359,7 +359,6 @@ export type ContainerCradle = {
   updatePlantRelation: UpdatePlantRelation;
   deletePlantRelation: DeletePlantRelation;
 
-  // Scoped controllers
   healthController: HealthController;
   registerUserLocalController: RegisterUserLocalController;
   loginUserLocalController: LoginUserLocalController;

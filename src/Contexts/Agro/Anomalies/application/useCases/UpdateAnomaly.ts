@@ -1,3 +1,9 @@
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey,
+  type CacheRepository
+} from '../../../../shared/application/cache/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
 import { UuidValidator } from '../../../../shared/domain/valueObject/index.js';
@@ -12,18 +18,22 @@ import type { UpdateAnomalyInput } from './interfaces/UpdateAnomalyInput.js';
 export type UpdateAnomalyDependencies = {
   anomalyRepository: AnomalyRepository;
   anomalyReadRepository: AnomalyReadRepository;
+  cacheRepository: CacheRepository;
 };
 
 export class UpdateAnomaly {
   private readonly anomalyRepository: AnomalyRepository;
   private readonly anomalyReadRepository: AnomalyReadRepository;
+  private readonly cacheRepository: CacheRepository;
 
   constructor({
     anomalyRepository,
-    anomalyReadRepository
+    anomalyReadRepository,
+    cacheRepository
   }: UpdateAnomalyDependencies) {
     this.anomalyRepository = anomalyRepository;
     this.anomalyReadRepository = anomalyReadRepository;
+    this.cacheRepository = cacheRepository;
   }
 
   async execute(
@@ -42,8 +52,6 @@ export class UpdateAnomaly {
 
     const changes = anomalyInputMapper.toChanges(input);
 
-    // Non-transactional pre-check before any persistence: every confusedWith
-    // slug must already exist (ACTIVE); an unknown slug rejects the write.
     await ensureConfusedWithExist(
       this.anomalyReadRepository,
       changes.confusedWith,
@@ -56,15 +64,21 @@ export class UpdateAnomaly {
 
     const after = anomalyDomainMapper.toPrimitives(anomaly);
 
-    // Always called: an empty diff is still confirmed against storage.
     anomaly.syncVersion(
       await this.anomalyRepository.updateWithDiff(before, after)
     );
 
+    await this.cacheRepository.delete(
+      catalogIdKey('anomalies', anomaly.idValue)
+    );
+    await this.cacheRepository.delete(
+      catalogSlugKey('anomalies', anomaly.slug)
+    );
+    await this.cacheRepository.bumpGeneration(catalogNamespace('anomalies'));
+
     return anomaly;
   }
 
-  /** One read of the active aggregate, by id when the key is a UUID, else by slug. */
   private async findAnomaly(idOrSlug: string): Promise<Anomaly> {
     if (UuidValidator.isValid(idOrSlug)) {
       return ensureFound(

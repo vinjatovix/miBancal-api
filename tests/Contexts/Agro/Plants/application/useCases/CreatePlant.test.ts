@@ -1,6 +1,12 @@
 import { CreatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/CreatePlant.js';
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
 import { ensureFound } from '../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
 import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { AnomalyReadRepositoryMock } from '../../../Anomalies/__mocks__/AnomalyReadRepositoryMock.js';
 import { AnomalyReadViewMother } from '../../../Anomalies/application/queries/AnomalyReadViewMother.js';
 import { FamilyRepositoryMock } from '../../../Families/__mocks__/FamilyRepositoryMock.js';
@@ -12,17 +18,52 @@ describe('CreatePlant (use case)', () => {
   let repository: PlantRepositoryMock;
   let familyRepository: FamilyRepositoryMock;
   let anomalyReadRepository: AnomalyReadRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: CreatePlant;
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
     familyRepository = new FamilyRepositoryMock();
     anomalyReadRepository = new AnomalyReadRepositoryMock();
+    cache = new CacheRepositoryFake();
     useCase = new CreatePlant({
       plantRepository: repository,
       familyRepository,
-      anomalyReadRepository
+      anomalyReadRepository,
+      cacheRepository: cache
     });
+  });
+
+  it('invalidates the created entry keys and bumps the catalog generation', async () => {
+    const family = FamilyScenarios.domainBase();
+    familyRepository.addToStorage(family);
+    const dto = CreatePlantDtoMother.custom({ 'identity.family': family.id });
+
+    const plant = await useCase.execute(dto);
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('plants', plant.id)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('plants', plant.identity.slug)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('plants')
+    );
+  });
+
+  it('does not touch the cache when creation is rejected', async () => {
+    const family = FamilyScenarios.domainBase();
+    familyRepository.addToStorage(family);
+    const dto = CreatePlantDtoMother.custom({ 'identity.family': family.id });
+    repository.addToStorage(await useCase.execute(dto));
+    cache.deleteMock.mockClear();
+    cache.bumpGenerationMock.mockClear();
+
+    await expect(useCase.execute(dto)).rejects.toThrow();
+
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
+    expect(cache.deleteMock).not.toHaveBeenCalled();
   });
 
   it('should throw if plant already exists', async () => {

@@ -43,18 +43,12 @@ function loadEnvs() {
       .get('JWT_DEFAULT_DURATION')
       .default('2h')
       .asString(),
-    // Page that receives the activation link; one trailing `/` is dropped so
-    // links never contain `//activate`.
     FRONTEND_BASE_URL: env
       .get('FRONTEND_BASE_URL')
       .required()
       .asUrlString()
       .replace(/\/$/, ''),
-    // Only audience accepted in Google ID tokens; required like the frontend.
     GOOGLE_CLIENT_ID: env.get('GOOGLE_CLIENT_ID').required().asString(),
-    // GitHub OAuth app credentials; required so the feature can never half-start.
-    // The redirect URI is a server-side setting registered with the GitHub app;
-    // the client never supplies it.
     GITHUB_CLIENT_ID: env.get('GITHUB_CLIENT_ID').required().asString(),
     GITHUB_CLIENT_SECRET: env.get('GITHUB_CLIENT_SECRET').required().asString(),
     GITHUB_REDIRECT_URI: env
@@ -71,6 +65,24 @@ function loadEnvs() {
     MAIL_SEND_TIMEOUT_MS: env
       .get('MAIL_SEND_TIMEOUT_MS')
       .default('5000')
+      .asIntPositive(),
+    REDIS_URL: env.get('REDIS_URL').default('').asString(),
+    CACHE_ENABLED: env.get('CACHE_ENABLED').default('true').asBool(),
+    CACHE_CATALOG_TTL_SECONDS: env
+      .get('CACHE_CATALOG_TTL_SECONDS')
+      .default('86400')
+      .asIntPositive(),
+    CACHE_BACKEND_TIMEOUT_MS: env
+      .get('CACHE_BACKEND_TIMEOUT_MS')
+      .default('50')
+      .asIntPositive(),
+    CACHE_FALLBACK_TTL_SECONDS: env
+      .get('CACHE_FALLBACK_TTL_SECONDS')
+      .default('30')
+      .asIntPositive(),
+    CACHE_FALLBACK_MAX_ENTRIES: env
+      .get('CACHE_FALLBACK_MAX_ENTRIES')
+      .default('1000')
       .asIntPositive(),
     TEST_LOGS: env.get('TEST_LOGS').default('false').asBool()
   };
