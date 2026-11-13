@@ -70,7 +70,7 @@ describe('plantResponseSchema', () => {
     ).toEqual(view);
   });
 
-  it.each(['identity', 'traits.lifecycle', 'phenology.sowing', 'metadata'])(
+  it.each(['identity', 'traits.lifecycle', 'metadata'])(
     'rejects a view missing the required field %s',
     (path) => {
       expect(
@@ -79,6 +79,14 @@ describe('plantResponseSchema', () => {
       ).toBe(false);
     }
   );
+
+  it('accepts a view that omits the optional phenology.sowing', () => {
+    expect(
+      plantResponseSchema.safeParse(
+        withoutKeyAt(fullPlantView(), 'phenology.sowing')
+      ).success
+    ).toBe(true);
+  });
 
   it.each([
     ['version', '1'],

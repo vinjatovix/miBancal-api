@@ -558,6 +558,203 @@ Feature: Create a new plant
       """
     And response matches OpenAPI contract
 
+  Scenario: Create a vegetatively propagated plant with no sowing block
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "7c1f0e2d-4a6b-4c8d-9e0f-1a2b3c4d5e6f",
+        "identity": {
+          "name": { "primary": "Garlic" },
+          "scientificName": "Allium sativum",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "perennial",
+          "size": {
+            "height": { "min": 30, "max": 60 },
+            "spread": { "min": 10, "max": 20 }
+          },
+          "spacingCm": { "min": 10, "max": 15 }
+        },
+        "phenology": {
+          "flowering": { "months": [6] },
+          "harvest": { "months": [7] }
+        },
+        "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/garlic.jpg" }],
+          "rootSystem": { "type": "bulb", "depthCm": { "min": 5, "max": 15 }, "spreadCm": { "min": 5, "max": 10 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7 },
+            "availableDepthCm": { "min": 20, "max": 40 }
+          },
+          "light": { "hoursMin": 6, "type": "full_sun" },
+          "propagation": { "methods": { "division": { "seasons": ["autumn"] } } }
+        }
+      }
+      """
+    Then the response status code should be 201
+    And the response should have ETag '"0"'
+    And the response phenology should omit sowing
+    And no sowing should be stored for plant "7c1f0e2d-4a6b-4c8d-9e0f-1a2b3c4d5e6f"
+    And response matches OpenAPI contract
+
+  Scenario: Create a plant with neither sowing nor flowering
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "2f8b6d4c-1e3a-4b5c-8d7e-9f0a1b2c3d4e",
+        "identity": {
+          "name": { "primary": "Mint" },
+          "scientificName": "Mentha spicata",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "perennial",
+          "size": {
+            "height": { "min": 20, "max": 60 },
+            "spread": { "min": 30, "max": 100 }
+          },
+          "spacingCm": { "min": 20, "max": 40 }
+        },
+        "phenology": {
+          "harvest": { "months": [6, 7, 8] }
+        },
+        "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/mint.jpg" }],
+          "rootSystem": { "type": "rhizome", "depthCm": { "min": 5, "max": 20 }, "spreadCm": { "min": 20, "max": 80 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7.5 },
+            "availableDepthCm": { "min": 20, "max": 40 }
+          },
+          "light": { "hoursMin": 4, "type": "partial_shade" },
+          "propagation": { "methods": { "division": { "seasons": ["spring"] } } }
+        }
+      }
+      """
+    Then the response status code should be 201
+    And the response phenology should omit sowing
+    And the response body should contain
+      """
+      {
+        "phenology": {
+          "flowering": { "months": [] }
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Fail to create a plant with an incomplete sowing block
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "identity": {
+          "name": { "primary": "Tomato" },
+          "scientificName": "Solanum incompletum",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": { "min": 30, "max": 200 },
+            "spread": { "min": 30, "max": 80 }
+          },
+          "spacingCm": { "min": 40, "max": 60 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          },
+          "flowering": { "months": [6] },
+          "harvest": { "months": [8] }
+        },
+        "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/plant.jpg" }],
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 20, "max": 60 }, "spreadCm": { "min": 30, "max": 80 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7 },
+            "availableDepthCm": { "min": 30, "max": 60 }
+          },
+          "light": { "hoursMin": 6, "type": "full_sun" },
+          "propagation": { "methods": {} }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the response errors should include "phenology.sowing.germinationDays"
+    And the response errors should include "phenology.sowing.months"
+    And no plant should be stored with id "9a0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d"
+    And response matches OpenAPI contract
+
+  Scenario: Create a seed crop with a complete sowing block (no regression)
+    Given a family exists
+    And a POST admin request to "/api/v1/plants" with body
+      """
+      {
+        "id": "3a4b5c6d-7e8f-4a0b-8c1d-2e3f4a5b6c7d",
+        "identity": {
+          "name": { "primary": "Pepper" },
+          "scientificName": "Capsicum annuum",
+          "family": "<familyId>"
+        },
+        "traits": {
+          "lifecycle": "annual",
+          "size": {
+            "height": { "min": 30, "max": 120 },
+            "spread": { "min": 20, "max": 50 }
+          },
+          "spacingCm": { "min": 30, "max": 50 }
+        },
+        "phenology": {
+          "sowing": {
+            "months": [2, 3],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 7, "max": 21 },
+            "methods": {
+              "direct": { "depthCm": { "min": 1, "max": 2 } },
+              "starter": { "depthCm": { "min": 0.5, "max": 1 } }
+            }
+          },
+          "flowering": { "months": [6, 7] },
+          "harvest": { "months": [8, 9] }
+        },
+        "knowledge": {
+          "resources": [{ "type": "image", "url": "https://example.org/pepper.jpg" }],
+          "rootSystem": { "type": "fibrous", "depthCm": { "min": 20, "max": 60 }, "spreadCm": { "min": 20, "max": 50 } },
+          "soil": {
+            "ph": { "min": 6, "max": 7 },
+            "availableDepthCm": { "min": 30, "max": 60 }
+          },
+          "light": { "hoursMin": 6, "type": "full_sun" },
+          "propagation": { "methods": { "seeds": {} } }
+        }
+      }
+      """
+    Then the response status code should be 201
+    And the response phenology should include sowing
+    And the response body should contain
+      """
+      {
+        "phenology": {
+          "sowing": {
+            "months": [2, 3],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 7, "max": 21 },
+            "methods": {
+              "direct": { "depthCm": { "min": 1, "max": 2 } },
+              "starter": { "depthCm": { "min": 0.5, "max": 1 } }
+            }
+          }
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
   Scenario: Create a new plant with all fields filled
     Given a family exists
     And a POST admin request to "/api/v1/plants" with body

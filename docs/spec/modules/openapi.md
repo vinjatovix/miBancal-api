@@ -166,11 +166,12 @@ parameters:
 
 ---
 
-#### Optional Sowing Schema Alignment `[TARGET STATE (Pending [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
+#### Optional Sowing Schema Alignment `[CURRENT STATE (Done in [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
 
-When implementing **[Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional) (Sowing Validation Refinement)**, the developer MUST update the external API contract inside `@src/apps/agroApi/openapi/openapi.yaml`:
+The external API contract in `src/apps/agroApi/openapi/openapi.yaml` reflects the optional sowing block:
 
-- **Plant and UpdatePlant Schemas:** The `phenology.sowing` property MUST be updated to support `nullable: true` (or omitted from the parent `required` array), allowing plants that are sterile or only propagated vegetatively (such as Russian Comfrey) to bypass the sowing definition without violating the OpenAPI schema contract during E2E or contract testing.
+- **PlantPhenology / CreatePlant:** `sowing` is no longer in the `required` array (the property still references `PlantSowing`); a create body may omit it entirely and the response omits the key when absent (never `null`), so sterile or vegetatively propagated plants (such as Russian Comfrey) validate against the contract in E2E and contract testing.
+- **UpdatePlant:** `phenology.sowing` is `nullable: true` with all sub-fields optional — `null` clears the block, a partial object merges when sowing exists, a full valid block is required when adding it, and an absent key keeps the stored value. The `PlantSowing` component itself is unchanged.
 
 ---
 

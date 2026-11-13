@@ -140,4 +140,54 @@ describe('PlantSowing (value object)', () => {
       })
     ).toThrow(InvalidArgumentException);
   });
+
+  describe('fromChanges', () => {
+    it('should build a complete sowing from a full change set', () => {
+      const sowing = PlantSowing.fromChanges({
+        months: [3],
+        seedsPerHole: { min: 1, max: 2 },
+        germinationDays: { min: 5, max: 10 },
+        methods: { direct: { depthCm: { min: 1, max: 2 } } }
+      });
+
+      expect(sowing.months.toArray()).toEqual([3]);
+      expect(sowing.seedsPerHole.max).toBe(2);
+      expect(sowing.methods.direct.depthCm.min).toBe(1);
+    });
+
+    it('should materialize an optional starter method when supplied', () => {
+      const sowing = PlantSowing.fromChanges({
+        months: [3],
+        seedsPerHole: { min: 1, max: 2 },
+        germinationDays: { min: 5, max: 10 },
+        methods: {
+          direct: { depthCm: { min: 1, max: 2 } },
+          starter: { depthCm: { min: 0, max: 1 } }
+        }
+      });
+
+      expect(sowing.methods.starter).toBeDefined();
+    });
+
+    it('should throw when a bound is missing', () => {
+      expect(() =>
+        PlantSowing.fromChanges({
+          months: [3],
+          seedsPerHole: { min: 1 },
+          germinationDays: { min: 5, max: 10 },
+          methods: { direct: { depthCm: { min: 1, max: 2 } } }
+        })
+      ).toThrow(InvalidArgumentException);
+    });
+
+    it('should throw when months are missing', () => {
+      expect(() =>
+        PlantSowing.fromChanges({
+          seedsPerHole: { min: 1, max: 2 },
+          germinationDays: { min: 5, max: 10 },
+          methods: { direct: { depthCm: { min: 1, max: 2 } } }
+        })
+      ).toThrow(InvalidArgumentException);
+    });
+  });
 });

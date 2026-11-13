@@ -23,8 +23,8 @@ describe('PlantPersistenceMapper', () => {
 
       const doc = plantPersistenceMapper.toMongoDocument(plant);
 
-      expect(doc.phenology.sowing.seedsPerHole).toEqual(
-        plant.phenology.sowing.seedsPerHole.toPrimitives()
+      expect(doc.phenology.sowing?.seedsPerHole).toEqual(
+        plant.phenology.sowing?.seedsPerHole.toPrimitives()
       );
 
       expect(doc.phenology.flowering.months).toEqual(

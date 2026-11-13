@@ -66,6 +66,17 @@ describe('Plant requestSchemas', () => {
       expect(error).toBeUndefined();
     });
 
+    it('should accept a payload that omits the optional phenology.sowing', async () => {
+      const body = withoutPath(
+        buildMinimalCreatePlantBody(),
+        'phenology.sowing'
+      );
+
+      const error = await validate(createPlantRequest, { body });
+
+      expect(error).toBeUndefined();
+    });
+
     it.each([['id'], ['identity'], ['traits'], ['phenology'], ['knowledge']])(
       'should reject when top-level field "%s" is missing',
       async (field) => {
@@ -85,7 +96,6 @@ describe('Plant requestSchemas', () => {
       ['traits.lifecycle'],
       ['traits.size.height'],
       ['traits.spacingCm'],
-      ['phenology.sowing'],
       ['knowledge.rootSystem'],
       ['knowledge.soil'],
       ['knowledge.light'],

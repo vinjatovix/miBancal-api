@@ -308,3 +308,119 @@ Then('no plant should be stored with id {string}', async function (id: string) {
 
   assert.strictEqual(stored, 0, `A plant ${id} was stored`);
 });
+
+Given('a plant with a sowing block exists', async function (this: AgroWorld) {
+  const plant = await suite().seeders.plant.create({
+    'identity.family': this.familyId
+  });
+  assert.exists(plant.id, 'PlantSeeder created no plant');
+
+  this.plantId = plant.id;
+});
+
+Given(
+  'a plant without a sowing block exists',
+  async function (this: AgroWorld) {
+    const plant = await suite().seeders.plant.createWithoutSowing({
+      'identity.family': this.familyId
+    });
+    assert.exists(plant.id, 'PlantSeeder created no sowing-free plant');
+
+    this.plantId = plant.id;
+  }
+);
+
+Given(
+  'a plant that sows in {int} exists',
+  async function (this: AgroWorld, month: number) {
+    const plant = await suite().seeders.plant.create({
+      'identity.family': this.familyId,
+      'phenology.sowing.months': [month]
+    });
+    assert.exists(plant.id, 'PlantSeeder created no plant');
+
+    this.plantId = plant.id;
+  }
+);
+
+const storedPhenology = async (
+  id: string
+): Promise<Record<string, unknown>> => {
+  const doc = await rawCollection('plants').findOne({ _id: toMongoId(id) });
+  assert.exists(doc, `No stored plant ${id}`);
+
+  const { phenology } = doc as { phenology?: Record<string, unknown> };
+  assert.exists(phenology, `Stored plant ${id} has no phenology`);
+
+  return phenology;
+};
+
+Then(
+  'the stored plant should have no sowing block',
+  async function (this: AgroWorld) {
+    const phenology = await storedPhenology(this.plantId as string);
+
+    assert.notProperty(
+      phenology,
+      'sowing',
+      'The stored document still has phenology.sowing'
+    );
+  }
+);
+
+Then(
+  'the stored plant should keep its sowing block',
+  async function (this: AgroWorld) {
+    const phenology = await storedPhenology(this.plantId as string);
+
+    assert.property(
+      phenology,
+      'sowing',
+      'The stored document lost phenology.sowing'
+    );
+  }
+);
+
+Then(
+  'no sowing should be stored for plant {string}',
+  async function (id: string) {
+    const phenology = await storedPhenology(id);
+
+    assert.notProperty(
+      phenology,
+      'sowing',
+      `The stored plant ${id} still has phenology.sowing`
+    );
+  }
+);
+
+const responsePhenology = async (
+  world: AgroWorld
+): Promise<Record<string, unknown>> => {
+  const body = (await currentResponse(world)).body as {
+    phenology?: Record<string, unknown>;
+  };
+  assert.exists(body.phenology, 'Response has no phenology');
+
+  return body.phenology;
+};
+
+Then(
+  'the response phenology should omit sowing',
+  async function (this: AgroWorld) {
+    const phenology = await responsePhenology(this);
+
+    assert.notProperty(phenology, 'sowing', 'Response still carries sowing');
+    assert.property(phenology, 'flowering');
+    assert.property(phenology, 'harvest');
+  }
+);
+
+Then(
+  'the response phenology should include sowing',
+  async function (this: AgroWorld) {
+    const phenology = await responsePhenology(this);
+
+    assert.property(phenology, 'sowing', 'Response is missing sowing');
+  }
+);

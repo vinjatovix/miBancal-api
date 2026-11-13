@@ -36,7 +36,9 @@ export interface CreatePlantDto {
   };
 
   phenology: {
-    sowing: {
+    // Absent for plants that propagate vegetatively or have no viable seeds;
+    // when present it must be a full, valid block.
+    sowing?: {
       months: number[];
       seedsPerHole: RangePrimitives;
       germinationDays: RangePrimitives;

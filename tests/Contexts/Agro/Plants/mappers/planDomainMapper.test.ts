@@ -24,16 +24,16 @@ describe('PlantDomainMapper', () => {
 
     expect(p.traits.spacingCm).toEqual(plant.traits.spacingCm.toPrimitives());
 
-    expect(p.phenology.sowing.seedsPerHole).toEqual(
-      plant.phenology.sowing.seedsPerHole
+    expect(p.phenology.sowing?.seedsPerHole).toEqual(
+      plant.phenology.sowing?.seedsPerHole
     );
 
-    expect(p.phenology.sowing.germinationDays).toEqual(
-      plant.phenology.sowing.germinationDays
+    expect(p.phenology.sowing?.germinationDays).toEqual(
+      plant.phenology.sowing?.germinationDays
     );
 
-    expect(p.phenology.sowing.methods.direct.depthCm).toEqual(
-      plant.phenology.sowing.methods.direct.depthCm
+    expect(p.phenology.sowing?.methods.direct.depthCm).toEqual(
+      plant.phenology.sowing?.methods.direct.depthCm
     );
   });
 

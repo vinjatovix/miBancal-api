@@ -24,7 +24,7 @@ export type PlantPrimitives = {
   };
 
   phenology: {
-    sowing: PlantSowingPrimitives;
+    sowing?: PlantSowingPrimitives;
     flowering: {
       months: number[];
       pollination?: {
