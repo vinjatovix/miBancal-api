@@ -105,6 +105,18 @@ export const PlantPhenologyBuilder = {
     });
   },
 
+  // A vegetatively propagated / sterile crop: no seed cycle at all.
+  seedless(): PlantProps['phenology'] {
+    return new PlantPhenology({
+      flowering: new PlantFlowering({
+        months: new MonthSet([5])
+      }),
+      harvest: new PlantHarvest({
+        months: new MonthSet([8])
+      })
+    });
+  },
+
   lettuce(): PlantProps['phenology'] {
     return new PlantPhenology({
       sowing: new PlantSowing({

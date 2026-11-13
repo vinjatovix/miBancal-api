@@ -181,7 +181,7 @@ To support dynamic JSON:API relation population (e.g., `?include=family` resolvi
 
 ---
 
-## 7.2 ECOLOGICAL & PROPAGATION VALIDATION `[TARGET STATE (Pending Iterations [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod) & [35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
+## 7.2 ECOLOGICAL & PROPAGATION VALIDATION `[CURRENT STATE (Done in Iterations [12](../../roadmap.md#iteration-12-migrate-plants-endpoints-to-zod) & [35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
 
 To support rich catalog data, Zod validation schemas for `Plant` creation/updates enforce strict, conditional, and typed validation:
 

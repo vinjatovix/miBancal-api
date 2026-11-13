@@ -4406,9 +4406,11 @@ components:
 
     PlantPhenology:
       type: object
-      required: [sowing, flowering, harvest]
+      required: [flowering, harvest]
       properties:
         sowing:
+          # Omitted from the response when the plant has no seed cycle
+          # (never null).
           $ref: '#/components/schemas/PlantSowing'
         flowering:
           $ref: '#/components/schemas/PlantFlowering'
@@ -4480,9 +4482,11 @@ components:
         phenology:
           type: object
           description: >-
-            Every plant is sown. `flowering` and `harvest` may be left out for
-            plants that never flower or are not harvested.
-          required: [sowing]
+            `sowing` may be left out for plants that propagate vegetatively or
+            have no viable seeds; `flowering` and `harvest` may be left out for
+            plants that never flower or are not harvested. When `sowing` is
+            present it must be a full, valid block.
+          required: []
           properties:
             sowing:
               $ref: '#/components/schemas/PlantSowing'
@@ -4570,6 +4574,13 @@ components:
           properties:
             sowing:
               type: object
+              nullable: true
+              description: >-
+                Merged into the stored sowing when the plant already has one
+                (partial ranges merge into the stored bounds). When the plant
+                has no sowing the block must be complete and valid, otherwise
+                400. `sowing: null` removes the sowing block. An absent `sowing`
+                key keeps the stored value.
               properties:
                 months:
                   allOf:

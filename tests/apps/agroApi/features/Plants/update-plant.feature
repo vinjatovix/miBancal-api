@@ -1283,3 +1283,135 @@ Feature: Update a plant
     And the response body matches "0" for field "version"
     And the plant should be unchanged
     And response matches OpenAPI contract
+
+  Scenario: Clear the sowing block with null
+    Given a family exists
+    And a plant with a sowing block exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "sowing": null
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"1"'
+    And the response phenology should omit sowing
+    And the stored plant should have no sowing block
+    And response matches OpenAPI contract
+
+  Scenario: Add a complete sowing block to a sowing-free plant
+    Given a family exists
+    And a plant without a sowing block exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "seedsPerHole": { "min": 1, "max": 2 },
+            "germinationDays": { "min": 7, "max": 14 },
+            "methods": { "direct": { "depthCm": { "min": 1, "max": 2 } } }
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"1"'
+    And the response phenology should include sowing
+    And the response body should contain
+      """
+      {
+        "phenology": {
+          "sowing": {
+            "months": [3, 4],
+            "germinationDays": { "min": 7, "max": 14 }
+          }
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Fail to add an incomplete sowing block to a sowing-free plant
+    Given a family exists
+    And a plant without a sowing block exists
+    And I record the current plant
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "sowing": {
+            "months": [3, 4]
+          }
+        }
+      }
+      """
+    Then the response status code should be 400
+    And the plant should be unchanged
+    And response matches OpenAPI contract
+
+  Scenario: Merge a single sowing bound on a plant that has sowing
+    Given a family exists
+    And a plant with a sowing block exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "sowing": {
+            "seedsPerHole": { "max": 9 }
+          }
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"1"'
+    And the response body should contain
+      """
+      {
+        "phenology": {
+          "sowing": {
+            "seedsPerHole": { "min": 1, "max": 9 }
+          }
+        }
+      }
+      """
+    And response matches OpenAPI contract
+
+  Scenario: Updating only traits keeps the stored sowing block
+    Given a family exists
+    And a plant with a sowing block exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "traits": {
+          "lifecycle": "perennial"
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the stored plant should keep its sowing block
+    And response matches OpenAPI contract
+
+  Scenario: Clearing sowing on a sowing-free plant is an idempotent no-op
+    Given a family exists
+    And a plant without a sowing block exists
+    And I use If-Match '"0"'
+    When I send a PATCH admin request to "/api/v1/plants/<plantId>" with body
+      """
+      {
+        "phenology": {
+          "sowing": null
+        }
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"0"'
+    And the response body matches "0" for field "version"
+    And the response phenology should omit sowing
+    And response matches OpenAPI contract

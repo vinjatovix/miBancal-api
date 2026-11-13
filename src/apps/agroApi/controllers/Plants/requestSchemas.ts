@@ -173,17 +173,21 @@ const createPlantBody = z.object({
     ecological: ecologicalTraitsSchema.exactOptional()
   }),
   phenology: z.object({
-    sowing: z.object({
-      months: monthsSchema.min(1),
-      seedsPerHole: rangeSchema,
-      germinationDays: rangeSchema,
-      methods: z.object({
-        direct: z.object({ depthCm: rangeSchema }),
-        starter: z.object({ depthCm: rangeSchema }).exactOptional()
+    // Omittable for plants that propagate vegetatively or have no viable
+    // seeds; when present every sub-field invariant still applies.
+    sowing: z
+      .object({
+        months: monthsSchema.min(1),
+        seedsPerHole: rangeSchema,
+        germinationDays: rangeSchema,
+        methods: z.object({
+          direct: z.object({ depthCm: rangeSchema }),
+          starter: z.object({ depthCm: rangeSchema }).exactOptional()
+        })
       })
-    }),
-    // Every plant is sown, but not every plant flowers or is harvested: those
-    // sections are optional, and their months may be empty.
+      .exactOptional(),
+    // Not every plant flowers or is harvested: those sections are optional,
+    // and their months may be empty.
     flowering: z
       .object({
         months: monthsSchema,
@@ -275,8 +279,11 @@ const updatePlantBody = z.object({
     .exactOptional(),
   phenology: z
     .object({
-      sowing: z
-        .object({
+      // `null` clears the block; a partial object merges when sowing exists, or
+      // must be a full valid block when the plant has none. Sub-field
+      // invariants hold whenever a value is supplied.
+      sowing: clearable(
+        z.object({
           months: monthsSchema.min(1).exactOptional(),
           seedsPerHole: partialRangeSchema.exactOptional(),
           germinationDays: partialRangeSchema.exactOptional(),
@@ -291,7 +298,7 @@ const updatePlantBody = z.object({
             })
             .exactOptional()
         })
-        .exactOptional(),
+      ),
       // `types` is optional here: it replaces the stored list, and the domain
       // rejects a new pollination without one.
       flowering: z

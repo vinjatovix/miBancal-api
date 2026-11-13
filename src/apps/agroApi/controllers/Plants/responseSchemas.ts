@@ -74,15 +74,18 @@ const traitsSchema = z.object({
 });
 
 const phenologySchema = z.object({
-  sowing: z.object({
-    months: monthsSchema.min(1),
-    seedsPerHole: rangeSchema,
-    germinationDays: rangeSchema,
-    methods: z.object({
-      direct: sowingMethodSchema,
-      starter: sowingMethodSchema.exactOptional()
+  // Omitted from the response when the plant has no seed cycle (never null).
+  sowing: z
+    .object({
+      months: monthsSchema.min(1),
+      seedsPerHole: rangeSchema,
+      germinationDays: rangeSchema,
+      methods: z.object({
+        direct: sowingMethodSchema,
+        starter: sowingMethodSchema.exactOptional()
+      })
     })
-  }),
+    .exactOptional(),
   flowering: z.object({
     months: monthsSchema,
     pollination: z

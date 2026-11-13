@@ -119,9 +119,9 @@ Spacing is:
 
 ### 4.3 Phenology (time behavior model)
 
-#### Sowing `[TARGET STATE (Pending [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
+#### Sowing `[CURRENT STATE (Done in [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
 
-Encapsulated under `phenology.sowing` as an **optional, structured submodel (PlantSowing)**. For plants that are sterile or only propagated vegetatively (such as Russian Comfrey _Symphytum x uplandicum_ / _Bocking 14_ which has no viable seeds), the `sowing` block can be completely omitted (`null` or `undefined`).
+Encapsulated under `phenology.sowing` as an **optional, structured submodel (PlantSowing)**. For plants that are sterile or only propagated vegetatively (such as Russian Comfrey _Symphytum x uplandicum_ / _Bocking 14_ which has no viable seeds), the `sowing` block can be completely omitted. Absence is modeled by **omitting the key** from the document and responses, never by storing `null` (only `deletedAt: null` is allowed). On `PATCH`, `sowing: null` clears it, a partial object merges into an existing block, and a full valid block is required when adding sowing to a plant that had none.
 
 If present, `PlantSowing` comprises:
 
@@ -131,7 +131,7 @@ If present, `PlantSowing` comprises:
 - `months`: MonthSet (the allowed calendar months for sowing)
 - `methods`: Object containing specific sowing methods and their depths:
   - `direct`: SowingMethod (mandatory, containing `depthCm: Range` for direct soil sowing)
-  - `nursery`: SowingMethod (optional, containing `depthCm: Range` for starter seedbed cells; **`[TARGET STATE (Pending [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`** - currently named `starter` in the codebase and slated to be renamed to `nursery` in [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))
+  - `nursery`: SowingMethod (optional, containing `depthCm: Range` for starter seedbed cells; **`[TARGET STATE (Pending)]`** - currently named `starter` in the codebase and slated to be renamed to `nursery`; the rename is a separate target and was **not** part of [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional), which only made the block optional)
 
 Rules:
 

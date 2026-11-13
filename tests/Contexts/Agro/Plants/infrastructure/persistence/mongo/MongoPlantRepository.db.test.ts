@@ -313,6 +313,31 @@ describe('MongoPlantRepository', () => {
       expect(result.identity.name.aliases).toBeUndefined();
     });
 
+    it('should $unset phenology.sowing when sowing is cleared, keeping the rest', async () => {
+      const plant = PlantFactory.random();
+      const current = plantDomainMapper.toPrimitives(plant);
+      await repository.save(plant);
+
+      const { sowing: _cleared, ...phenology } = current.phenology;
+      const updated: PlantPrimitives = { ...current, phenology };
+
+      await repository.updateWithDiff(current, updated);
+
+      const result = await findExisting(plant.id);
+      expect(result.phenology.sowing).toBeUndefined();
+      expect(result.phenology.flowering).toEqual(plant.phenology.flowering);
+      expect(result.phenology.harvest).toEqual(plant.phenology.harvest);
+
+      // Only this plant exists (context.reset runs before each test), so the
+      // single stored document is the one just updated.
+      const stored = await client
+        .db()
+        .collection('plants')
+        .findOne<{ phenology: Record<string, unknown> }>({});
+      expect(stored?.phenology).toBeDefined();
+      expect(stored?.phenology).not.toHaveProperty('sowing');
+    });
+
     it('should NOT overwrite untouched fields', async () => {
       const plant = PlantFactory.random();
       const current = plantDomainMapper.toPrimitives(plant);

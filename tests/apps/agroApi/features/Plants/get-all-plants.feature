@@ -259,6 +259,30 @@ Feature: Get All Plants
     And every listed plant should carry the summary of its own family
     And response matches OpenAPI contract
 
+  Scenario: Listing a sowing-free plant omits its sowing block
+    Given a family exists
+    And a plant without a sowing block exists
+    When I send a GET request to "/api/v1/plants?fields[plants]=phenology"
+    Then the response status code should be 200
+    And the list should contain at least 1 item
+    And every item should match:
+      | field               | operator | value |
+      | phenology.flowering | exists   |       |
+      | phenology.sowing    | absent   |       |
+    And response matches OpenAPI contract
+
+  Scenario: The sowing-month filter excludes sowing-free plants
+    Given a family exists
+    And a plant that sows in 3 exists
+    And a plant without a sowing block exists
+    When I send a GET request to "/api/v1/plants?filter[sowingMonths][has]=3"
+    Then the response status code should be 200
+    And the list should contain at least 1 item
+    And every item should match:
+      | field                   | operator | value |
+      | phenology.sowing.months | hasAny   | 3     |
+    And response matches OpenAPI contract
+
   Scenario Outline: A malformed fields or include on the listing answers 400 (<query>)
     When I send a GET request to "/api/v1/plants?<query>"
     Then the response status code should be 400

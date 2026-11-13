@@ -871,10 +871,12 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [plant.md](spec/modules/plant.md), [validation.md](spec/modules/validation.md), [openapi.md](spec/modules/openapi.md)
 
+- **Status**: Completed (2026-11-13, spec `specs/059-optional-plant-sowing/`)
 - **Value delivered**: Enables cataloging non-seed and vegetatively propagated plants.
 - **Definition of Done**: `Plant` aggregate sowing block is refactored to be optional.
 - **Dependencies**: Iteration 12.
 - **Risks**: Validation failure of legacy plant seed-mandatory records.
+- **Outcome**: `phenology.sowing` is an optional (omittable) value object across the domain, DTOs, mappers, Zod schemas and the OpenAPI contract. Absence is modeled by omitting the key (never a persisted `null`); `PATCH` clears with `null`, merges a partial block when sowing exists, and requires a full valid block when adding sowing to a plant that had none. No database migration (existing documents stay valid under the relaxed schema). The `starter`→`nursery` method rename remains a separate target.
 - **Prompt for /speckit.specify**:
   ```text
   MAKE PLANT SOWING BLOCK OPTIONAL

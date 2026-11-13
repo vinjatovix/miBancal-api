@@ -78,15 +78,16 @@ function buildSowingMethods(
 
 function buildSowingChanges(
   dto: UpdatePlantDto
-): PlantSowingChanges | undefined {
-  if (!dto.phenology?.sowing) return undefined;
-  const s = dto.phenology.sowing;
+): PlantSowingChanges | null | undefined {
+  const raw = dto.phenology?.sowing;
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
   const sowing: PlantSowingChanges = {};
-  if (s.months) sowing.months = s.months;
-  if (s.seedsPerHole) sowing.seedsPerHole = s.seedsPerHole;
-  if (s.germinationDays) sowing.germinationDays = s.germinationDays;
-  if (s.methods) {
-    const methods = buildSowingMethods(s);
+  if (raw.months) sowing.months = raw.months;
+  if (raw.seedsPerHole) sowing.seedsPerHole = raw.seedsPerHole;
+  if (raw.germinationDays) sowing.germinationDays = raw.germinationDays;
+  if (raw.methods) {
+    const methods = buildSowingMethods(raw);
     if (Object.keys(methods).length) sowing.methods = methods;
   }
   return Object.keys(sowing).length ? sowing : undefined;
@@ -127,7 +128,7 @@ function buildPhenologyChanges(
   if (!dto.phenology) return undefined;
   const phenology: PlantPhenologyChanges = {};
   const sowing = buildSowingChanges(dto);
-  if (sowing) phenology.sowing = sowing;
+  if (sowing !== undefined) phenology.sowing = sowing;
   const flowering = buildFloweringChanges(dto);
   if (flowering) phenology.flowering = flowering;
   const harvest = buildHarvestChanges(dto);
@@ -139,7 +140,7 @@ export const plantInputMapper: PlantInputMapper = {
   fromCreateDto(dto: CreatePlantDto, user = 'system'): Plant {
     const { sowing, flowering, harvest } = dto.phenology;
     const phenology = new PlantPhenology({
-      sowing: PlantSowing.fromPrimitives(sowing),
+      ...(sowing && { sowing: PlantSowing.fromPrimitives(sowing) }),
       flowering: flowering
         ? PlantFlowering.fromPrimitives(flowering)
         : PlantFlowering.never(),

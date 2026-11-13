@@ -7,29 +7,31 @@ import { PlantSowing } from './PlantSowing.js';
 export type PlantPhenologyPrimitives = PlantPrimitives['phenology'];
 
 export type PlantPhenologyProps = {
-  sowing: PlantSowing;
+  sowing?: PlantSowing;
   flowering: PlantFlowering;
   harvest: PlantHarvest;
 };
 
 /**
- * A plant's yearly cycle. Every plant is sown; flowering and harvest may have
- * no months, for plants that never flower or are not harvested.
+ * A plant's yearly cycle. `sowing` is optional: plants that propagate
+ * vegetatively or have no viable seeds carry no seed cycle. `flowering` and
+ * `harvest` are always present, with no months for plants that never flower or
+ * are not harvested.
  */
 export class PlantPhenology {
-  readonly sowing: PlantSowing;
+  readonly sowing?: PlantSowing;
   readonly flowering: PlantFlowering;
   readonly harvest: PlantHarvest;
 
   constructor(props: PlantPhenologyProps) {
-    this.sowing = props.sowing;
+    if (props.sowing !== undefined) this.sowing = props.sowing;
     this.flowering = props.flowering;
     this.harvest = props.harvest;
   }
 
   update(changes: PlantPhenologyChanges): PlantPhenology {
     return new PlantPhenology({
-      sowing: changes.sowing ? this.sowing.update(changes.sowing) : this.sowing,
+      ...this.sowingProp(this.nextSowing(changes)),
       flowering: changes.flowering
         ? this.flowering.update(changes.flowering)
         : this.flowering,
@@ -39,9 +41,30 @@ export class PlantPhenology {
     });
   }
 
+  /**
+   * Resolves the next sowing from PATCH changes:
+   * - absent (`undefined`) → keep the current value;
+   * - `null` → clear (resulting in no sowing);
+   * - object + current present → partial merge;
+   * - object + current absent → build a new complete block (incomplete throws).
+   */
+  private nextSowing(changes: PlantPhenologyChanges): PlantSowing | undefined {
+    if (changes.sowing === undefined) return this.sowing;
+    if (changes.sowing === null) return undefined;
+    return this.sowing
+      ? this.sowing.update(changes.sowing)
+      : PlantSowing.fromChanges(changes.sowing);
+  }
+
+  private sowingProp(
+    sowing: PlantSowing | undefined
+  ): Pick<PlantPhenologyProps, 'sowing'> {
+    return sowing !== undefined ? { sowing } : {};
+  }
+
   toPrimitives(): PlantPhenologyPrimitives {
     return {
-      sowing: this.sowing.toPrimitives(),
+      ...(this.sowing !== undefined && { sowing: this.sowing.toPrimitives() }),
       flowering: this.flowering.toPrimitives(),
       harvest: this.harvest.toPrimitives()
     };
@@ -49,7 +72,9 @@ export class PlantPhenology {
 
   static fromPrimitives(primitives: PlantPhenologyPrimitives): PlantPhenology {
     return new PlantPhenology({
-      sowing: PlantSowing.fromPrimitives(primitives.sowing),
+      ...(primitives.sowing !== undefined && {
+        sowing: PlantSowing.fromPrimitives(primitives.sowing)
+      }),
       flowering: PlantFlowering.fromPrimitives(primitives.flowering),
       harvest: PlantHarvest.fromPrimitives(primitives.harvest)
     });
