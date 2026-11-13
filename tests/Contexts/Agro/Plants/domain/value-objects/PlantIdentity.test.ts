@@ -107,4 +107,98 @@ describe('PlantIdentity', () => {
       ).not.toHaveProperty('aliases');
     });
   });
+
+  describe('genus derivation', () => {
+    it('should derive genus from scientificName', () => {
+      const identity = PlantIdentityBuilder.tomato();
+      expect(identity.genus).toBe('Solanum');
+    });
+
+    it('should derive genus capitalized from lowercase scientificName', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: 'allium sativum' })
+      );
+      expect(identity.genus).toBe('Allium');
+    });
+
+    it('should omit genus for hybrid prefix ×', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: '×Brassicoraphanus' })
+      );
+      expect(identity.genus).toBeUndefined();
+    });
+
+    it('should ignore incoming genus from primitives (drift-prevention)', () => {
+      const primitives = {
+        ...PlantIdentityBuilder.tomato().toPrimitives(),
+        genus: 'Fake'
+      };
+      const identity = new PlantIdentity(primitives);
+      expect(identity.genus).toBe('Solanum');
+    });
+
+    it('should emit genus in toPrimitives when derivable', () => {
+      const primitives = PlantIdentityBuilder.tomato().toPrimitives();
+      expect(primitives.genus).toBe('Solanum');
+    });
+
+    it('should omit genus from toPrimitives when not derivable', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: '×Brassicoraphanus' })
+      );
+      expect(identity.toPrimitives()).not.toHaveProperty('genus');
+    });
+
+    it('should update genus when scientificName changes', () => {
+      const identity = PlantIdentityBuilder.tomato();
+      const updated = identity.update({ scientificName: 'ocimum basilicum' });
+      expect(updated.genus).toBe('Ocimum');
+    });
+
+    it('should clear genus when scientificName changes to underivable', () => {
+      const identity = PlantIdentityBuilder.tomato();
+      const updated = identity.update({ scientificName: '×Brassicoraphanus' });
+      expect(updated.genus).toBeUndefined();
+    });
+  });
+
+  describe('slug generation', () => {
+    it('should derive slug from scientific name', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: 'solanum lycopersicum' })
+      );
+      expect(identity.slug).toBe('solanum-lycopersicum');
+    });
+
+    it('should update slug when scientific name changes', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: 'solanum lycopersicum' })
+      );
+      const updated = identity.update({ scientificName: 'ocimum basilicum' });
+      expect(updated.slug).toBe('ocimum-basilicum');
+    });
+
+    it('should keep slug when only the primary name changes', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: 'solanum lycopersicum' })
+      );
+      const updated = identity.update({ name: { primary: 'Cherry Tomato' } });
+      expect(updated.slug).toBe('solanum-lycopersicum');
+    });
+
+    it('should strip a hybrid prefix when slugifying the scientific name', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: '×Brassicoraphanus' })
+      );
+      expect(identity.slug).toBe('brassicoraphanus');
+    });
+
+    it('should expose slug as a property but keep it out of identity primitives', () => {
+      const identity = new PlantIdentity(
+        tomato({ scientificName: 'solanum lycopersicum' })
+      );
+      expect(identity.slug).toBe('solanum-lycopersicum');
+      expect(identity.toPrimitives()).not.toHaveProperty('slug');
+    });
+  });
 });

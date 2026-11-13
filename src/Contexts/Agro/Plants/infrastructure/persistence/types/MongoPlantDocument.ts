@@ -24,8 +24,20 @@ export type MongoPlantDocument = {
 
   knowledge?: PlantKnowledgePrimitives;
 
+  anomalies?: string[];
+
   metadata: PlantPrimitives['metadata'];
   status: PlantPrimitives['status'];
   deletedAt?: string | null;
   version: number;
+  /**
+   * Read-only likes projection. Absent on documents created before this
+   * feature; read as `0`. Never written by the plant write path.
+   */
+  likesCount?: number;
+  /**
+   * URL-friendly identifier derived from the scientific name (by PlantIdentity);
+   * used for slug-based lookups.
+   */
+  slug?: string;
 };

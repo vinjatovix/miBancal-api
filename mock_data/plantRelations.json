@@ -1,17 +1,182 @@
 [
   {
-    "_id": "rel_1",
-    "plantA": "plant_calendula",
-    "plantB": "plant_tomato",
-
+    "_id": "0192e201-0000-7000-8000-000000000001",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000002",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000001",
     "type": "beneficial",
+    "mechanism": "pest_repellent",
+    "strength": 4,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 50,
+    "reason": "La albahaca repele trips, moscas blancas y orugas del tomate gracias a sus aceites esenciales aromáticos.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000002",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000003",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000001",
+    "type": "beneficial",
+    "mechanism": "pest_repellent",
+    "strength": 5,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 100,
+    "reason": "El tagete o clavel de moro segrega alfa-tertienilo en sus raíces inhibiendo nemátodos fitoparásitos del suelo.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000003",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000004",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000001",
+    "type": "detrimental",
+    "mechanism": "allelopathy",
+    "strength": 4,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 150,
+    "reason": "El hinojo produce exudados radiculares alelopáticos que inhiben severamente el crecimiento de las solanáceas.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000004",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000005",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000006",
+    "type": "beneficial",
+    "mechanism": "physical_support",
+    "strength": 5,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 30,
+    "reason": "El maíz proporciona un tallo vertical robusto como tutor natural para que trepe la judía.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000005",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000006",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000005",
+    "type": "beneficial",
+    "mechanism": "nitrogen_fixer",
+    "strength": 4,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 40,
+    "reason": "La judía fija nitrógeno atmosférico mediante bacterias rizobios enriqueciendo el suelo para el maíz.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000006",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000007",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000005",
+    "type": "beneficial",
+    "mechanism": "shade_provider",
+    "strength": 4,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 60,
+    "reason": "Las amplias hojas de la calabaza actúan como mantillo vivo reteniendo humedad del suelo para el maíz.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000007",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000006",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000007",
+    "type": "beneficial",
+    "mechanism": "nitrogen_fixer",
+    "strength": 4,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 50,
+    "reason": "La judía aporta nitrógeno biológico asimilable satisfaciendo la alta demanda nutricional de la calabaza.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000008",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000009",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000008",
+    "type": "beneficial",
+    "mechanism": "pest_repellent",
+    "strength": 4,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 30,
+    "reason": "El fuerte aroma de la cebolla enmascara a la zanahoria desorientando y repeliendo a la mosca de la zanahoria.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000009",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000008",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000009",
+    "type": "beneficial",
+    "mechanism": "pest_repellent",
     "strength": 3,
-
-    "minDistance": 0,
-    "maxDistance": 100,
-
-    "reason": "Atrae polinizadores",
-
-    "createdAt": "2026-04-18T10:00:00Z"
+    "minDistanceCm": 0,
+    "maxDistanceCm": 30,
+    "reason": "El follaje de la zanahoria repele recíprocamente a la mosca de la cebolla y a trips del puerro.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "0192e201-0000-7000-8000-000000000010",
+    "sourcePlantId": "0192e200-0000-7000-8000-000000000011",
+    "targetPlantId": "0192e200-0000-7000-8000-000000000010",
+    "type": "beneficial",
+    "mechanism": "pest_repellent",
+    "strength": 4,
+    "minDistanceCm": 0,
+    "maxDistanceCm": 60,
+    "reason": "La menta disuade a la mariposa de la col (Pieris brassicae) y a los escarabajos pulga con su fuerte olor a mentol.",
+    "metadata": {
+      "createdAt": "2026-10-28T12:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-28T12:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
   }
 ]

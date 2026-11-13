@@ -60,7 +60,7 @@ Rules:
 /modules/knowledge.md
 ```
 
-- anomalies (unifying pests, pathogens, disorders, weeds)
+- anomalies (unifying pests, pathogens, disorders)
 - garden-inputs (organic remedies, nutrition)
 
 Rules:
@@ -211,7 +211,7 @@ Rules:
 
 ---
 
-### 3.10 Plant Instance System `[TARGET STATE (Pending [Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection))]`
+### 3.10 Plant Instance System `[DELIVERED (spec 024, Iteration 20)]`
 
 ```sh
 /modules/plant-instance.md
@@ -243,7 +243,7 @@ Rules:
 - no plant logic
 - no event logic
 - no knowledge logic
-- **`[TARGET STATE (Pending [Iteration 20](../../roadmap.md#iteration-20-extract-plantinstance-into-standalone-collection))]`** completely decoupled from individual plant aggregates (not responsible for saving or retrieving plant instances)
+- **`[DELIVERED (spec 024, Iteration 20)]`** completely decoupled from individual plant aggregates (not responsible for saving or retrieving plant instances, crops stored in dedicated `plant_instances` collection)
 
 ---
 
@@ -361,14 +361,12 @@ Rules:
 
 - local and OAuth providers
 - lightweight JWT contracts
-- user profile location and hemisphere resolution
 - user roles and authorization boundaries
-- low-latency Redis caching policies for geographic context
 
 Rules:
 
 - session and JWT payload MUST NOT contain business state (e.g. hemisphere)
-- profile attributes and location configurations are queried dynamically under-the-hood
+- the `User` aggregate carries no geography; see **3.x Locations** (location.md) for per-user growing sites
 
 ---
 
@@ -445,6 +443,24 @@ Rules:
 - Purely an application/infrastructure integration module for domain decouplings.
 - Handlers MUST be strictly idempotent, tracking processed events to prevent duplicates.
 - Message ordering is guaranteed via dynamic partitioning keys (`plantInstanceId` or `bedId`).
+
+---
+
+### 3.22 Locations System `[DELIVERED (spec 049, Iteration 29 & Feature 052)]`
+
+```sh
+/modules/location.md
+```
+
+- Per-user `Location` aggregate (collection `locations`): owner-scoped CRUD, optional geography (`postalCode`, `country`, `timezone`, `hemisphere`), spatial configuration (`northAngle`, `canvasDimensions`), soft delete.
+- Single source of truth for geography and site canvas; `User` carries none.
+- Source of the immutable geographic snapshot copied into a `Bed` via `locationId` (see §5.9).
+- Site layout engine: `GET /locations/:id/layout` (canvas, placed beds, projected plants, cross-bed companion graph) and `PATCH /locations/:id/beds-layout` (batch position/rotation update with OBB/SAT collision detection).
+
+Rules:
+
+- Active-name uniqueness per owner, case/accent-insensitive (`es` collation, strength 1); freed on soft delete.
+- Cross-owner access answers `404` without disclosure.
 
 ---
 
@@ -561,9 +577,12 @@ No mutation allowed
 
 ---
 
-### 5.9 Bed/PlantInstance ↔ Auth (Geographic Context Inheritance)
+### 5.9 Bed ↔ Location (Geographic Snapshot & Spatial Layout)
 
-- Beds and PlantInstances inherit geographic setting boundaries (like hemisphere) from the owning User's profile configuration defined in Auth module.
+- A Bed optionally references a `Location` (owned by the same user) at creation/update time; the location's provided geographic fields (`postalCode`, `country`, `timezone`, `hemisphere`) are copied into the Bed as a static, immutable snapshot. The `User` aggregate carries no geography.
+- Beds placed within a `Location` canvas have 2D offsets (`position: { x, y }`) and rotational orientation (`rotation: 0–359`).
+- The Location coordinates spatial arrangement, validating bed bounds and avoiding overlaps via `BedCollisionDetector` (OBB/SAT).
+- Plants within placed beds are projected into global canvas space by `SpatialProjectionService`, enabling `CrossBedCompanionService` to calculate botanical relationships across neighboring beds.
 
 ---
 

@@ -71,6 +71,19 @@ Feature: Update a bed
         And the response body should not echo "invalid-uuid"
         And response matches OpenAPI contract
 
+    Scenario: Updating a bed with locationId null is rejected
+        Given a bed exists
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "locationId": null
+            }
+            """
+        Then the response status code should be 400
+        And the response errors should include "locationId"
+        And response matches OpenAPI contract
+
     Scenario: An empty update is a no-op that keeps the version
         Given a bed exists
         And I record the current bed
@@ -570,5 +583,33 @@ Feature: Update a bed
         And the response should have ETag '"3"'
         And the response body matches "3" for field "version"
         And the response audit data should show the user as last editor
+        And a GET user request to "/api/v1/beds/<bedId>" should return the same body
+        And response matches OpenAPI contract
+
+    Scenario: Update a bed placement with negative coordinates
+        Given a bed exists
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/beds/<bedId>" with body
+            """
+            {
+                "position": {
+                    "x": -261.58,
+                    "y": -90.5
+                },
+                "rotation": 90
+            }
+            """
+        Then the response status code should be 200
+        And the response should have ETag '"1"'
+        And the response body should contain
+            """
+            {
+                "position": {
+                    "x": -261.58,
+                    "y": -90.5
+                },
+                "rotation": 90
+            }
+            """
         And a GET user request to "/api/v1/beds/<bedId>" should return the same body
         And response matches OpenAPI contract

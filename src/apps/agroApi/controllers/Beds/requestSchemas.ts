@@ -24,7 +24,8 @@ const createBedBody = z.object({
   name: requiredShortTextSchema,
   width: dimensionSchema,
   height: dimensionSchema,
-  depth: dimensionSchema
+  depth: dimensionSchema,
+  locationId: z.uuid()
 });
 
 export const createBedRequest = {
@@ -32,20 +33,59 @@ export const createBedRequest = {
   body: createBedBody
 } satisfies RequestSchemas;
 
-const bedQueryWithInclude = z.object({
-  include: z.enum(['plantInstances']).exactOptional()
-});
+const bedIncludeSchema = z
+  .enum([
+    'plantInstances',
+    'location',
+    'plantInstances,location',
+    'location,plantInstances'
+  ])
+  .exactOptional();
+
+const locationIdFilterValue = z.union([
+  z.uuid(),
+  z.object({
+    eq: z.uuid()
+  })
+]);
+
+const listBedsQuery = z
+  .object({
+    include: bedIncludeSchema,
+    filter: z
+      .object({
+        locationId: locationIdFilterValue.exactOptional()
+      })
+      .strict()
+      .exactOptional(),
+    'filter[locationId]': z.uuid().exactOptional(),
+    'filter[locationId][eq]': z.uuid().exactOptional()
+  })
+  .strict();
 
 export const listBedsRequest = {
-  query: bedQueryWithInclude,
+  query: listBedsQuery,
   body: emptyBody
 } satisfies RequestSchemas;
+
+const getBedByIdQuery = z
+  .object({
+    include: bedIncludeSchema
+  })
+  .strict();
 
 export const getBedByIdRequest = {
   params: bedIdParams,
-  query: bedQueryWithInclude,
+  query: getBedByIdQuery,
   body: emptyBody
 } satisfies RequestSchemas;
+
+const positionSchema = z.object({
+  x: z.number(),
+  y: z.number()
+});
+const nullablePositionSchema = z.union([positionSchema, z.null()]);
+const rotationSchema = z.number().int().min(0).max(359);
 
 // JSON Merge Patch: `{}` accepted (no-op), the version check still applies.
 // Every field is required on the bed, so none accepts `null`.
@@ -53,7 +93,12 @@ const updateBedBody = z.object({
   name: requiredShortTextSchema.exactOptional(),
   width: dimensionSchema.exactOptional(),
   height: dimensionSchema.exactOptional(),
-  depth: dimensionSchema.exactOptional()
+  depth: dimensionSchema.exactOptional(),
+  // A uuid re-snapshots and relocates to that owned location.
+  // Unlinking (null) is prohibited (400). Omitted leaves location unchanged.
+  locationId: z.uuid().exactOptional(),
+  position: nullablePositionSchema.exactOptional(),
+  rotation: rotationSchema.exactOptional()
 });
 
 export const updateBedRequest = {

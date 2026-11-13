@@ -101,8 +101,8 @@ describe('Plant (aggregate root)', () => {
   it('should expose phenology correctly', () => {
     const plant = buildPlant();
 
-    expect(plant.phenology.sowing.methods.direct.depthCm.min).toBe(2);
-    expect(plant.phenology.sowing.months.toArray()).toEqual([3, 4]);
+    expect(plant.phenology.sowing?.methods.direct.depthCm.min).toBe(2);
+    expect(plant.phenology.sowing?.months.toArray()).toEqual([3, 4]);
   });
 
   it('should mark plant as deleted', () => {
@@ -532,12 +532,12 @@ describe('Plant mutation methods', () => {
     it('should replace sowing months and keep other sowing fields', () => {
       const plant = PlantFactory.create();
       const originalGermination =
-        plant.phenology.sowing.germinationDays.toPrimitives();
+        plant.phenology.sowing?.germinationDays.toPrimitives();
 
       plant.updatePhenology({ sowing: { months: [6, 7] } }, 'test-user');
 
-      expect(plant.phenology.sowing.months.toArray()).toEqual([6, 7]);
-      expect(plant.phenology.sowing.germinationDays.toPrimitives()).toEqual(
+      expect(plant.phenology.sowing?.months.toArray()).toEqual([6, 7]);
+      expect(plant.phenology.sowing?.germinationDays.toPrimitives()).toEqual(
         originalGermination
       );
     });
@@ -564,7 +564,7 @@ describe('Plant mutation methods', () => {
         'test-user'
       );
 
-      expect(plant.phenology.sowing.methods.starter?.depthCm.min).toBe(1);
+      expect(plant.phenology.sowing?.methods.starter?.depthCm.min).toBe(1);
     });
 
     it('should merge starter depthCm when present', () => {
@@ -579,9 +579,9 @@ describe('Plant mutation methods', () => {
       );
 
       expect(
-        plant.phenology.sowing.methods.starter?.depthCm.toPrimitives()
+        plant.phenology.sowing?.methods.starter?.depthCm.toPrimitives()
       ).toEqual({
-        min: before.phenology.sowing.methods.starter!.depthCm.min,
+        min: before.phenology.sowing?.methods.starter!.depthCm.min,
         max: 4
       });
     });
@@ -700,7 +700,7 @@ describe('Plant mutation methods', () => {
       [
         'the starter sowing method',
         { sowing: { methods: { starter: null } } },
-        (p: Plant) => p.phenology.sowing.methods.starter
+        (p: Plant) => p.phenology.sowing?.methods.starter
       ]
     ] satisfies Array<
       [string, PlantPhenologyChanges, (plant: Plant) => unknown]
@@ -977,7 +977,7 @@ describe('Plant audit metadata', () => {
       'updatePhenology',
       (p: Plant, user: string) =>
         p.updatePhenology(
-          { sowing: { months: p.phenology.sowing.months.toArray() } },
+          { sowing: { months: p.phenology.sowing!.months.toArray() } },
           user
         )
     ],

@@ -1,15 +1,22 @@
 import { GetPlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/GetPlant.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { catalogIdKey } from '../../../../../../src/Contexts/shared/application/cache/index.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { FamilySummaryReaderMock } from '../../__mocks__/FamilySummaryReaderMock.js';
+import { PlantLikesCounterReaderFake } from '../../__mocks__/PlantLikesCounterReaderFake.js';
 import { PlantReadRepositoryMock } from '../../__mocks__/PlantReadRepositoryMock.js';
 import { FamilySummaryViewMother } from '../queries/FamilySummaryViewMother.js';
 import { PlantReadViewMother } from '../queries/PlantReadViewMother.js';
 
+const CATALOG_TTL = 86400;
+
 describe('GetPlant', () => {
   let repository: PlantReadRepositoryMock;
   let familySummaryReader: FamilySummaryReaderMock;
+  let likesCounter: PlantLikesCounterReaderFake;
+  let cache: CacheRepositoryFake;
   let getPlant: GetPlant;
   const USER: UserSessionInfo = {
     username: 'user',
@@ -33,9 +40,14 @@ describe('GetPlant', () => {
   beforeEach(() => {
     repository = new PlantReadRepositoryMock();
     familySummaryReader = new FamilySummaryReaderMock();
+    likesCounter = new PlantLikesCounterReaderFake();
+    cache = new CacheRepositoryFake();
     getPlant = new GetPlant({
       plantReadRepository: repository,
-      familySummaryReader
+      familySummaryReader,
+      plantLikesCounterRepository: likesCounter,
+      cacheRepository: cache,
+      cacheCatalogTtlSeconds: CATALOG_TTL
     });
   });
 
@@ -105,7 +117,41 @@ describe('GetPlant', () => {
     const plant = PlantReadViewMother.breakingABusinessRule();
     repository.addToStorage(plant);
 
-    await expect(getPlant.execute(plant.id, USER)).resolves.toBe(plant);
+    await expect(getPlant.execute(plant.id, USER)).resolves.toEqual(plant);
+  });
+
+  describe('resolving by slug', () => {
+    it('looks up an active plant by slug when the id is not a UUID', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await expect(getPlant.execute(plant.slug!, USER)).resolves.toEqual(plant);
+
+      repository.assertFindActiveBySlugHasBeenCalledWith(plant.slug!);
+      repository.assertFindActiveByIdNotCalled();
+    });
+
+    it('looks up a deleted plant by slug for admins', async () => {
+      const plant = PlantReadViewMother.deleted();
+      repository.addToStorage(plant);
+
+      await expect(getPlant.execute(plant.slug!, ADMIN)).resolves.toEqual(
+        plant
+      );
+
+      repository.assertFindBySlugHasBeenCalledWith(plant.slug!);
+    });
+
+    it('hides a deleted plant from regular users looking up by slug', async () => {
+      const plant = PlantReadViewMother.deleted();
+      repository.addToStorage(plant);
+
+      await expect(getPlant.execute(plant.slug!, USER)).rejects.toBeInstanceOf(
+        DomainNotFoundException
+      );
+
+      repository.assertFindActiveBySlugHasBeenCalledWith(plant.slug!);
+    });
   });
 
   describe('with a fieldset', () => {
@@ -190,6 +236,84 @@ describe('GetPlant', () => {
 
       expect(result).toEqual({ id: plant.id, traits: plant.traits });
       familySummaryReader.assertNotCalled();
+    });
+  });
+
+  describe('caching', () => {
+    it('caches the full entry under its id key with the catalog TTL', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await getPlant.execute(plant.id, USER);
+
+      expect(cache.setMock).toHaveBeenCalledWith(
+        catalogIdKey('plants', plant.id),
+        expect.objectContaining({ id: plant.id }),
+        CATALOG_TTL
+      );
+    });
+
+    it('excludes the volatile likesCount from the cached projection', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await getPlant.execute(plant.id, USER);
+
+      const [, cachedValue] = cache.setMock.mock.calls[0]!;
+      expect(cachedValue).not.toHaveProperty('likesCount');
+    });
+
+    it('serves a repeated read from cache without re-querying the repository', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+      const findActiveById = jest.spyOn(repository, 'findActiveById');
+
+      await getPlant.execute(plant.id, USER);
+      await getPlant.execute(plant.id, USER);
+
+      expect(findActiveById).toHaveBeenCalledTimes(1);
+    });
+
+    it('merges the live likesCount on a cold read', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+      likesCounter.set(plant.id, 7);
+
+      const result = await getPlant.execute(plant.id, USER);
+
+      expect(result.likesCount).toBe(7);
+    });
+
+    it('merges updated live likesCount on a warm cache read', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+      likesCounter.set(plant.id, 7);
+      await getPlant.execute(plant.id, USER);
+      likesCounter.set(plant.id, 9);
+
+      const result = await getPlant.execute(plant.id, USER);
+
+      expect(result.likesCount).toBe(9);
+    });
+
+    it('bypasses the cache entirely for a curator read', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await getPlant.execute(plant.id, ADMIN);
+
+      expect(cache.getMock).not.toHaveBeenCalled();
+      expect(cache.setMock).not.toHaveBeenCalled();
+    });
+
+    it('bypasses the cache for a sparse fieldset read', async () => {
+      const plant = PlantReadViewMother.tomato();
+      repository.addToStorage(plant);
+
+      await getPlant.execute(plant.id, USER, { fields: ['identity'] });
+
+      expect(cache.getMock).not.toHaveBeenCalled();
+      expect(cache.setMock).not.toHaveBeenCalled();
     });
   });
 });

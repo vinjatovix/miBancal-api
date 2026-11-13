@@ -13,7 +13,10 @@ import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
 import type { BedId } from '../BedId.js';
 import { BedName } from '../BedName.js';
+import { BedRotation } from '../valueObjects/BedRotation.js';
 import type { BedDimensionsChanges } from './types/BedDimensionsChanges.js';
+import type { BedGeographicSnapshot } from './types/BedGeographicSnapshot.js';
+import type { BedPosition } from './types/BedPosition.js';
 import type { BedProps } from './types/BedProps.js';
 
 type BedState = BedProps & { version: number };
@@ -34,6 +37,18 @@ export class Bed extends AggregateRoot<BedId> {
     return this.props.name;
   }
 
+  get position(): BedPosition | undefined {
+    return this.props.position;
+  }
+
+  get rotation(): number | undefined {
+    return this.props.rotation;
+  }
+
+  get netOrientation(): number | undefined {
+    return this.props.netOrientation;
+  }
+
   get width(): PositiveNumber {
     return this.props.width;
   }
@@ -44,6 +59,14 @@ export class Bed extends AggregateRoot<BedId> {
 
   get depth(): PositiveNumber {
     return this.props.depth;
+  }
+
+  get latitude(): number | undefined {
+    return this.props.latitude;
+  }
+
+  get longitude(): number | undefined {
+    return this.props.longitude;
   }
 
   get metadata(): Metadata {
@@ -60,6 +83,10 @@ export class Bed extends AggregateRoot<BedId> {
 
   get userId(): UserId {
     return this.props.userId;
+  }
+
+  get locationId(): string | null {
+    return this.props.locationId ?? null;
   }
 
   get version(): number {
@@ -123,6 +150,95 @@ export class Bed extends AggregateRoot<BedId> {
     this.commit({ width, height, depth }, user, at);
   }
 
+  /**
+   * Sets/replaces the geographic coordinates snapshot (`geo`) or clears it (`null`),
+   * mirroring `rename`/`resize`. No-op when the resolved snapshot does not change.
+   */
+  applyLocationSnapshot(
+    geo: BedGeographicSnapshot | null,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    if (this.isDeleted) {
+      throw new DomainConflictException(
+        'Cannot change the location snapshot of a deleted bed'
+      );
+    }
+
+    const before = {
+      latitude: this.props.latitude,
+      longitude: this.props.longitude
+    };
+    const after: Partial<BedGeographicSnapshot> = geo ?? {};
+
+    if (!hasStateChanged(before, after)) return;
+
+    const nextProps: BedState = {
+      ...this.props,
+      metadata: Metadata.update(this.props.metadata, user, at)
+    };
+
+    delete nextProps.latitude;
+    delete nextProps.longitude;
+
+    if (after.latitude !== undefined) nextProps.latitude = after.latitude;
+    if (after.longitude !== undefined) nextProps.longitude = after.longitude;
+
+    this.props = Object.freeze(nextProps);
+  }
+
+  private applyRelocationProps(
+    locationId: string,
+    geo: BedGeographicSnapshot | null,
+    user: string,
+    at: Date
+  ): BedState {
+    const nextProps: BedState = {
+      ...this.props,
+      locationId,
+      metadata: Metadata.update(this.props.metadata, user, at)
+    };
+
+    delete nextProps.latitude;
+    delete nextProps.longitude;
+
+    if (geo?.latitude !== undefined) nextProps.latitude = geo.latitude;
+    if (geo?.longitude !== undefined) nextProps.longitude = geo.longitude;
+
+    return nextProps;
+  }
+
+  /**
+   * Relocates the bed to another location and updates the geographic coordinates snapshot atomically.
+   */
+  relocate(
+    locationId: string,
+    geo: BedGeographicSnapshot | null,
+    user: string,
+    at: Date = new Date()
+  ): void {
+    if (this.isDeleted) {
+      throw new DomainConflictException('Cannot relocate a deleted bed');
+    }
+
+    const before = {
+      locationId: this.props.locationId ?? null,
+      latitude: this.props.latitude,
+      longitude: this.props.longitude
+    };
+    const after = {
+      locationId,
+      latitude: geo?.latitude,
+      longitude: geo?.longitude
+    };
+
+    if (!hasStateChanged(before, after)) return;
+
+    this.props = Object.freeze(
+      this.applyRelocationProps(locationId, geo, user, at)
+    );
+  }
+
   markAsDeleted(user: string, at: Date = new Date()): void {
     if (this.isDeleted) {
       throw new DomainConflictException('Bed is already deleted');
@@ -133,6 +249,56 @@ export class Bed extends AggregateRoot<BedId> {
 
   static create(props: BedProps): Bed {
     return new Bed(props);
+  }
+
+  place(
+    position: BedPosition,
+    bedRotation: number,
+    canvasNorthAngle: number | undefined,
+    actor: string,
+    at: Date
+  ): void {
+    if (this.props.deleted) {
+      throw new DomainConflictException('Cannot modify deleted bed');
+    }
+
+    if (!Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+      throw new InvalidArgumentException(
+        'Bed position coordinates must be finite numbers'
+      );
+    }
+
+    const rotation = new BedRotation(bedRotation);
+
+    let netOrientation = rotation.value;
+    if (canvasNorthAngle !== undefined) {
+      netOrientation = (canvasNorthAngle + rotation.value) % 360;
+    }
+
+    this.commit(
+      {
+        position,
+        rotation: rotation.value,
+        netOrientation
+      },
+      actor,
+      at
+    );
+  }
+
+  unplace(actor: string, at: Date): void {
+    if (this.props.deleted) {
+      throw new DomainConflictException('Cannot modify deleted bed');
+    }
+    this.commit(
+      {
+        position: undefined,
+        rotation: undefined,
+        netOrientation: undefined
+      },
+      actor,
+      at
+    );
   }
 
   private commit(changes: Partial<BedProps>, user: string, at: Date): void {

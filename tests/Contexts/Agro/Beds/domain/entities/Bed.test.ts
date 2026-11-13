@@ -296,4 +296,152 @@ describe('Bed (unit)', () => {
       }
     );
   });
+
+  describe('applyLocationSnapshot', () => {
+    it('sets coordinates from the snapshot', () => {
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+
+      expect(bed.latitude).toBe(40.4168);
+      expect(bed.longitude).toBe(-3.7038);
+    });
+
+    it('replaces a previous snapshot entirely', () => {
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+
+      bed.applyLocationSnapshot(
+        { latitude: 41.3879, longitude: 2.1699 },
+        'gardener'
+      );
+
+      expect(bed.latitude).toBe(41.3879);
+      expect(bed.longitude).toBe(2.1699);
+    });
+
+    it('clears the snapshot with null', () => {
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+
+      bed.applyLocationSnapshot(null, 'gardener');
+
+      expect(bed.latitude).toBeUndefined();
+      expect(bed.longitude).toBeUndefined();
+    });
+
+    it('is a no-op when the resolved snapshot does not change', () => {
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+      const metadata = bed.metadata;
+
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+
+      expect(bed.metadata).toBe(metadata);
+    });
+
+    it('rejects changing the snapshot of a deleted bed', () => {
+      bed.markAsDeleted('gardener');
+
+      expect(() =>
+        bed.applyLocationSnapshot(
+          { latitude: 40.4168, longitude: -3.7038 },
+          'gardener'
+        )
+      ).toThrow(DomainConflictException);
+    });
+  });
+
+  describe('locationId and relocate', () => {
+    it('defaults locationId to null when omitted', () => {
+      expect(bed.locationId).toBeNull();
+    });
+
+    it('exposes assigned locationId', () => {
+      const locationId = '11111111-1111-4111-8111-111111111111';
+      const bedWithLocation = new Bed({
+        id: randomBedId(),
+        userId: randomUserId(),
+        locationId,
+        name: new BedName(BED_NAME),
+        width: PositiveNumber.create(BED_DIMENSION),
+        height: PositiveNumber.create(BED_DIMENSION),
+        depth: PositiveNumber.create(BED_DEPTH),
+        metadata: Metadata.create('system'),
+        deleted: false
+      });
+
+      expect(bedWithLocation.locationId).toBe(locationId);
+    });
+
+    it('relocates to a new location and updates coordinates snapshot', () => {
+      const newLocationId = '22222222-2222-4222-8222-222222222222';
+      const beforeMetadata = bed.metadata;
+
+      bed.relocate(
+        newLocationId,
+        { latitude: 41.3879, longitude: 2.1699 },
+        'gardener'
+      );
+
+      expect(bed.locationId).toBe(newLocationId);
+      expect(bed.latitude).toBe(41.3879);
+      expect(bed.longitude).toBe(2.1699);
+      expect(bed.metadata).not.toBe(beforeMetadata);
+    });
+
+    it('relocates to a location without coordinates and clears existing coordinates', () => {
+      bed.applyLocationSnapshot(
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+      const newLocationId = '22222222-2222-4222-8222-222222222222';
+
+      bed.relocate(newLocationId, null, 'gardener');
+
+      expect(bed.locationId).toBe(newLocationId);
+      expect(bed.latitude).toBeUndefined();
+      expect(bed.longitude).toBeUndefined();
+    });
+
+    it('is a no-op when relocating to same location with same coordinates', () => {
+      const locationId = '11111111-1111-4111-8111-111111111111';
+      bed.relocate(
+        locationId,
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+      const metadata = bed.metadata;
+
+      bed.relocate(
+        locationId,
+        { latitude: 40.4168, longitude: -3.7038 },
+        'gardener'
+      );
+
+      expect(bed.metadata).toBe(metadata);
+    });
+
+    it('rejects relocating a deleted bed', () => {
+      bed.markAsDeleted('gardener');
+
+      expect(() =>
+        bed.relocate(
+          '22222222-2222-4222-8222-222222222222',
+          { latitude: 41.3879, longitude: 2.1699 },
+          'gardener'
+        )
+      ).toThrow(DomainConflictException);
+    });
+  });
 });

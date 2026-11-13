@@ -7,8 +7,12 @@ import {
   setWorldConstructor
 } from '@cucumber/cucumber';
 
+import { up as seedRolesIndexAndGuard } from '../../../../../migrations/scripts/20261018120000-users-roles-index-and-admin-guard.js';
 import {
   AgroWorld,
+  resetSuiteCache,
+  seedMockGardenInputs,
+  seedSuiteUsers,
   settledMailbox,
   startSuite,
   stopSuite,
@@ -24,9 +28,12 @@ setWorldConstructor(AgroWorld);
 BeforeAll(startSuite);
 
 Before(async () => {
-  // Emails still leaving from the previous scenario must not land in this one.
   (await settledMailbox()).clear();
+  resetSuiteCache();
   await suite().environmentArranger.arrange();
+  await seedRolesIndexAndGuard(suite().client.db());
+  await seedMockGardenInputs(suite().client.db());
+  await seedSuiteUsers(suite().client.db());
 });
 
 AfterAll(stopSuite);
@@ -34,12 +41,13 @@ AfterAll(stopSuite);
 const ROLES: Readonly<Record<string, Role>> = {
   user: 'user',
   admin: 'admin',
+  collaborator: 'collaborator',
   'logged-in': 'loggedIn'
 };
 
 defineParameterType({
   name: 'role',
-  regexp: /logged-in|user|admin/,
+  regexp: /logged-in|user|admin|collaborator/,
   transformer: (value: string): Role => {
     const role = ROLES[value];
     if (!role) {

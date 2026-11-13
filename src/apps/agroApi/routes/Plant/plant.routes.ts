@@ -9,9 +9,10 @@ import {
 } from '../../controllers/Plants/requestSchemas.js';
 import {
   auth,
-  isAdmin,
+  isCatalogMaintainer,
   optionalAuth,
   requireIfMatch,
+  userRateLimiter,
   validateRequest
 } from '../../middlewares/index.js';
 import type { RegisterRoutes } from '../route.types.js';
@@ -24,7 +25,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.post(
     `${prefix}/`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     validateRequest(createPlantRequest),
     plantApiInvoker('createPlant')
   );
@@ -32,6 +33,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(
     `${prefix}/`,
     optionalAuth,
+    userRateLimiter,
     validateRequest(listPlantsRequest),
     plantApiInvoker('getAllPlants')
   );
@@ -39,13 +41,14 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.get(
     `${prefix}/:id`,
     optionalAuth,
+    userRateLimiter,
     validateRequest(getPlantByIdRequest),
     plantApiInvoker('getPlantById')
   );
   router.patch(
     `${prefix}/:id`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     requireIfMatch,
     validateRequest(updatePlantRequest),
     plantApiInvoker('updatePlant')
@@ -53,7 +56,7 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
   router.delete(
     `${prefix}/:id`,
     auth,
-    isAdmin,
+    isCatalogMaintainer,
     requireIfMatch,
     validateRequest(deletePlantRequest),
     plantApiInvoker('deletePlant')

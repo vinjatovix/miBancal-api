@@ -119,9 +119,9 @@ Spacing is:
 
 ### 4.3 Phenology (time behavior model)
 
-#### Sowing `[TARGET STATE (Pending [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
+#### Sowing `[CURRENT STATE (Done in [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
 
-Encapsulated under `phenology.sowing` as an **optional, structured submodel (PlantSowing)**. For plants that are sterile or only propagated vegetatively (such as Russian Comfrey _Symphytum x uplandicum_ / _Bocking 14_ which has no viable seeds), the `sowing` block can be completely omitted (`null` or `undefined`).
+Encapsulated under `phenology.sowing` as an **optional, structured submodel (PlantSowing)**. For plants that are sterile or only propagated vegetatively (such as Russian Comfrey _Symphytum x uplandicum_ / _Bocking 14_ which has no viable seeds), the `sowing` block can be completely omitted. Absence is modeled by **omitting the key** from the document and responses, never by storing `null` (only `deletedAt: null` is allowed). On `PATCH`, `sowing: null` clears it, a partial object merges into an existing block, and a full valid block is required when adding sowing to a plant that had none.
 
 If present, `PlantSowing` comprises:
 
@@ -131,7 +131,7 @@ If present, `PlantSowing` comprises:
 - `months`: MonthSet (the allowed calendar months for sowing)
 - `methods`: Object containing specific sowing methods and their depths:
   - `direct`: SowingMethod (mandatory, containing `depthCm: Range` for direct soil sowing)
-  - `nursery`: SowingMethod (optional, containing `depthCm: Range` for starter seedbed cells; **`[TARGET STATE (Pending [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`** - currently named `starter` in the codebase and slated to be renamed to `nursery` in [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))
+  - `nursery`: SowingMethod (optional, containing `depthCm: Range` for starter seedbed cells; **`[TARGET STATE (Pending)]`** - currently named `starter` in the codebase and slated to be renamed to `nursery`; the rename is a separate target and was **not** part of [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional), which only made the block optional)
 
 Rules:
 
@@ -264,6 +264,7 @@ Rules:
 - `GET /plants` and `GET /plants/:id` show deleted plants only to admins and collaborators (`canSeeDeletedPlants`); for everyone else the listing adds `status: { eq: ACTIVE }` to the filter, which `PlantQueryMapper` translates to the `status` field (`findAll` does not apply `activeFilter()`)
 - **Read path (Iteration 18)**: `GetPlant` and `ListPlants` depend on the read port `PlantReadRepository` (`application/queries/`), not on `PlantRepository`; they return `PlantReadView` (plain stored data) and never build a `Plant`. The visibility rule above is unchanged. Write use cases keep loading the aggregate (persistence.md §5.8.8)
 - **Derived `image` (Iteration 19b)**: `PlantReadView` has `image`, computed from `knowledge.resources` by the read projection and shaped by the read mapper (§4.4.2, Primary image). It is the only plant read field not copied from a stored field
+- **Derived `identity.genus`**: `identity.genus` is a read-only projection, the first word of `scientificName` capitalized (first letter upper, rest lower; stored scientific names are lower-case). It is never stored and never accepted on write. It is absent when no valid genus can be derived (e.g. a leading hybrid "×"). The same derivation (`shared/domain/utils/deriveGenus`, the rule of `TaxonomicScope.genus`) runs in both the read mapper and the write-response mapper, so a write response and a later read stay identical (parity test). The plant-relations context reuses it to resolve `appliesToPlantId` (plant-relation.md §8bis)
 
 ---
 

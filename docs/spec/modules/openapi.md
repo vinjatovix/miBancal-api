@@ -166,11 +166,12 @@ parameters:
 
 ---
 
-#### Optional Sowing Schema Alignment `[TARGET STATE (Pending [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
+#### Optional Sowing Schema Alignment `[CURRENT STATE (Done in [Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional))]`
 
-When implementing **[Iteration 35](../../roadmap.md#iteration-35-make-plant-sowing-block-optional) (Sowing Validation Refinement)**, the developer MUST update the external API contract inside `@src/apps/agroApi/openapi/openapi.yaml`:
+The external API contract in `src/apps/agroApi/openapi/openapi.yaml` reflects the optional sowing block:
 
-- **Plant and UpdatePlant Schemas:** The `phenology.sowing` property MUST be updated to support `nullable: true` (or omitted from the parent `required` array), allowing plants that are sterile or only propagated vegetatively (such as Russian Comfrey) to bypass the sowing definition without violating the OpenAPI schema contract during E2E or contract testing.
+- **PlantPhenology / CreatePlant:** `sowing` is no longer in the `required` array (the property still references `PlantSowing`); a create body may omit it entirely and the response omits the key when absent (never `null`), so sterile or vegetatively propagated plants (such as Russian Comfrey) validate against the contract in E2E and contract testing.
+- **UpdatePlant:** `phenology.sowing` is `nullable: true` with all sub-fields optional — `null` clears the block, a partial object merges when sowing exists, a full valid block is required when adding it, and an absent key keeps the stored value. The `PlantSowing` component itself is unchanged.
 
 ---
 
@@ -204,10 +205,33 @@ When implementing **[Iteration 35](../../roadmap.md#iteration-35-make-plant-sowi
 
 #### Schemas
 
-- `Bed` (response; `name` and `depth` always present)
+- `Bed` (response; `name` and `depth` always present; optional `position` and `rotation`)
 - `CreateBed`: `id` (UUID), `name` (`RequiredShortText`), `width`/`height`/`depth` (`BedDimension`: JSON number > 0); `additionalProperties: false`
-- `UpdateBed`: any of `name`, `width`, `height`, `depth`, none nullable; `{}` is a no-op; no `plantInstances`; `additionalProperties: false`
+- `UpdateBed`: any of `name`, `width`, `height`, `depth`, `position` (object `{ x, y }` or `null`), `rotation` (`0–359` or `null`); `{}` is a no-op; no `plantInstances`; `additionalProperties: false`
 - `BedId` path parameter (`format: uuid`); `GET /beds` and `GET /beds/{id}` declare `400`
+
+---
+
+### 6.3bis Locations (user) `[DELIVERED (Iteration 29 & Feature 052)]`
+
+#### Locations Endpoints
+
+- POST /api/v1/locations
+- GET /api/v1/locations
+- GET /api/v1/locations/:id
+- PATCH /api/v1/locations/:id
+- DELETE /api/v1/locations/:id
+- GET /api/v1/locations/:id/layout
+- PATCH /api/v1/locations/:id/beds-layout
+
+#### Schemas
+
+- `Location` (response; includes `name`, geographic attributes, `northAngle`, `canvasDimensions`)
+- `CreateLocation`: `name` (`RequiredShortText`), optional geographic fields (`postalCode`, `country`, `timezone`, `hemisphere`), `northAngle` (0–359), `canvasDimensions` (`{ width, height }`); `additionalProperties: false`
+- `UpdateLocation`: JSON Merge Patch; fields `null` unsets, omitted leaves unchanged; accepts `northAngle` and `canvasDimensions`; `additionalProperties: false`
+- `LocationSummary`: lightweight projection for embedding in related resources
+- `LocationLayoutResponse`: full site layout with canvas dimensions, placed beds array, projected plant instance coordinates, and cross-bed companion relationships
+- `BedLayoutPlacementInput`: element schema for `PATCH /api/v1/locations/:id/beds-layout` array (`bedId`, `position: { x, y }`, `rotation`)
 
 ---
 
@@ -265,7 +289,7 @@ PlantInstances are managed as standalone aggregates associated with a specific B
 
 ### 6.7 Knowledge `[TARGET STATE (Pending Iterations [39](../../roadmap.md#iteration-39-implement-anomaly-domain-and-crud-endpoints) & [40](../../roadmap.md#iteration-40-implement-gardeninput-domain-and-crud-endpoints))]`
 
-- anomalies (unifies pests, diseases, disorders, weeds)
+- anomalies (unifies pests, diseases, disorders)
   - POST /api/v1/anomalies (admin | collaborator)
   - GET /api/v1/anomalies (public)
   - GET /api/v1/anomalies/:id (public)

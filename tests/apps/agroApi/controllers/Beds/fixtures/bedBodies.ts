@@ -4,6 +4,7 @@ type Body = Record<string, unknown>;
 
 export const buildCreateBedBody = (overrides: Body = {}): Body => ({
   id: random.uuid(),
+  locationId: random.uuid(),
   name: 'Raised bed',
   width: 120,
   height: 240,

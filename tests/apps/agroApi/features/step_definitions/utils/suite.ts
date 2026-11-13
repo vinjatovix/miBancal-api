@@ -1,12 +1,15 @@
 import type { Server } from 'node:http';
-import type { MongoClient } from 'mongodb';
+import { asValue, type NameAndRegistrationPair } from 'awilix';
+import type { Binary, Db, MongoClient } from 'mongodb';
 
 import { AgroBackApp } from '../../../../../../src/apps/agroApi/AgroBackApp.js';
 import {
   createAppContainer,
-  type AppContainer
+  type AppContainer,
+  type ContainerCradle
 } from '../../../../../../src/apps/agroApi/container.js';
 import type { AuthRepository } from '../../../../../../src/Contexts/Auth/domain/repositories/interfaces/AuthRepository.js';
+import { toMongoId } from '../../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
 import type {
   EncrypterTool,
   OneTimeTokenTool
@@ -16,31 +19,35 @@ import {
   DBClientFactory,
   DBConfigFactory
 } from '../../../../../../src/shared/infrastructure/persistence/index.js';
-import { UserMother } from '../../../../../Contexts/Auth/domain/mothers/UserMother.js';
 import { random } from '../../../../../Contexts/shared/fixtures/random.js';
 import { SOURCE_ROOT } from '../../../../../shared/sourceRoot.js';
+import { FakeGithubIdentityProvider } from '../../shared/fakes/FakeGithubIdentityProvider.js';
+import { FakeGoogleIdTokenVerifier } from '../../shared/fakes/FakeGoogleIdTokenVerifier.js';
 import {
+  AnomalySeeder,
   FamilySeeder,
+  GardenInputSeeder,
   PlantSeeder,
   UserSeeder
 } from '../../shared/seeders/index.js';
 
 export type SuiteRole = 'admin' | 'user' | 'anotherUser' | 'collaborator';
 
-/** Resources built once per run and shared, read-only, by every scenario. */
 export interface SuiteResources {
   readonly app: AgroBackApp;
   readonly httpServer: Server;
   readonly client: MongoClient;
   readonly container: AppContainer;
-  /** The container serving the API's requests (its mailer, its tasks). */
   readonly appContainer: AppContainer;
   readonly environmentArranger: EnvironmentArranger;
   readonly tokens: Readonly<Record<SuiteRole, string>>;
   readonly ids: Readonly<Record<SuiteRole, string>>;
+  readonly usernames: Readonly<Record<SuiteRole, string>>;
   readonly seeders: Readonly<{
     plant: ReturnType<typeof PlantSeeder>;
     family: ReturnType<typeof FamilySeeder>;
+    anomaly: ReturnType<typeof AnomalySeeder>;
+    gardenInput: ReturnType<typeof GardenInputSeeder>;
     user: ReturnType<typeof UserSeeder>;
   }>;
 }
@@ -56,13 +63,14 @@ const SUITE_USERS: Readonly<
 
 const generateTokens = async (
   encrypter: EncrypterTool,
-  ids: Readonly<Record<SuiteRole, string>>
+  ids: Readonly<Record<SuiteRole, string>>,
+  usernames: Readonly<Record<SuiteRole, string>>
 ): Promise<Record<SuiteRole, string>> => {
   const tokenFor = async (role: SuiteRole): Promise<string> => {
     const token = await encrypter.generateToken({
       id: ids[role],
       email: SUITE_USERS[role].email,
-      username: UserMother.random().username.value,
+      username: usernames[role],
       roles: SUITE_USERS[role].roles
     });
     if (!token) {
@@ -86,10 +94,16 @@ const buildSuite = async (): Promise<SuiteResources> => {
     DBConfigFactory.createConfig()
   );
 
+  const overrides: NameAndRegistrationPair<ContainerCradle> = {
+    googleIdTokenVerifier: asValue(new FakeGoogleIdTokenVerifier()),
+    githubIdentityProvider: asValue(new FakeGithubIdentityProvider())
+  };
+
   const container = await createAppContainer({
     db: client.db(),
     client,
-    sourceRoot: SOURCE_ROOT
+    sourceRoot: SOURCE_ROOT,
+    overrides
   });
 
   const environmentArranger = container.resolve<EnvironmentArranger>(
@@ -99,7 +113,8 @@ const buildSuite = async (): Promise<SuiteResources> => {
   const app = new AgroBackApp({
     host: process.env.HOST || 'http://localhost',
     port: process.env.PORT || '0',
-    sourceRoot: SOURCE_ROOT
+    sourceRoot: SOURCE_ROOT,
+    overrides
   });
 
   await app.start(container.resolve('logger'));
@@ -124,7 +139,14 @@ const buildSuite = async (): Promise<SuiteResources> => {
     collaborator: random.uuid()
   };
 
-  const tokens = await generateTokens(encrypter, ids);
+  const usernames: Record<SuiteRole, string> = {
+    admin: 'admin_user',
+    user: 'regular_user',
+    anotherUser: 'another_user',
+    collaborator: 'collab_user'
+  };
+
+  const tokens = await generateTokens(encrypter, ids, usernames);
 
   return {
     app,
@@ -135,9 +157,12 @@ const buildSuite = async (): Promise<SuiteResources> => {
     environmentArranger,
     tokens,
     ids,
+    usernames,
     seeders: {
       family: FamilySeeder(httpServer, tokens.admin),
       plant: PlantSeeder(httpServer, tokens.admin),
+      anomaly: AnomalySeeder(httpServer, tokens.admin),
+      gardenInput: GardenInputSeeder(httpServer, tokens.admin),
       user: UserSeeder({
         authRepository: container.resolve<AuthRepository>('authRepository'),
         encrypter,
@@ -145,6 +170,45 @@ const buildSuite = async (): Promise<SuiteResources> => {
       })
     }
   };
+};
+
+type SuiteUserDoc = { _id: Binary | string } & Record<string, unknown>;
+
+export const seedSuiteUsers = async (db: Db): Promise<void> => {
+  const usersCollection = db.collection<SuiteUserDoc>('users');
+  const now = new Date();
+  const suiteRes = suite();
+  const rolesToSeed: SuiteRole[] = ['user', 'anotherUser'];
+
+  await Promise.all(
+    rolesToSeed.map((role) => {
+      const id = suiteRes.ids[role];
+      const username = suiteRes.usernames[role];
+      const email = SUITE_USERS[role].email;
+      const roles = SUITE_USERS[role].roles;
+
+      return usersCollection.updateOne(
+        { _id: toMongoId(id) },
+        {
+          $setOnInsert: {
+            _id: toMongoId(id),
+            email,
+            username,
+            emailValidated: true,
+            roles,
+            metadata: {
+              createdAt: now,
+              createdBy: username,
+              updatedAt: now,
+              updatedBy: username
+            },
+            version: 0
+          }
+        },
+        { upsert: true }
+      );
+    })
+  );
 };
 
 class SuiteHolder {
@@ -167,16 +231,12 @@ class SuiteHolder {
   }
 
   async stop(): Promise<void> {
-    // A failed start leaves nothing to stop; throwing here would hide its error.
     if (!this.#resources) {
       return;
     }
 
     const { app, client, container } = this.#resources;
 
-    // HTTP first, then the database. `app.stop` already closes the factory's
-    // cached client; closing ours again is a no-op that keeps this teardown
-    // independent of that cache. The client closes even if the HTTP stop fails.
     try {
       await app.stop(container.resolve('logger'));
     } finally {
@@ -193,3 +253,20 @@ export const startSuite = (): Promise<void> => holder.start();
 export const suite = (): Readonly<SuiteResources> => holder.get();
 
 export const stopSuite = (): Promise<void> => holder.stop();
+
+interface ClearableCache {
+  clear: () => void;
+}
+
+const isClearable = (value: unknown): value is ClearableCache =>
+  typeof (value as { clear?: unknown }).clear === 'function';
+
+export const resetSuiteCache = (): void => {
+  const { container, appContainer } = suite();
+  for (const current of new Set([container, appContainer])) {
+    const cache: unknown = current.resolve('cacheRepository');
+    if (isClearable(cache)) {
+      cache.clear();
+    }
+  }
+};

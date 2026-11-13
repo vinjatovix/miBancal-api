@@ -110,7 +110,7 @@ export class CreatePlantDtoMother {
         ...dto.phenology,
 
         sowing: {
-          ...dto.phenology.sowing,
+          ...dto.phenology.sowing!,
           months: [2]
         },
 
@@ -136,6 +136,14 @@ export class CreatePlantDtoMother {
         name: { ...dto.identity.name, aliases: ['Tomatera'] }
       }
     };
+  }
+
+  /** A vegetatively propagated / sterile crop: no sowing block at all. */
+  static withoutSowing(): CreatePlantDto {
+    const dto = base();
+    const { sowing: _sowing, ...phenology } = dto.phenology;
+
+    return { ...dto, phenology };
   }
 
   /** A plant that never flowers and is not harvested. */

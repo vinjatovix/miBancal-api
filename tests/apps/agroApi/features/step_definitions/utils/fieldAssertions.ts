@@ -7,9 +7,17 @@ type Operator = (actual: unknown, expected: unknown) => boolean;
 export const operators = {
   eq: (a, b) => a === b,
 
+  // Presence checks: the expected cell is ignored (leave it blank).
+  exists: (a) => a !== undefined,
+  absent: (a) => a === undefined,
+
   // A single expected value (no comma in the cell) counts as a one-item list.
   hasAny: (a, b) =>
     Array.isArray(a) && (Array.isArray(b) ? b : [b]).some((v) => a.includes(v)),
+
+  // The scalar `actual` is one of the expected values (a single cell counts as
+  // a one-item list).
+  in: (a, b) => (Array.isArray(b) ? b : [b]).includes(a),
 
   contains: (a, b) =>
     typeof a === 'string' && typeof b === 'string' && a.includes(b),

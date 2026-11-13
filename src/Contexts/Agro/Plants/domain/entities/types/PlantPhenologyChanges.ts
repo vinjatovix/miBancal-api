@@ -27,7 +27,9 @@ export type PlantHarvestChanges = {
 };
 
 export type PlantPhenologyChanges = {
-  sowing?: PlantSowingChanges;
+  // `null` clears the sowing block; an object merges (when sowing exists) or
+  // builds a full one (when it is absent); an absent key keeps the stored value.
+  sowing?: PlantSowingChanges | null;
   flowering?: PlantFloweringChanges;
   harvest?: PlantHarvestChanges;
 };

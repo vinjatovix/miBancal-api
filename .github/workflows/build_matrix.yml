@@ -13,10 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Use Node.js 22.x
+      - name: Use Node.js 24.22.1
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: '24.22.1'
+          check-latest: true
 
       - name: Install dependencies
         run: |
@@ -73,14 +74,19 @@ jobs:
       GOOGLE_CLIENT_ID: your-google-client-id.apps.googleusercontent.com
 
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [22.x, 24.x]
+        include:
+          - node-version: '24.22.1'
+            experimental: false
+
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          check-latest: true
       - name: Install dependencies
         run: |
           npm ci --ignore-scripts

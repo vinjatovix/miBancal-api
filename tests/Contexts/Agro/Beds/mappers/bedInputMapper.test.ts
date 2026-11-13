@@ -16,6 +16,7 @@ describe('bedInputMapper', () => {
       expect(bed).toBeInstanceOf(Bed);
       expect(bed.id).toBe(input.id);
       expect(bed.userId).toBe(input.userId);
+      expect(bed.locationId).toBe(input.locationId);
       expect(bed.name.value).toBe(input.name);
       expect(bed.width.value).toBe(input.width);
       expect(bed.height.value).toBe(input.height);
@@ -42,6 +43,32 @@ describe('bedInputMapper', () => {
       expect(() =>
         bedInputMapper.fromCreateInputToDomain(input, 'tester')
       ).toThrow();
+    });
+
+    it('should map creator geographic snapshot when provided', () => {
+      const input = CreateBedInputMother.random();
+      const geoSnapshot = {
+        latitude: 40.4168,
+        longitude: -3.7038
+      };
+
+      const bed = bedInputMapper.fromCreateInputToDomain(
+        input,
+        'tester',
+        geoSnapshot
+      );
+
+      expect(bed.latitude).toBe(40.4168);
+      expect(bed.longitude).toBe(-3.7038);
+    });
+
+    it('should leave geographic fields undefined when snapshot is omitted', () => {
+      const input = CreateBedInputMother.random();
+
+      const bed = bedInputMapper.fromCreateInputToDomain(input, 'tester');
+
+      expect(bed.latitude).toBeUndefined();
+      expect(bed.longitude).toBeUndefined();
     });
   });
 

@@ -6,6 +6,7 @@ import type { BedPrimitives } from '../../../../../../../src/Contexts/Agro/Beds/
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
 import { MongoBedRepository } from '../../../../../../../src/Contexts/Agro/Beds/infrastructure/persistence/MongoBedRepository.js';
 import { bedDomainMapper } from '../../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
+import { randomUserId } from '../../../../../../../src/Contexts/Auth/domain/UserId.js';
 import {
   DomainConflictException,
   DomainNotFoundException,
@@ -61,6 +62,17 @@ describe('MongoBedRepository', () => {
       expect(found.width.value).toBe(bed.width.value);
       expect(found.height.value).toBe(bed.height.value);
       expect(found.name.value).toBe(bed.name.value);
+    });
+
+    it('should save and retrieve a bed with locationId', async () => {
+      const locationId = random.uuid();
+      const bed = BedFactory.create({ locationId });
+
+      await repository.save(bed);
+
+      const found = await findExisting(bed.id);
+
+      expect(found.locationId).toBe(locationId);
     });
 
     it('should return the bed reconstructed as the saved one', async () => {
@@ -474,6 +486,26 @@ describe('MongoBedRepository', () => {
         countSpy.mockRestore();
       }
     });
+
+    it('should persist relocated locationId as BSON Binary so it is retrievable via findByUserId filter', async () => {
+      const userId = randomUserId();
+      const initialLocationId = random.uuid();
+      const newLocationId = random.uuid();
+      const bed = BedFactory.create({ userId, locationId: initialLocationId });
+      await repository.save(bed);
+
+      const current = bedDomainMapper.toPrimitives(bed);
+      const updated = { ...current, locationId: newLocationId };
+      await repository.updateWithDiff(current, updated);
+
+      const found = await repository.findByUserId(userId, {
+        locationId: newLocationId
+      });
+
+      expect(found).toHaveLength(1);
+      expect(found[0]?.id).toBe(bed.id);
+      expect(found[0]?.locationId).toBe(newLocationId);
+    });
   });
 
   describe('findByUserId', () => {
@@ -492,6 +524,53 @@ describe('MongoBedRepository', () => {
 
     it('should return empty array if user has no beds', async () => {
       const found = await repository.findByUserId(random.uuid());
+
+      expect(found).toEqual([]);
+    });
+
+    it('should filter beds by locationId string', async () => {
+      const userId = randomUserId();
+      const locA = random.uuid();
+      const locB = random.uuid();
+      const bedA1 = BedFactory.create({ userId, locationId: locA });
+      const bedA2 = BedFactory.create({ userId, locationId: locA });
+      const bedB = BedFactory.create({ userId, locationId: locB });
+
+      await repository.save(bedA1);
+      await repository.save(bedA2);
+      await repository.save(bedB);
+
+      const found = await repository.findByUserId(userId, { locationId: locA });
+
+      expect(found.map((b) => b.id).sort()).toEqual(
+        [bedA1.id, bedA2.id].sort()
+      );
+    });
+
+    it('should filter beds by locationId exact object { eq }', async () => {
+      const userId = randomUserId();
+      const locA = random.uuid();
+      const bed = BedFactory.create({ userId, locationId: locA });
+
+      await repository.save(bed);
+
+      const found = await repository.findByUserId(userId, {
+        locationId: { eq: locA }
+      });
+
+      expect(found).toHaveLength(1);
+      expect(found[0]?.id).toBe(bed.id);
+    });
+
+    it('should return empty array for non-matching locationId', async () => {
+      const userId = randomUserId();
+      const bed = BedFactory.create({ userId, locationId: random.uuid() });
+
+      await repository.save(bed);
+
+      const found = await repository.findByUserId(userId, {
+        locationId: random.uuid()
+      });
 
       expect(found).toEqual([]);
     });

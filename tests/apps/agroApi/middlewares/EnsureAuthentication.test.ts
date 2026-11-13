@@ -96,3 +96,66 @@ describe('EnsureAuthentication.run', () => {
     expect(next).toHaveBeenCalledWith();
   });
 });
+
+describe('EnsureAuthentication.isCatalogMaintainer', () => {
+  const logger: MockLogger = {
+    warn: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn()
+  };
+
+  const makeReq = (): Request =>
+    ({
+      get: jest.fn().mockReturnValue('req-123'),
+      method: 'POST',
+      originalUrl: '/api/v1/plants',
+      ip: '127.0.0.1',
+      headers: {},
+      socket: { remoteAddress: '127.0.0.1' }
+    }) as unknown as Request;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it.each([
+    [['admin']],
+    [['collaborator']],
+    [['admin', 'collaborator']],
+    [['user', 'collaborator']],
+    [['user', 'admin']]
+  ])('calls next when user holds authorized roles %j', (roles) => {
+    const req = makeReq();
+    const res = { locals: { user: { roles } } } as unknown as Response;
+    const next = jest.fn() as NextFunction;
+
+    EnsureAuthentication.isCatalogMaintainer({ logger }, req, res, next);
+
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it.each([
+    [{ roles: ['user'] }, 'insufficient_role'],
+    [{ roles: [] }, 'insufficient_role'],
+    [{}, 'missing_roles'],
+    [undefined, 'missing_roles']
+  ])(
+    'throws forbidden error when user is %p',
+    (userPayload, expectedDenyReason) => {
+      const req = makeReq();
+      const res = {
+        locals: userPayload !== undefined ? { user: userPayload } : {}
+      } as unknown as Response;
+      const next = jest.fn() as NextFunction;
+
+      expect(() => {
+        EnsureAuthentication.isCatalogMaintainer({ logger }, req, res, next);
+      }).toThrow('Insufficient permissions');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(`[auth] ${expectedDenyReason}`)
+      );
+      expect(next).not.toHaveBeenCalled();
+    }
+  );
+});

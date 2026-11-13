@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 
 import type { Bed } from '../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
+import type { BedFilter } from '../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedFilter.js';
 import type { BedPrimitives } from '../../../../../src/Contexts/Agro/Beds/domain/entities/types/BedPrimitives.js';
 import type { BedRepository } from '../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
@@ -41,12 +42,37 @@ export class BedRepositoryMock
     this.storage.set(id, this.toDomain(primitives));
   }
 
-  findByUserId(userId: string): Promise<Bed[]> {
+  findByUserId(userId: string, filter?: BedFilter): Promise<Bed[]> {
+    const locationIdFilter = filter?.locationId;
+    const targetLocationId =
+      typeof locationIdFilter === 'object' &&
+      locationIdFilter !== null &&
+      'eq' in locationIdFilter
+        ? locationIdFilter.eq
+        : locationIdFilter;
+
     const beds = Array.from(this.storage.values()).filter((bed) => {
-      return bed.userId === userId;
+      const matchesUser = bed.userId === userId && this.isActive(bed);
+      if (!matchesUser) return false;
+      if (targetLocationId !== undefined) {
+        return bed.locationId === targetLocationId;
+      }
+      return true;
     });
     return Promise.resolve(beds);
   }
+
+  async updateLayouts(beds: Bed[]): Promise<void> {
+    for (const bed of beds) {
+      const stored = this.storage.get(bed.id);
+      if (stored) {
+        const primitives = this.toPrimitives(bed);
+        primitives.version = stored.version + 1;
+        this.storage.set(bed.id, this.toDomain(primitives));
+      }
+    }
+  }
+
   protected toDomain(primitives: BedPrimitives): Bed {
     return bedDomainMapper.fromPrimitives(primitives);
   }

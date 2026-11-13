@@ -205,6 +205,39 @@ describe('PlantQueryMapper', () => {
     });
   });
 
+  it('should map id in/nin to _id correctly', () => {
+    const filter: PlantFilter = {
+      id: { in: ['id_1', 'id_2'], nin: ['id_3'] }
+    };
+    const result = plantQueryMapper.toMongo(filter);
+
+    expect(result).toEqual({
+      _id: { $in: ['id_1', 'id_2'], $nin: ['id_3'] }
+    });
+  });
+
+  it('should map id in to _id', () => {
+    const filter: PlantFilter = {
+      id: { in: ['id_1'] }
+    };
+    const result = plantQueryMapper.toMongo(filter);
+
+    expect(result).toEqual({
+      _id: { $in: ['id_1'] }
+    });
+  });
+
+  it('should map id nin to _id', () => {
+    const filter: PlantFilter = {
+      id: { nin: ['id_3'] }
+    };
+    const result = plantQueryMapper.toMongo(filter);
+
+    expect(result).toEqual({
+      _id: { $nin: ['id_3'] }
+    });
+  });
+
   it('should escape regex special characters in identity contains', () => {
     const filter: PlantFilter = {
       identity: { contains: 'ro.se*[]' }
@@ -313,6 +346,22 @@ describe('PlantQueryMapper', () => {
     const result = plantQueryMapper.toMongo(filter as PlantFilter);
 
     expect(result).toEqual(expected);
+  });
+
+  describe('genus filter', () => {
+    it('should map genus.eq to identity.genus exact match', () => {
+      const filter: PlantFilter = { genus: { eq: 'Allium' } };
+      const result = plantQueryMapper.toMongo(filter);
+      expect(result).toEqual({ 'identity.genus': 'Allium' });
+    });
+
+    it('should map genus.in to identity.genus $in', () => {
+      const filter: PlantFilter = { genus: { in: ['Allium', 'Ocimum'] } };
+      const result = plantQueryMapper.toMongo(filter);
+      expect(result).toEqual({
+        'identity.genus': { $in: ['Allium', 'Ocimum'] }
+      });
+    });
   });
 
   it('should keep both $or clauses when identity and sowingMethod in are combined', () => {
