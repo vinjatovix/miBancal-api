@@ -17,12 +17,6 @@ type OutboxDocument = Document & {
   createdAt: Date;
 };
 
-/**
- * Stages domain events into the `outbox` collection within the active unit of
- * work. `processedAt` is intentionally omitted on insert (never persisted as
- * `null`): its absence marks the record pending for the
- * `{ processedAt: 1, _id: 1 }` index.
- */
 export class MongoOutboxRepository
   extends MongoRepository
   implements OutboxRepository
@@ -45,6 +39,8 @@ export class MongoOutboxRepository
     }
 
     const now = new Date();
+    // `processedAt` is left absent (not null), so the `{ processedAt: 1, _id: 1 }`
+    // index treats the record as pending.
     const documents: OutboxDocument[] = events.map((event) => ({
       _id: event.eventId,
       eventName: event.eventName,

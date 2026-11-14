@@ -90,6 +90,7 @@ const config: Config = {
 
     '!src/**/*.d.ts',
     '!src/index.ts',
+    '!src/apps/outboxWorker/index.ts',
 
     '!src/**/interfaces/**',
     '!src/**/types/**',

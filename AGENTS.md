@@ -74,6 +74,7 @@ Contract-driven REST API for agricultural asset management.
 - Do not use manual inline object creation/duplication in tests; prefer factories/seeders.
 - Do not assert exact raw error strings in tests (use semantic matching or pre-defined error paths).
 - Do not write `// Arrange` / `// Act` / `// Assert` comments in tests; ESLint (`no-warning-comments`) rejects them.
+- Do not add explanatory inline comments or JSDoc that describe _what_ the code does. Code must be self-documenting through expressive names, single-purpose helpers, and semantic Aggregate Root methods. If a snippet seems to need a comment, that is the signal to rename, extract a helper, or expose a semantic method — not to comment. The only allowed comment is a short _why_ that is not derivable from the code (an external-bug workaround, a counter-intuitive decision forced by a constraint), never a _what_.
 - **NEVER use `npx tsc`, `npx tsc --noEmit`, or any other manual compilation/checking command. ALWAYS run the scripts defined in `package.json` (e.g., `npm run build`, `npm run lint`, `npm run check`).**
 
 ## graphify

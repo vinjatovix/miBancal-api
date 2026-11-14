@@ -607,6 +607,22 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
 - **Dependencies**: Tooling: Faster Test Suite.
 - **Risks**: Migrations that now run independent indexes or collections concurrently can leave a different partial state after a failure (other operations may still finish). Accepted because migrate-mongo does not mark a failed migration as applied and every operation is safe to repeat, so a retried `up` reaches the same final state. Behaviour was checked with the unit, migration and acceptance suites and by running the old and new migrations side by side on copies of the local database (same collections, indexes and documents after `up`, a second `up` and `down`).
 
+## Tooling: Shift-Left SonarJS via ESLint
+
+**Spec Module(s)**: [testing.md](spec/modules/testing.md)
+
+- **Status**: Proposed, not yet scheduled (requested by the maintainer on 2026-11-14; tackle once the current outbox work lands, as a follow-up to **Tooling: SonarCloud Issues Cleanup**). Not a numbered iteration because it changes no product behaviour.
+- **Value delivered**: Moves SonarJS code-smell and bug detection into the local/CI ESLint pass (`npm run lint`, `check`, `full-check`), so findings surface inside the PR instead of on the SonarCloud web UI after the fact. Removes the recurring need to open separate alignment branches to drain accumulated findings (the reactive counterpart of this is **Tooling: SonarCloud Issues Cleanup**).
+- **Scope and boundary (important)**: `eslint-plugin-sonarjs` is **not** the full SonarQube/SonarCloud engine. It reimplements the JS/TS **code-smell and bug** rules (cognitive complexity, duplicate/collapsible branches, dead code, redundant boolean/collection usage…). It does **not** cover test coverage, project-wide duplication, taint/security hotspots, or several security-category rules that live in the Sonar analyzer. SonarCloud therefore stays in CI for those; this change only shifts the rules ESLint can enforce locally.
+- **Compatibility**: `eslint-plugin-sonarjs@4.x` (latest `4.2.2`) declares `peerDependencies.eslint: ^8 || ^9 || ^10` and ships a flat-config `recommended`, so it drops into the repo's ESLint 10 flat config (`eslint.config.cjs`) without the `FlatCompat` shim.
+- **Open decision (resolve during implementation)**: how to onboard the `recommended` ruleset, since it will light up existing findings in `src/` and `tests/`:
+  - **Dry run first**: install the plugin, run `lint` against `src`/`tests` with the ruleset active but uncommitted, and count findings per rule to size the work.
+  - **Option A — `error` from day one (preferred for the portfolio showcase)**: block the build until the current findings are fixed; cleanest alignment, but requires fixing the backlog up front.
+  - **Option B — `warn` first, then ratchet**: land the plugin without breaking CI, measure the volume, and promote rules to `error` group by group.
+- **Definition of Done (sketch, to refine when scheduled)**: `eslint-plugin-sonarjs` added as a dev dependency; its flat `recommended` wired into `eslint.config.cjs` on the TS block; onboarding level (A or B) decided from the dry-run numbers and any intentional suppressions documented in version control (consistent with the `// NOSONAR` / `sonar-project.properties` conventions already established); `lint`, `check` and `full-check` pass; AGENTS.md / testing.md note that SonarJS rules now run in the ESLint pass and what SonarCloud still owns.
+- **Dependencies**: Tooling: SonarCloud Issues Cleanup (shares the suppression conventions and the finding backlog this would otherwise re-surface).
+- **Risks**: Rule overlap or disagreement between the plugin and the SonarCloud server version (a finding fixed for one may not match the other); mitigated by keeping SonarCloud authoritative for the categories the plugin does not cover and treating the plugin as the fast local gate.
+
 ---
 
 # Phase 2: Identity & Access
@@ -1179,6 +1195,7 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
+- **Status**: ✅ Delivered (2026-11-14, branch `066-outbox-change-stream-tailer`). A standalone worker (`src/apps/outboxWorker/`, a second composition root fully decoupled from the Express API — run exactly 1 replica) watches the `outbox` collection with a Change Stream filtered to inserts and forwards each staged event, in ascending `_id` (UUIDv7 commit) order carrying its full stored representation, to a technology-agnostic `EventForwarder` seam (this iteration's only adapter is a `LoggingEventForwarder` no-op; Kafka is Iteration 49). Progress is persisted after each forward in a new singleton `outbox_progress` collection (DDL migration `20261114130000-create-outbox-progress-collection`) as two artifacts: the change-stream resume token (seamless restart resume, no replay) and the `_id` high-water mark. On an unresumable change stream (`ChangeStreamHistoryLost` 286 / `CappedPositionLost` 136 — classified by code, never message text) it drains the stranded backlog via an index-served `find({ _id: { $gt: lastForwardedId } }).sort({ _id: 1 }).hint('outbox_processedAt_id')` (verified by `explain` to use `IXSCAN` with no `SORT` stage), then re-establishes a fresh live watch from now without replaying the drained backlog; a transient drop with a still-valid token reconnects and resumes live without entering fallback. **Known loss window (closed in [Iteration 49](#iteration-49-route-events-to-kafka-domain-topic-by-partition-key)):** draining _before_ reopening the live watch leaves a brief gap — events committed between the catch-up query finishing and the fresh watch's start point are skipped, and a crash mid-catch-up (only the high-water mark is persisted, the resume token is cleared) reopens live from now without re-draining the remainder. Harmless while the only forwarder is the no-op `LoggingEventForwarder`; the at-least-once closure (open the live watch before draining and tolerate the overlap) lands with the Kafka adapter. `processedAt` is never read or written (reserved for the Iteration 49+ cleanup). npm scripts `worker:dev` / `start:worker`.
 - **Value delivered**: Enables decoupled, high-performance asynchronous event dispatching.
 - **Definition of Done**: A background worker tails the `outbox` collection via Change Streams, processing unpublished entries.
 - **Dependencies**: Iteration 46.
@@ -1190,14 +1207,30 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
   WHAT: Build a Change Stream tailer to poll the outbox collection for new inserts, including a fallback polling query for rotated oplogs.
   ```
 
+## Iteration 48b: Expose Outbox Worker Liveness Health Endpoint
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Value delivered**: Adds **operational observability** to the standalone outbox worker (Iteration 48), which has no HTTP surface today. A minimal HTTP server exposes a `/health` endpoint reporting real liveness — not just "process is up" — so the platform can detect an _alive-but-stuck_ worker (change stream silently dead, no forwards progressing) and restart it, and so monitoring can alert before the backlog grows. Because the worker is a Singleton (exactly 1 replica), a silent stall has no second replica to cover it; this is its only liveness signal. **Explicitly not for zero-downtime traffic switching** (a worker serves no requests, and a few seconds with no tailer are harmless — resume token + fallback catch-up lose nothing): the endpoint's purpose is liveness/restart and alerting only.
+- **Definition of Done**: The worker process (`src/apps/outboxWorker/`) starts a tiny HTTP server (own port, e.g. `WORKER_HEALTH_PORT`, independent of the API) alongside the tailer. `GET /health` returns `200` with a JSON body carrying at least: `running` (the tailer is active), `lastForwardedAt` (timestamp of the most recent successful forward, or `null` if none yet) and `secondsSinceLastForward`; it returns a non-2xx status when the tailer is not running or is detectably stalled. The tailer exposes the needed liveness state through the existing `OutboxTailer` seam (or a small status port) without coupling the HTTP layer to the change-stream internals. Graceful shutdown (`SIGTERM`/`SIGINT`) also closes the HTTP server. A stalled-worker alert threshold is documented.
+- **Dependencies**: Iteration 48.
+- **Risks**: A naive health check that only confirms the process is up (not that forwarding is progressing) gives false confidence; the "stalled" threshold must account for legitimate idle periods with no new events (no forwards is normal when the outbox is quiet — distinguish _idle_ from _stuck_).
+- **Prompt for /speckit.specify**:
+  ```text
+  EXPOSE OUTBOX WORKER LIVENESS HEALTH ENDPOINT
+  WHY: The singleton outbox worker has no HTTP surface, so an alive-but-stuck tailer (dead change stream, no forwards) cannot be detected or alerted on; it needs a real liveness signal, not a process-up check, and not for zero-downtime traffic switching.
+  WHAT: Start a minimal HTTP server in the outbox worker exposing GET /health that reports tailer running state and time since the last successful forward, returning non-2xx when the tailer is stopped or stalled, distinguishing a quiet-but-healthy idle worker from a stuck one.
+  ```
+
 ## Iteration 49: Route Events to Kafka Domain Topic by Partition Key
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
 - **Value delivered**: Adds **distribution**: the `KafkaEventBusAdapter` (spec §2.3) is swapped in behind the same `EventBus` port used since Iteration 45c, so no consumer business logic changes. Guarantees strict chronological processing order for specific crops or beds via partitioning.
 - **Definition of Done**: The tailer publishes events to `agro.domain.events` using dynamic partition keys (`plantInstanceId` or `bedId`). Processed outbox events are flagged.
+- **Also closes the Iteration 48 catch-up loss window**: with a real at-least-once consumer behind the seam, the tailer opens the live Change Stream _before_ draining the rotated-oplog backlog and tolerates the overlap (duplicates are acceptable under Kafka at-least-once — loss is not), eliminating the gap between the fallback query and the fresh watch, and the crash-mid-catch-up stranding. Consumer-side dedup is Iteration 50.
 - **Dependencies**: Iteration 48.
-- **Risks**: Broker connection failures.
+- **Risks**: Broker connection failures. Over-draining duplicates on the overlap window (bounded, and absorbed by the Iteration 50 idempotence store).
 - **Prompt for /speckit.specify**:
   ```text
   ROUTE EVENTS TO KAFKA DOMAIN TOPIC BY PARTITION KEY
