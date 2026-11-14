@@ -6,7 +6,7 @@ status: evolving
 
 ---
 
-## 1. PURPOSE `[TARGET STATE (Pending Iterations [47](../../roadmap.md#iteration-47-write-domain-events-to-outbox-within-transactions), [48](../../roadmap.md#iteration-48-implement-mongodb-change-stream-tailer-for-outbox) & [50](../../roadmap.md#iteration-50-implement-consumer-idempotence-with-ttl-store))]`
+## 1. PURPOSE `[TARGET STATE — built foundation-first: in-process bus in Iterations [45b](../../roadmap.md#iteration-45b-establish-domain-event-primitives-and-aggregate-recording)–[45d](../../roadmap.md#iteration-45d-publish-domain-events-from-use-cases-and-wire-first-in-process-consumer); reliability (Outbox) in Iterations 46–48; Kafka distribution in Iterations 49–51]`
 
 Defines the event-driven integration layer of MiBancal.
 
@@ -20,16 +20,26 @@ This module is strictly isolated from **Agricultural Events** (`cultivation-logs
 
 To keep the application and domain layers free of infrastructure dependencies, all event-driven messaging is designed around the Port and Adapter pattern:
 
-### 2.1 Event Bus Port (`EventBus`)
+### 2.0 Domain Event Primitives (`DomainEvent`, `AggregateRoot` record/pull) `[DELIVERED — [Iteration 45b](../../roadmap.md#iteration-45b-establish-domain-event-primitives-and-aggregate-recording), 2026-11-13]`
 
-A technology-agnostic interface defined in the application layer:
+The technology-agnostic foundation the port below depends on, living entirely in the domain layer:
+
+- **`DomainEvent<Payload>`** — abstract base at `src/Contexts/shared/domain/events/DomainEvent.ts` (re-exported via the `events/` barrel). Carries a UUIDv7 `eventId` (chronologically sortable), `occurredAt`, `aggregateId`, stable `eventName`, and a typed `payload`. `eventId`/`occurredAt` default on a fresh fact and are preserved verbatim on reconstitution. Zero persistence/messaging/transport imports (only the reused `uuid` v7 generator).
+- **`AggregateRoot.record(event)` / `pullDomainEvents()`** — an in-memory, instance-scoped buffer: `record` appends in order, `pullDomainEvents` returns a copy in recorded order then drains. The buffer is not part of `props`/`toPrimitives`, so it stays invisible to repository delta computation. The existing `AggregateRoot<TId>` contract is unchanged; all current subclasses compile unmodified.
+
+The `publish(events)` seam in 2.1 and use-case publishing (Iteration 45d) consume exactly these primitives.
+
+### 2.1 Event Bus Port (`EventBus`) `[TARGET STATE (Pending [Iteration 45c](../../roadmap.md#iteration-45c-define-eventbus-port-and-in-process-inmemory-adapter))]`
+
+A technology-agnostic interface defined in the application layer. This port is the stable seam every consumer depends on: the InMemory, Outbox-backed and Kafka adapters are interchangeable implementations behind it, so consumer business logic is written once (Iteration 45d) and never changes when reliability or distribution are added later.
 
 - `publish(events: DomainEvent[]): Promise<void>`
 - `subscribe(eventType: string, handler: EventHandler): void`
 
-### 2.2 InMemory Adapter (`InMemoryEventBusAdapter`)
+### 2.2 InMemory Adapter (`InMemoryEventBusAdapter`) `[TARGET STATE (Pending [Iteration 45c](../../roadmap.md#iteration-45c-define-eventbus-port-and-in-process-inmemory-adapter))]`
 
 - A lightweight, synchronous, in-process implementation.
+- **This is the first event-bus deliverable, not a test-only fallback.** It makes the whole event-driven architecture functional and testable before any broker exists; every cross-module consumer is authored and validated against it (Iteration 45d) ahead of the Outbox (reliability) and Kafka (distribution) iterations.
 - Designed for local developer builds, fast unit tests, and Cucumber ATDD step scenarios without external broker dependencies.
 
 ### 2.3 Kafka Adapter (`KafkaEventBusAdapter`)

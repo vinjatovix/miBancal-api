@@ -6,6 +6,35 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 ---
 
+## Audit Snapshot (2026-11-13)
+
+Delivery has **not** followed phase order strictly — several late features (hierarchical companions, genus, slug) shipped ahead of mid-phase work. Status below is audited against the codebase (bounded contexts, routes, migrations) and git history, **not** against phase numbers. The governing rule for what to do next is **dependencies, not phase order**.
+
+Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
+
+| Phase                         | Iterations                                                                                           | Status  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- | ------- |
+| 0 — Core Architecture         | 1–19b                                                                                                | ✅ Done |
+| 1 — Spatial Engine Prep       | 20–24                                                                                                | ✅ Done |
+| 2 — Identity & Access         | 25–30b                                                                                               | ✅ Done |
+| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                    | 🟡      |
+| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                | 🟡      |
+| 5 — Organics & Diagnostics    | 39–42                                                                                                | ✅ Done |
+| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                 | ⬜      |
+| **7 — Distributed Event Bus** | **45b ✅ (domain-event primitives + record/pull seam) · 45c–51 ⬜ (no `EventBus`/`outbox` in code)** | 🟡      |
+| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                            | ⬜      |
+| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                             | 🟡      |
+| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                             | ⬜      |
+| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                    | 🟡      |
+| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                       | ⬜      |
+| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                 | ⬜      |
+| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                             | 🟡      |
+| GDPR                          | 91, 92 ⬜                                                                                            | ⬜      |
+
+**Blocking the most work:** Phase 7 (the event bus). Its async consumers (69, 76, 80–82) and GDPR deletion (91) all sit behind it. See the sequencing note at the head of Phase 7.
+
+---
+
 # Phase 0: Core Architecture
 
 ## Iteration 1: Relocate Mongo Primitives to Shared Domain
@@ -1049,13 +1078,61 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 # Phase 7: Distributed Event Bus
 
+> **Sequencing note (revised 2026-11-13):** The event bus is built **foundation-first**. Iterations 45b–45d deliver a fully functional **in-process** event bus (domain-event primitives, the `EventBus` port and the synchronous `InMemoryEventBusAdapter` described in [event-bus.md](spec/modules/event-bus.md) §2.1–2.2), so every cross-module consumer can be authored and tested with **zero broker infrastructure**. The Transactional Outbox (Iterations 46–48) then adds delivery _reliability_, and Kafka (Iterations 49–51) adds _distribution_ — each as a swap-in behind the **same** `EventBus` port, never a prerequisite for the consumer business logic. Consequently Kafka is a late transport detail, not the thing that makes events work.
+
+## Iteration 45b: Establish Domain Event Primitives and Aggregate Recording
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md), [architecture-boundaries.md](spec/modules/architecture-boundaries.md)
+
+- **Status**: ✅ Delivered (2026-11-13, branch `060-domain-event-primitives`). Base `DomainEvent` at `src/Contexts/shared/domain/events/DomainEvent.ts` (+ barrel) and `AggregateRoot.record()` / `pullDomainEvents()` in place; pure in-memory, zero infrastructure coupling. This is the base the EventBus port (45c) and use-case publishing (45d) build on.
+- **Value delivered**: Gives every aggregate a first-class, technology-agnostic way to emit domain events — the precondition for any event-driven side effect.
+- **Definition of Done**: A base `DomainEvent` type (UUIDv7 `eventId`, `occurredAt`, `aggregateId`, `eventName`, typed `payload`) lives in `shared/domain`. `AggregateRoot` gains `record()` and `pullDomainEvents()` so aggregates buffer events without any persistence or transport coupling. No infrastructure (Mongo, Kafka, Express) is touched.
+- **Dependencies**: Iteration 3 (UUIDv7 generation), Iteration 7 (state mutations encapsulated in aggregates).
+- **Risks**: None (pure domain, in-memory).
+- **Prompt for /speckit.specify**:
+  ```text
+  ESTABLISH DOMAIN EVENT PRIMITIVES AND AGGREGATE RECORDING
+  WHY: Aggregates must be able to express what happened as first-class domain events before any transport or persistence concern exists.
+  WHAT: Add a base DomainEvent value object (UUIDv7 eventId, occurredAt, aggregateId, eventName, typed payload) in shared/domain and extend AggregateRoot with record()/pullDomainEvents() buffering, with no infrastructure coupling.
+  ```
+
+## Iteration 45c: Define EventBus Port and In-Process InMemory Adapter
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Value delivered**: A working, synchronous event bus for local builds, unit tests and Cucumber ATDD — the entire event-driven architecture becomes exercisable without any broker.
+- **Definition of Done**: The `EventBus` port (`publish(events)`, `subscribe(eventType, handler)`) is defined in the application layer and the synchronous `InMemoryEventBusAdapter` (spec §2.2) implements it. A subscriber registry is wired in the Awilix container; handlers dispatch in-process within the current request.
+- **Dependencies**: Iteration 15 (automated Awilix DI), Iteration 45b.
+- **Risks**: None.
+- **Prompt for /speckit.specify**:
+  ```text
+  DEFINE EVENTBUS PORT AND IN-PROCESS INMEMORY ADAPTER
+  WHY: Consumers must talk to a technology-agnostic port so Kafka can later be swapped in without touching business logic.
+  WHAT: Define the EventBus port (publish/subscribe) in the application layer, implement a synchronous InMemoryEventBusAdapter, and register a subscriber map in the Awilix container.
+  ```
+
+## Iteration 45d: Publish Domain Events from Use Cases and Wire First In-Process Consumer
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Value delivered**: End-to-end event-driven side effects with zero infrastructure: use cases publish recorded events through the bus and a first real consumer reacts. Unblocks all later consumer iterations (69, 76, 80, 81, 82) so their business logic can be built and tested now, before any broker exists.
+- **Definition of Done**: Application use cases pull aggregate events after a successful mutation and publish them via the `EventBus` port; at least one real cross-module consumer runs in-process and is covered by unit + ATDD tests.
+- **Dependencies**: Iteration 45c, Iteration 24 (ACID transactions).
+- **Risks**: In-process handlers share the request lifecycle; long-running side effects must stay deferrable to the async tiers added in Iterations 46–51.
+- **Prompt for /speckit.specify**:
+  ```text
+  PUBLISH DOMAIN EVENTS FROM USE CASES AND WIRE FIRST IN-PROCESS CONSUMER
+  WHY: The event-driven side effects must be demonstrably working in-process before reliability (outbox) or distribution (Kafka) are introduced.
+  WHAT: Have use cases pull and publish recorded aggregate events through the EventBus after a successful mutation, and implement one real cross-module consumer with unit and Cucumber ATDD coverage.
+  ```
+
 ## Iteration 46: Create Transactional Outbox Collection
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
-- **Value delivered**: Establishes the database staging area for guaranteed event delivery.
+- **Value delivered**: Adds a **reliability** layer to the existing in-process event bus: a database staging area so events survive crashes and are delivered at-least-once (no ghost events, no lost events). The `EventBus` port and its consumers from Iterations 45c–45d are unchanged.
 - **Definition of Done**: An `outbox` collection is added to MongoDB schema.
-- **Dependencies**: None.
+- **Dependencies**: Iteration 45d.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
   ```text
@@ -1098,7 +1175,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
-- **Value delivered**: Guarantees strict chronological processing order for specific crops or beds.
+- **Value delivered**: Adds **distribution**: the `KafkaEventBusAdapter` (spec §2.3) is swapped in behind the same `EventBus` port used since Iteration 45c, so no consumer business logic changes. Guarantees strict chronological processing order for specific crops or beds via partitioning.
 - **Definition of Done**: The tailer publishes events to `agro.domain.events` using dynamic partition keys (`plantInstanceId` or `bedId`). Processed outbox events are flagged.
 - **Dependencies**: Iteration 48.
 - **Risks**: Broker connection failures.
@@ -1531,7 +1608,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Keeps inventory accurate without causing transaction bottlenecks, while preventing false deductions.
 - **Definition of Done**: Asynchronous consumer decrements `remainingQuantity` upon receiving `BedLayoutSaved` or nursery sowing events. Specifically, it only decrements stock for IDs listed inside the `added` placements array (ignoring coordinate updates to prevent false depletions during mere spatial reorganization on the UI Canvas). It must also implement the Grace Period Refund Rule: if a crop instance is soft-deleted or its seed quantity is reduced within 24 hours of its creation (`createdAt` timestamp), the subscriber automatically refunds or increments the `remainingQuantity` of the linked `SeedBatch` (proportionately for quantity reductions).
-- **Dependencies**: Iteration 51, Iteration 52, Iteration 69.
+- **Dependencies**: Iteration 45d (the `EventBus` port — consumer logic is built and tested in-process), Iteration 52, Iteration 69. _Production hardening (outbox reliability / Kafka distribution) comes from Iterations 46–51 but is not required to build this consumer's logic._
 - **Risks**: Inaccurate quantities if events are dropped (prevented by Outbox pattern).
 - **Prompt for /speckit.specify**:
   ```text
@@ -1595,7 +1672,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Keeps care schedules perfectly synced with real actions and automatically clears resolved issues.
 - **Definition of Done**: Logging a cultivation event completes matching pending Reminders and schedules the next iteration asynchronously. Specifically, logging a recovery event must close active anomaly cycles and automatically cancel any recurring treatment reminders in cascade.
-- **Dependencies**: Iteration 79, Iteration 72, Iteration 51.
+- **Dependencies**: Iteration 79, Iteration 72, Iteration 45d (the `EventBus` port — consumer logic is built and tested in-process). _Production hardening (outbox reliability / Kafka distribution) comes from Iterations 46–51 but is not required to build this consumer's logic._
 - **Risks**: Race conditions in asynchronous scheduling.
 - **Prompt for /speckit.specify**:
   ```text
