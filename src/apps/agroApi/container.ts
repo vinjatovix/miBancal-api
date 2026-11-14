@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import {
   aliasTo,
   asClass,
+  asFunction,
   asValue,
   createContainer,
   InjectionMode,
@@ -11,16 +12,24 @@ import {
 import type { Db, MongoClient } from 'mongodb';
 
 import { anomalyPersistenceMapper } from '../../Contexts/Agro/Anomalies/mappers/anomalyPersistenceMapper.js';
+import { BedDeleted } from '../../Contexts/Agro/Beds/domain/events/index.js';
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
 import { userBookmarksPersistenceMapper } from '../../Contexts/Agro/Bookmarks/mappers/userBookmarksPersistenceMapper.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
 import { gardenInputPersistenceMapper } from '../../Contexts/Agro/GardenInputs/mappers/gardenInputPersistenceMapperImpl.js';
 import { locationPersistenceMapper } from '../../Contexts/Agro/Locations/mappers/locationPersistenceMapper.js';
+import { RemoveCropsOnBedDeleted } from '../../Contexts/Agro/PlantInstances/application/eventHandlers/RemoveCropsOnBedDeleted.js';
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
+import {
+  PlantLiked,
+  PlantUnliked
+} from '../../Contexts/Agro/PlantLikes/domain/events/index.js';
 import { plantLikePersistenceMapper } from '../../Contexts/Agro/PlantLikes/mappers/plantLikePersistenceMapper.js';
 import { CompanionEvaluationService } from '../../Contexts/Agro/PlantRelations/domain/services/CompanionEvaluationService.js';
 import { plantRelationPersistenceMapper } from '../../Contexts/Agro/PlantRelations/mappers/plantRelationPersistenceMapper.js';
+import { DecrementLikeCountOnPlantUnliked } from '../../Contexts/Agro/Plants/application/eventHandlers/DecrementLikeCountOnPlantUnliked.js';
+import { IncrementLikeCountOnPlantLiked } from '../../Contexts/Agro/Plants/application/eventHandlers/IncrementLikeCountOnPlantLiked.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { MailerAccountNotifier } from '../../Contexts/Auth/application/notifications/index.js';
 import {
@@ -28,7 +37,9 @@ import {
   SessionTokenIssuer
 } from '../../Contexts/Auth/application/services/index.js';
 import type { CacheRepository } from '../../Contexts/shared/application/cache/index.js';
+import type { EventHandler } from '../../Contexts/shared/application/eventBus/index.js';
 import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
+import type { DomainEvent } from '../../Contexts/shared/domain/events/index.js';
 import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
 import { createCache } from '../../Contexts/shared/infrastructure/cache/index.js';
 import { InMemoryEventBusAdapter } from '../../Contexts/shared/infrastructure/eventBus/index.js';
@@ -124,7 +135,46 @@ export function buildExplicitRegistrations({
     googleClientId: asValue(envs.GOOGLE_CLIENT_ID),
     githubClientId: asValue(envs.GITHUB_CLIENT_ID),
     githubClientSecret: asValue(envs.GITHUB_CLIENT_SECRET),
-    githubRedirectUri: asValue(envs.GITHUB_REDIRECT_URI)
+    githubRedirectUri: asValue(envs.GITHUB_REDIRECT_URI),
+    removeCropsOnBedDeleted: asFunction(
+      ({ plantInstanceRepository }: ContainerCradle): EventHandler => {
+        const reactor = new RemoveCropsOnBedDeleted({
+          plantInstanceRepository
+        });
+
+        return async (event: DomainEvent): Promise<void> => {
+          if (event instanceof BedDeleted) {
+            await reactor.handle(event);
+          }
+        };
+      }
+    ).singleton(),
+    incrementLikeCountOnPlantLiked: asFunction(
+      ({ plantLikesCounterRepository }: ContainerCradle): EventHandler => {
+        const reactor = new IncrementLikeCountOnPlantLiked({
+          plantLikesCounterRepository
+        });
+
+        return async (event: DomainEvent): Promise<void> => {
+          if (event instanceof PlantLiked) {
+            await reactor.handle(event);
+          }
+        };
+      }
+    ).singleton(),
+    decrementLikeCountOnPlantUnliked: asFunction(
+      ({ plantLikesCounterRepository }: ContainerCradle): EventHandler => {
+        const reactor = new DecrementLikeCountOnPlantUnliked({
+          plantLikesCounterRepository
+        });
+
+        return async (event: DomainEvent): Promise<void> => {
+          if (event instanceof PlantUnliked) {
+            await reactor.handle(event);
+          }
+        };
+      }
+    ).singleton()
   };
 }
 

@@ -33,7 +33,10 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'googleClientId',
   'githubClientId',
   'githubClientSecret',
-  'githubRedirectUri'
+  'githubRedirectUri',
+  'removeCropsOnBedDeleted',
+  'incrementLikeCountOnPlantLiked',
+  'decrementLikeCountOnPlantUnliked'
 ]);
 
 export function getCradlePropertyNames(cradleFilePath: string): string[] {

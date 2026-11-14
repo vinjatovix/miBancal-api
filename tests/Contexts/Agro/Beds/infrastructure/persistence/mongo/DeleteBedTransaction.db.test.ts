@@ -90,6 +90,10 @@ describe('DeleteBed transaction (integration)', () => {
     persistenceMapper = container.resolve<PlantInstancePersistenceMapper>(
       'plantInstancePersistenceMapper'
     );
+
+    container
+      .resolve('eventBus')
+      .subscribe('bed.deleted', container.resolve('removeCropsOnBedDeleted'));
   });
 
   beforeEach(async () => {

@@ -1,32 +1,33 @@
 import type { UserSessionInfo } from '../../../../Auth/application/interfaces/index.js';
+import type { EventBus } from '../../../../shared/application/eventBus/index.js';
 import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
 import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
-import type { PlantLikesCounterRepository } from '../../../Plants/domain/repositories/interfaces/PlantLikesCounterRepository.js';
 import type { PlantRepository } from '../../../Plants/domain/repositories/interfaces/PlantRepository.js';
+import { PlantUnliked } from '../../domain/events/index.js';
 import type { PlantLikeRepository } from '../../domain/repositories/interfaces/PlantLikeRepository.js';
 
 export type UnlikePlantDependencies = {
   plantRepository: PlantRepository;
   plantLikeRepository: PlantLikeRepository;
-  plantLikesCounterRepository: PlantLikesCounterRepository;
+  eventBus: EventBus;
   unitOfWork: UnitOfWork;
 };
 
 export class UnlikePlant {
   private readonly plantRepository: PlantRepository;
   private readonly plantLikeRepository: PlantLikeRepository;
-  private readonly plantLikesCounterRepository: PlantLikesCounterRepository;
+  private readonly eventBus: EventBus;
   private readonly unitOfWork: UnitOfWork;
 
   constructor({
     plantRepository,
     plantLikeRepository,
-    plantLikesCounterRepository,
+    eventBus,
     unitOfWork
   }: UnlikePlantDependencies) {
     this.plantRepository = plantRepository;
     this.plantLikeRepository = plantLikeRepository;
-    this.plantLikesCounterRepository = plantLikesCounterRepository;
+    this.eventBus = eventBus;
     this.unitOfWork = unitOfWork;
   }
 
@@ -36,9 +37,6 @@ export class UnlikePlant {
       throw new DomainNotFoundException(`Plant not found: ${plantIdString}`);
     }
 
-    // The removal and the counter decrement commit together; the counter is
-    // decremented only when a like was actually removed, so repeated unlikes
-    // never drive it below zero (idempotent).
     await this.unitOfWork.run(async () => {
       const removed = await this.plantLikeRepository.remove(
         user.id,
@@ -46,7 +44,12 @@ export class UnlikePlant {
       );
 
       if (removed) {
-        await this.plantLikesCounterRepository.decrement(plantIdString);
+        await this.eventBus.publish([
+          new PlantUnliked(plantIdString, {
+            plantId: plantIdString,
+            userId: user.id
+          })
+        ]);
       }
     });
   }

@@ -1,6 +1,7 @@
 import { randomBedId } from '../../../../../../src/Contexts/Agro/Beds/domain/BedId.js';
 import { BedName } from '../../../../../../src/Contexts/Agro/Beds/domain/BedName.js';
 import { Bed } from '../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
+import { BedDeleted } from '../../../../../../src/Contexts/Agro/Beds/domain/events/index.js';
 import { bedDomainMapper } from '../../../../../../src/Contexts/Agro/Beds/mappers/bedDomainMapper.js';
 import { randomUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import {
@@ -277,6 +278,47 @@ describe('Bed (unit)', () => {
 
       expectAuditedBy('deleter');
       expect(audited.metadata.updatedAt).toBe(audited.deletedAt);
+    });
+  });
+
+  describe('domain events', () => {
+    it('records exactly one BedDeleted fact on a genuine deletion', () => {
+      const target = BedFactory.random();
+      const at = new Date('2026-11-14T10:00:00.000Z');
+
+      expect(target.pullDomainEvents()).toHaveLength(0);
+      target.markAsDeleted('deleter', at);
+
+      const events = target.pullDomainEvents();
+      expect(events).toHaveLength(1);
+
+      const [event] = events;
+      expect(event).toBeInstanceOf(BedDeleted);
+      expect(event?.eventName).toBe('bed.deleted');
+      expect(event?.aggregateId).toBe(target.id);
+      expect(event?.payload).toEqual({
+        bedId: target.id,
+        ownerId: target.userId,
+        deletedBy: 'deleter',
+        occurredAt: at.toISOString()
+      });
+    });
+
+    it('records no fact when deletion is rejected on an already deleted bed', () => {
+      const target = BedFactory.randomDeleted();
+
+      expect(() => target.markAsDeleted('deleter')).toThrow(
+        DomainConflictException
+      );
+      expect(target.pullDomainEvents()).toHaveLength(0);
+    });
+
+    it('drains the buffer so the fact is never surfaced twice', () => {
+      const target = BedFactory.random();
+      target.markAsDeleted('deleter');
+
+      expect(target.pullDomainEvents()).toHaveLength(1);
+      expect(target.pullDomainEvents()).toHaveLength(0);
     });
   });
 
