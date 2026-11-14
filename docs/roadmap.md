@@ -12,24 +12,24 @@ Delivery has **not** followed phase order strictly — several late features (hi
 
 Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
 
-| Phase                         | Iterations                                                                                           | Status  |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------- | ------- |
-| 0 — Core Architecture         | 1–19b                                                                                                | ✅ Done |
-| 1 — Spatial Engine Prep       | 20–24                                                                                                | ✅ Done |
-| 2 — Identity & Access         | 25–30b                                                                                               | ✅ Done |
-| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                    | 🟡      |
-| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                | 🟡      |
-| 5 — Organics & Diagnostics    | 39–42                                                                                                | ✅ Done |
-| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                 | ⬜      |
-| **7 — Distributed Event Bus** | **45b ✅ (domain-event primitives + record/pull seam) · 45c–51 ⬜ (no `EventBus`/`outbox` in code)** | 🟡      |
-| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                            | ⬜      |
-| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                             | 🟡      |
-| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                             | ⬜      |
-| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                    | 🟡      |
-| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                       | ⬜      |
-| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                 | ⬜      |
-| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                             | 🟡      |
-| GDPR                          | 91, 92 ⬜                                                                                            | ⬜      |
+| Phase                         | Iterations                                                                                                                                                                                      | Status  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 0 — Core Architecture         | 1–19b                                                                                                                                                                                           | ✅ Done |
+| 1 — Spatial Engine Prep       | 20–24                                                                                                                                                                                           | ✅ Done |
+| 2 — Identity & Access         | 25–30b                                                                                                                                                                                          | ✅ Done |
+| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                                                                                                               | 🟡      |
+| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                                                                                                           | 🟡      |
+| 5 — Organics & Diagnostics    | 39–42                                                                                                                                                                                           | ✅ Done |
+| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                                                                                                            | ⬜      |
+| **7 — Distributed Event Bus** | **45b ✅ (domain-event primitives + record/pull seam) · 45c ✅ (`EventBus` port + in-process `InMemoryEventBusAdapter` + central subscriber registry) · 45d–51 ⬜ (no `outbox`/Kafka in code)** | 🟡      |
+| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                                                                                                                       | ⬜      |
+| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                                                                                                                        | 🟡      |
+| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                                                                                                                        | ⬜      |
+| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                                                                                                               | 🟡      |
+| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                                                                                                                  | ⬜      |
+| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                                                                                                            | ⬜      |
+| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                                                                                                                        | 🟡      |
+| GDPR                          | 91, 92 ⬜                                                                                                                                                                                       | ⬜      |
 
 **Blocking the most work:** Phase 7 (the event bus). Its async consumers (69, 76, 80–82) and GDPR deletion (91) all sit behind it. See the sequencing note at the head of Phase 7.
 
@@ -1100,8 +1100,9 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
+- **Status**: ✅ Delivered (2026-11-14, branch `061-eventbus-port-adapter`). `EventBus` port (`publish`/`subscribe`) in `src/Contexts/shared/application/eventBus/`, synchronous `InMemoryEventBusAdapter` in `src/Contexts/shared/infrastructure/eventBus/`, and a central subscriber registry (`src/apps/agroApi/wiring/eventSubscriptions.ts`) wired once at container assembly. The registry list is empty this iteration; the first real consumer arrives in 45d.
 - **Value delivered**: A working, synchronous event bus for local builds, unit tests and Cucumber ATDD — the entire event-driven architecture becomes exercisable without any broker.
-- **Definition of Done**: The `EventBus` port (`publish(events)`, `subscribe(eventType, handler)`) is defined in the application layer and the synchronous `InMemoryEventBusAdapter` (spec §2.2) implements it. A subscriber registry is wired in the Awilix container; handlers dispatch in-process within the current request.
+- **Definition of Done**: The `EventBus` port (`publish(events)`, `subscribe(eventName, handler)`) is defined in the application layer and the synchronous `InMemoryEventBusAdapter` (spec §2.2) implements it. A subscriber registry is wired in the Awilix container; handlers dispatch in-process within the current request.
 - **Dependencies**: Iteration 15 (automated Awilix DI), Iteration 45b.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
