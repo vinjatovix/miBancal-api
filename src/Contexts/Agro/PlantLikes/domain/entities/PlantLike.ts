@@ -1,5 +1,4 @@
 import type { UserId } from '../../../../Auth/domain/UserId.js';
-import { AggregateRoot } from '../../../../shared/domain/entities/AggregateRoot.js';
 import type { PlantId } from '../../../Plants/domain/PlantId.js';
 import type { PlantLikeId } from '../PlantLikeId.js';
 import type { PlantLikePrimitives } from './types/PlantLikePrimitives.js';
@@ -11,16 +10,15 @@ type PlantLikeProps = {
   likedAt: Date;
 };
 
-/**
- * One like by a user on a catalog plant. `userId` and `plantId` are immutable:
- * a like is created once and later removed, never re-pointed.
- */
-export class PlantLike extends AggregateRoot<PlantLikeId> {
+export class PlantLike {
   private readonly props: Readonly<PlantLikeProps>;
 
   constructor(props: PlantLikeProps) {
-    super(props.id);
     this.props = Object.freeze({ ...props });
+  }
+
+  get id(): PlantLikeId {
+    return this.props.id;
   }
 
   get userId(): UserId {
