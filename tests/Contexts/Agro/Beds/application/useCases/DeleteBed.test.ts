@@ -3,6 +3,7 @@ import { BedDeleted } from '../../../../../../src/Contexts/Agro/Beds/domain/even
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
 import { createUserId } from '../../../../../../src/Contexts/Auth/domain/UserId.js';
 import type { EventBus } from '../../../../../../src/Contexts/shared/application/eventBus/index.js';
+import type { UnitOfWork } from '../../../../../../src/Contexts/shared/application/interfaces/index.js';
 import {
   DomainNotFoundException,
   DomainStaleVersionException
@@ -72,6 +73,37 @@ describe('DeleteBed', () => {
       expect(bedRepository.getStored(bed.id)?.pullDomainEvents()).toHaveLength(
         0
       );
+    });
+
+    it('re-announces the captured fact on a retried attempt without draining it to empty', async () => {
+      const bed = BedFactory.fromUser(USER);
+      bedRepository.addToStorage(bed);
+      // The write is decoupled from storage state so the replay does not fail
+      // on the already-deleted bed; this test isolates the draining contract.
+      jest.spyOn(bedRepository, 'updateWithDiff').mockResolvedValue('written');
+      // A unit of work that runs `work` twice (a transient-error retry): the
+      // first attempt is discarded, the second commits. Events are captured
+      // before `run`, so both attempts must publish the same non-empty batch.
+      const retryingUnitOfWork: UnitOfWork = {
+        async run<T>(work: () => Promise<T>): Promise<T> {
+          await work();
+
+          return work();
+        }
+      };
+      useCase = new DeleteBed({
+        bedRepository,
+        eventBus,
+        unitOfWork: retryingUnitOfWork
+      });
+
+      await useCase.execute(bed.id, USER, [bed.version]);
+
+      expect(publish).toHaveBeenCalledTimes(2);
+      for (const [batch] of publish.mock.calls) {
+        expect(batch).toHaveLength(1);
+        expect(batch?.[0]).toBeInstanceOf(BedDeleted);
+      }
     });
 
     it('never opens a unit nor announces anything for a missing bed', async () => {

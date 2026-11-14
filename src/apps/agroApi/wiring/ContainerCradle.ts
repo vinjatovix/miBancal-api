@@ -140,6 +140,7 @@ import type {
 } from '../../../Contexts/shared/application/eventBus/index.js';
 import type { UnitOfWork } from '../../../Contexts/shared/application/interfaces/index.js';
 import type { Mailer } from '../../../Contexts/shared/application/mailer/index.js';
+import type { OutboxRepository } from '../../../Contexts/shared/application/outbox/index.js';
 import type {
   AppLogger,
   EncrypterTool,
@@ -263,6 +264,8 @@ export type ContainerCradle = {
   cacheCatalogTtlSeconds: number;
   backgroundTasks: BackgroundTasks;
   eventBus: EventBus;
+  inProcessEventBus: EventBus;
+  outboxRepository: OutboxRepository;
   accountNotifier: AccountNotifier;
   providerUserResolver: ProviderUserResolver;
   sessionTokenIssuer: SessionTokenIssuer;
