@@ -13,6 +13,7 @@ import { Metadata } from '../../../../shared/domain/valueObject/Metadata.js';
 import { PositiveNumber } from '../../../../shared/domain/valueObject/PositiveNumber.js';
 import type { BedId } from '../BedId.js';
 import { BedName } from '../BedName.js';
+import { BedDeleted } from '../events/index.js';
 import { BedRotation } from '../valueObjects/BedRotation.js';
 import type { BedDimensionsChanges } from './types/BedDimensionsChanges.js';
 import type { BedGeographicSnapshot } from './types/BedGeographicSnapshot.js';
@@ -245,6 +246,15 @@ export class Bed extends AggregateRoot<BedId> {
     }
 
     this.commit({ deleted: true, deletedAt: at }, user, at);
+
+    this.record(
+      new BedDeleted({
+        bedId: this.id,
+        ownerId: this.props.userId,
+        deletedBy: user,
+        occurredAt: at.toISOString()
+      })
+    );
   }
 
   static create(props: BedProps): Bed {

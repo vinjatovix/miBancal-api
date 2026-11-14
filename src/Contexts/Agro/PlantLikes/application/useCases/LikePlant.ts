@@ -1,11 +1,12 @@
 import type { UserSessionInfo } from '../../../../Auth/application/interfaces/index.js';
 import { createUserId } from '../../../../Auth/domain/UserId.js';
+import type { EventBus } from '../../../../shared/application/eventBus/index.js';
 import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
 import { DomainNotFoundException } from '../../../../shared/domain/errors/index.js';
 import { createPlantId } from '../../../Plants/domain/PlantId.js';
-import type { PlantLikesCounterRepository } from '../../../Plants/domain/repositories/interfaces/PlantLikesCounterRepository.js';
 import type { PlantRepository } from '../../../Plants/domain/repositories/interfaces/PlantRepository.js';
 import { PlantLike } from '../../domain/entities/PlantLike.js';
+import { PlantLiked } from '../../domain/events/index.js';
 import { randomPlantLikeId } from '../../domain/PlantLikeId.js';
 import type { PlantLikeRepository } from '../../domain/repositories/interfaces/PlantLikeRepository.js';
 import type { LikePlantResult } from '../dtos/index.js';
@@ -17,25 +18,25 @@ export type LikePlantInput = {
 export type LikePlantDependencies = {
   plantRepository: PlantRepository;
   plantLikeRepository: PlantLikeRepository;
-  plantLikesCounterRepository: PlantLikesCounterRepository;
+  eventBus: EventBus;
   unitOfWork: UnitOfWork;
 };
 
 export class LikePlant {
   private readonly plantRepository: PlantRepository;
   private readonly plantLikeRepository: PlantLikeRepository;
-  private readonly plantLikesCounterRepository: PlantLikesCounterRepository;
+  private readonly eventBus: EventBus;
   private readonly unitOfWork: UnitOfWork;
 
   constructor({
     plantRepository,
     plantLikeRepository,
-    plantLikesCounterRepository,
+    eventBus,
     unitOfWork
   }: LikePlantDependencies) {
     this.plantRepository = plantRepository;
     this.plantLikeRepository = plantLikeRepository;
-    this.plantLikesCounterRepository = plantLikesCounterRepository;
+    this.eventBus = eventBus;
     this.unitOfWork = unitOfWork;
   }
 
@@ -51,17 +52,23 @@ export class LikePlant {
     const userId = createUserId(user.id);
     const plantId = createPlantId(dto.plantId);
 
-    // The interaction insert and the counter `$inc` commit together: a new
-    // like increments exactly once; a repeat like skips the counter entirely.
     return this.unitOfWork.run(async () => {
       const like = PlantLike.create(randomPlantLikeId(), userId, plantId);
       const created = await this.plantLikeRepository.add(like);
 
       if (created) {
-        await this.plantLikesCounterRepository.increment(dto.plantId);
+        const likedAt = like.toPrimitives().likedAt;
+
+        await this.eventBus.publish([
+          new PlantLiked(like.id, {
+            plantId: dto.plantId,
+            userId: user.id,
+            likedAt
+          })
+        ]);
 
         return {
-          item: { plantId: dto.plantId, likedAt: like.toPrimitives().likedAt },
+          item: { plantId: dto.plantId, likedAt },
           status: 201
         };
       }

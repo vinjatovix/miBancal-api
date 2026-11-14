@@ -12,24 +12,24 @@ Delivery has **not** followed phase order strictly — several late features (hi
 
 Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
 
-| Phase                         | Iterations                                                                                                                                                                                      | Status  |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 0 — Core Architecture         | 1–19b                                                                                                                                                                                           | ✅ Done |
-| 1 — Spatial Engine Prep       | 20–24                                                                                                                                                                                           | ✅ Done |
-| 2 — Identity & Access         | 25–30b                                                                                                                                                                                          | ✅ Done |
-| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                                                                                                               | 🟡      |
-| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                                                                                                           | 🟡      |
-| 5 — Organics & Diagnostics    | 39–42                                                                                                                                                                                           | ✅ Done |
-| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                                                                                                            | ⬜      |
-| **7 — Distributed Event Bus** | **45b ✅ (domain-event primitives + record/pull seam) · 45c ✅ (`EventBus` port + in-process `InMemoryEventBusAdapter` + central subscriber registry) · 45d–51 ⬜ (no `outbox`/Kafka in code)** | 🟡      |
-| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                                                                                                                       | ⬜      |
-| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                                                                                                                        | 🟡      |
-| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                                                                                                                        | ⬜      |
-| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                                                                                                               | 🟡      |
-| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                                                                                                                  | ⬜      |
-| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                                                                                                            | ⬜      |
-| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                                                                                                                        | 🟡      |
-| GDPR                          | 91, 92 ⬜                                                                                                                                                                                       | ⬜      |
+| Phase                         | Iterations                                                                                                                                                                                                                                                         | Status  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| 0 — Core Architecture         | 1–19b                                                                                                                                                                                                                                                              | ✅ Done |
+| 1 — Spatial Engine Prep       | 20–24                                                                                                                                                                                                                                                              | ✅ Done |
+| 2 — Identity & Access         | 25–30b                                                                                                                                                                                                                                                             | ✅ Done |
+| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                                                                                                                                                                                  | 🟡      |
+| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                                                                                                                                                                              | 🟡      |
+| 5 — Organics & Diagnostics    | 39–42                                                                                                                                                                                                                                                              | ✅ Done |
+| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                                                                                                                                                                               | ⬜      |
+| **7 — Distributed Event Bus** | **45b ✅ (domain-event primitives + record/pull seam) · 45c ✅ (`EventBus` port + in-process `InMemoryEventBusAdapter` + central subscriber registry) · 45d ✅ (use cases publish + first two in-process consumer pairs) · 45e–51 ⬜ (no `outbox`/Kafka in code)** | 🟡      |
+| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                                                                                                                                                                                          | ⬜      |
+| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                                                                                                                                                                                           | 🟡      |
+| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                                                                                                                                                                                           | ⬜      |
+| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                                                                                                                                                                                  | 🟡      |
+| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                                                                                                                                                                                     | ⬜      |
+| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                                                                                                                                                                               | ⬜      |
+| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                                                                                                                                                                                           | 🟡      |
+| GDPR                          | 91, 92 ⬜                                                                                                                                                                                                                                                          | ⬜      |
 
 **Blocking the most work:** Phase 7 (the event bus). Its async consumers (69, 76, 80–82) and GDPR deletion (91) all sit behind it. See the sequencing note at the head of Phase 7.
 
@@ -1116,6 +1116,7 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
+- **Status**: ✅ Delivered (2026-11-14, branch `062-publish-domain-events`). Two real cross-module producer/consumer pairs run in-process on the shared seam: `Beds.DeleteBed` records `bed.deleted` → `PlantInstances.RemoveCropsOnBedDeleted` removes the bed's crops; `PlantLikes.LikePlant`/`UnlikePlant` publish `plant.liked`/`plant.unliked` only on a genuine change → `Plants` reactors adjust the like counter. Publishing happens as the last step inside `unitOfWork.run()`, so each reactor joins the producing transaction via the ambient Mongo session (commit/abort as one). Reactors are wired by one row each in `EVENT_SUBSCRIPTIONS`; producers reference only the `EventBus` port. The follow-up `PlantLike` demotion is [Iteration 45e](#iteration-45e-demote-plantlike-from-aggregate-root-to-relationship-record).
 - **Value delivered**: End-to-end event-driven side effects with zero infrastructure: use cases publish recorded events through the bus and a first real consumer reacts. Unblocks all later consumer iterations (69, 76, 80, 81, 82) so their business logic can be built and tested now, before any broker exists.
 - **Definition of Done**: Application use cases pull aggregate events after a successful mutation and publish them via the `EventBus` port; at least one real cross-module consumer runs in-process and is covered by unit + ATDD tests.
 - **Dependencies**: Iteration 45c, Iteration 24 (ACID transactions).
@@ -1125,6 +1126,22 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
   PUBLISH DOMAIN EVENTS FROM USE CASES AND WIRE FIRST IN-PROCESS CONSUMER
   WHY: The event-driven side effects must be demonstrably working in-process before reliability (outbox) or distribution (Kafka) are introduced.
   WHAT: Have use cases pull and publish recorded aggregate events through the EventBus after a successful mutation, and implement one real cross-module consumer with unit and Cucumber ATDD coverage.
+  ```
+
+## Iteration 45e: Demote PlantLike from Aggregate Root to Relationship Record
+
+**Spec Module(s)**: [architecture-boundaries.md](spec/modules/architecture-boundaries.md), [domain-core.md](spec/modules/domain-core.md)
+
+- **Status**: ⬜ Pending (hygiene cleanup raised while planning 45d, branch `062-publish-domain-events`, 2026-11-14).
+- **Value delivered**: Removes an anemic-aggregate smell. `PlantLike` (`id`, `userId`, `plantId`, `likedAt`) protects no invariant and has no state transition — it is a user↔plant relationship record, not a true aggregate root. It was made to extend `AggregateRoot` for no earned reason; once 45d emits `plant.liked`/`plant.unliked` as **use-case-level interaction events** (not facts pulled from the aggregate's buffer), nothing relies on its `record()`/`pullDomainEvents()`, so the inheritance is dead weight that misrepresents the model.
+- **Definition of Done**: `PlantLike` no longer extends `AggregateRoot`; it is modelled as a plain relationship record (entity or value object) with its existing fields and `toPrimitives`. The event-recording API is no longer reachable on it. Its persistence mapper, repository (`add`/`remove`/`find`) and the like/unlike use cases keep working unchanged (the events are already owned by the use cases after 45d). No collection, schema, migration, OpenAPI or endpoint change — this is an internal domain-shape cleanup only.
+- **Dependencies**: Iteration 45d (must land first: it moves `plant.liked`/`plant.unliked` ownership to the use cases, which is what frees `PlantLike` from needing the aggregate event buffer).
+- **Risks**: None functional — behaviour is identical. Only risk is forgetting a caller that still expects `record()`/`pullDomainEvents()` on `PlantLike` (none expected after 45d); the wiring test and unit tests guard it.
+- **Prompt for /speckit.specify**:
+  ```text
+  DEMOTE PLANTLIKE FROM AGGREGATE ROOT TO RELATIONSHIP RECORD
+  WHY: PlantLike holds no invariant and no state transition — it is a user↔plant relationship record, and extending AggregateRoot misrepresents the model and leaves a dead event-recording API on it once like/unlike events are owned by the use cases.
+  WHAT: Stop PlantLike extending AggregateRoot; model it as a plain relationship record keeping its fields and toPrimitives, with no change to its persistence mapper, repository, use cases, collection, contract or endpoints.
   ```
 
 ## Iteration 46: Create Transactional Outbox Collection

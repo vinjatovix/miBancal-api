@@ -1,11 +1,13 @@
 import { LikePlant } from '../../../../../../src/Contexts/Agro/PlantLikes/application/useCases/LikePlant.js';
+import { PlantLiked } from '../../../../../../src/Contexts/Agro/PlantLikes/domain/events/index.js';
 import type { PlantLikeRepository } from '../../../../../../src/Contexts/Agro/PlantLikes/domain/repositories/interfaces/PlantLikeRepository.js';
 import type { Plant } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/Plant.js';
 import { createPlantId } from '../../../../../../src/Contexts/Agro/Plants/domain/PlantId.js';
-import type { PlantLikesCounterRepository } from '../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantLikesCounterRepository.js';
 import type { PlantRepository } from '../../../../../../src/Contexts/Agro/Plants/domain/repositories/interfaces/PlantRepository.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/interfaces/index.js';
+import type { EventBus } from '../../../../../../src/Contexts/shared/application/eventBus/index.js';
 import { DomainNotFoundException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import type { DomainEvent } from '../../../../../../src/Contexts/shared/domain/events/index.js';
 import { UnitOfWorkMock } from '../../../../shared/__mocks__/UnitOfWorkMock.js';
 import { PlantLikeMother } from '../../domain/PlantLikeMother.js';
 
@@ -33,12 +35,10 @@ describe('LikePlant', () => {
       find
     } as unknown as PlantLikeRepository;
 
-    const increment = jest.fn().mockResolvedValue(undefined);
-    const decrement = jest.fn().mockResolvedValue(undefined);
-    const plantLikesCounterRepository = {
-      increment,
-      decrement
-    } as unknown as PlantLikesCounterRepository;
+    const publish = jest
+      .fn<Promise<void>, [DomainEvent[]]>()
+      .mockResolvedValue();
+    const eventBus = { publish, subscribe: jest.fn() } as unknown as EventBus;
 
     const unitOfWork = new UnitOfWorkMock();
 
@@ -47,11 +47,10 @@ describe('LikePlant', () => {
       add,
       remove,
       find,
-      increment,
-      decrement,
+      publish,
       plantRepository,
       plantLikeRepository,
-      plantLikesCounterRepository,
+      eventBus,
       unitOfWork
     };
   };
@@ -60,11 +59,11 @@ describe('LikePlant', () => {
     new LikePlant({
       plantRepository: mocks.plantRepository,
       plantLikeRepository: mocks.plantLikeRepository,
-      plantLikesCounterRepository: mocks.plantLikesCounterRepository,
+      eventBus: mocks.eventBus,
       unitOfWork: mocks.unitOfWork
     });
 
-  it('adds the like and increments the counter on a first like (201)', async () => {
+  it('announces a plant.liked fact on a first like (201)', async () => {
     const mocks = buildMocks();
     mocks.findActiveById.mockResolvedValueOnce(activePlant);
     mocks.add.mockResolvedValueOnce(true);
@@ -77,12 +76,24 @@ describe('LikePlant', () => {
     expect(result.status).toBe(201);
     expect(result.item.plantId).toBe(plantIdStr);
     expect(typeof result.item.likedAt).toBe('string');
-    expect(mocks.increment).toHaveBeenCalledWith(plantIdStr);
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+
+    const [firstCall] = mocks.publish.mock.calls;
+    const published = firstCall?.[0] ?? [];
+    expect(published).toHaveLength(1);
+
+    const [event] = published;
+    expect(event).toBeInstanceOf(PlantLiked);
+    expect(event?.payload).toEqual({
+      plantId: plantIdStr,
+      userId: user.id,
+      likedAt: result.item.likedAt
+    });
     expect(mocks.find).not.toHaveBeenCalled();
     expect(mocks.unitOfWork.runCount).toBe(1);
   });
 
-  it('is idempotent on a repeat like: no increment, returns existing likedAt (200)', async () => {
+  it('announces nothing on a repeat like and returns the existing likedAt (200)', async () => {
     const mocks = buildMocks();
     const likedAt = new Date('2026-10-23T14:30:00.000Z');
     mocks.findActiveById.mockResolvedValueOnce(activePlant);
@@ -99,7 +110,7 @@ describe('LikePlant', () => {
     expect(result.status).toBe(200);
     expect(result.item.plantId).toBe(plantIdStr);
     expect(result.item.likedAt).toBe(likedAt.toISOString());
-    expect(mocks.increment).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it('rejects a missing or soft-deleted plant without touching the store', async () => {
@@ -110,7 +121,20 @@ describe('LikePlant', () => {
 
     await expect(action).rejects.toThrow(DomainNotFoundException);
     expect(mocks.add).not.toHaveBeenCalled();
-    expect(mocks.increment).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
     expect(mocks.unitOfWork.runCount).toBe(0);
+  });
+
+  it('rejects and aborts the unit when a reactor throws while handling the fact', async () => {
+    const mocks = buildMocks();
+    mocks.findActiveById.mockResolvedValueOnce(activePlant);
+    mocks.add.mockResolvedValueOnce(true);
+    mocks.publish.mockRejectedValueOnce(new Error('reactor failed'));
+
+    const action = buildUseCase(mocks).execute({ plantId: plantIdStr }, user);
+
+    await expect(action).rejects.toThrow();
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.unitOfWork.runCount).toBe(1);
   });
 });
