@@ -29,18 +29,22 @@ The technology-agnostic foundation the port below depends on, living entirely in
 
 The `publish(events)` seam in 2.1 and use-case publishing (Iteration 45d) consume exactly these primitives.
 
-### 2.1 Event Bus Port (`EventBus`) `[TARGET STATE (Pending [Iteration 45c](../../roadmap.md#iteration-45c-define-eventbus-port-and-in-process-inmemory-adapter))]`
+### 2.1 Event Bus Port (`EventBus`) `[DELIVERED — [Iteration 45c](../../roadmap.md#iteration-45c-define-eventbus-port-and-in-process-inmemory-adapter), 2026-11-14]`
 
-A technology-agnostic interface defined in the application layer. This port is the stable seam every consumer depends on: the InMemory, Outbox-backed and Kafka adapters are interchangeable implementations behind it, so consumer business logic is written once (Iteration 45d) and never changes when reliability or distribution are added later.
+A technology-agnostic interface defined in the application layer at `src/Contexts/shared/application/eventBus/EventBus.ts` (re-exported via the `eventBus/` barrel). This port is the stable seam every consumer depends on: the InMemory, Outbox-backed and Kafka adapters are interchangeable implementations behind it, so consumer business logic is written once (Iteration 45d) and never changes when reliability or distribution are added later. It imports only the domain `DomainEvent` — zero persistence/messaging/transport coupling.
 
 - `publish(events: DomainEvent[]): Promise<void>`
-- `subscribe(eventType: string, handler: EventHandler): void`
+- `subscribe(eventName: string, handler: EventHandler): void`
+- `type EventHandler = (event: DomainEvent) => Promise<void>`
 
-### 2.2 InMemory Adapter (`InMemoryEventBusAdapter`) `[TARGET STATE (Pending [Iteration 45c](../../roadmap.md#iteration-45c-define-eventbus-port-and-in-process-inmemory-adapter))]`
+The routing key is the `DomainEvent.eventName` field (Iteration 45b); the port reuses that primitive rather than introducing a parallel event or envelope concept (envelope/versioning in §3.5 is deferred to the Kafka iterations).
 
-- A lightweight, synchronous, in-process implementation.
+### 2.2 InMemory Adapter (`InMemoryEventBusAdapter`) `[DELIVERED — [Iteration 45c](../../roadmap.md#iteration-45c-define-eventbus-port-and-in-process-inmemory-adapter), 2026-11-14]`
+
+- A lightweight, synchronous, in-process implementation at `src/Contexts/shared/infrastructure/eventBus/InMemoryEventBusAdapter.ts`. Keeps subscriptions in a `Map<string, EventHandler[]>`; `publish` dispatches events in batch order and, per event, awaits each handler subscribed to its `eventName` in registration order. Empty publishes and events with no subscribers are successful no-ops; a rejecting handler propagates out of `publish` (fail-fast — no swallow, no retry, no buffering this iteration).
 - **This is the first event-bus deliverable, not a test-only fallback.** It makes the whole event-driven architecture functional and testable before any broker exists; every cross-module consumer is authored and validated against it (Iteration 45d) ahead of the Outbox (reliability) and Kafka (distribution) iterations.
 - Designed for local developer builds, fast unit tests, and Cucumber ATDD step scenarios without external broker dependencies.
+- **Central wiring**: the bus is registered as an Awilix singleton (`eventBus`), and subscriptions are declared in one assembly-time registry module (`src/apps/agroApi/wiring/eventSubscriptions.ts`) resolved once by `createAppContainer`. Adding or removing a consumer is a single edit to the `EVENT_SUBSCRIPTIONS` list. The list is empty this iteration; the first consumer is wired in Iteration 45d.
 
 ### 2.3 Kafka Adapter (`KafkaEventBusAdapter`)
 

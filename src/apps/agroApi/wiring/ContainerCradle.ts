@@ -134,6 +134,7 @@ import type { MongoAuthRepository } from '../../../Contexts/Auth/infrastructure/
 import type { CheckHealth } from '../../../Contexts/health/application/useCases/CheckHealth.js';
 import type { BackgroundTasks } from '../../../Contexts/shared/application/background/index.js';
 import type { CacheRepository } from '../../../Contexts/shared/application/cache/index.js';
+import type { EventBus } from '../../../Contexts/shared/application/eventBus/index.js';
 import type { UnitOfWork } from '../../../Contexts/shared/application/interfaces/index.js';
 import type { Mailer } from '../../../Contexts/shared/application/mailer/index.js';
 import type {
@@ -258,6 +259,7 @@ export type ContainerCradle = {
   cacheRepository: CacheRepository;
   cacheCatalogTtlSeconds: number;
   backgroundTasks: BackgroundTasks;
+  eventBus: EventBus;
   accountNotifier: AccountNotifier;
   providerUserResolver: ProviderUserResolver;
   sessionTokenIssuer: SessionTokenIssuer;

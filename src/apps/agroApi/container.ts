@@ -31,6 +31,7 @@ import type { CacheRepository } from '../../Contexts/shared/application/cache/in
 import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
 import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
 import { createCache } from '../../Contexts/shared/infrastructure/cache/index.js';
+import { InMemoryEventBusAdapter } from '../../Contexts/shared/infrastructure/eventBus/index.js';
 import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
 import { MongoUnitOfWork } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import {
@@ -43,6 +44,7 @@ import type {
   AppContainer,
   ContainerCradle
 } from './wiring/ContainerCradle.js';
+import { registerEventSubscribers } from './wiring/eventSubscriptions.js';
 import { scanComponents } from './wiring/scanComponents.js';
 
 export type { AppContainer, ContainerCradle };
@@ -114,6 +116,7 @@ export function buildExplicitRegistrations({
     ),
     cacheCatalogTtlSeconds: asValue(envs.CACHE_CATALOG_TTL_SECONDS),
     backgroundTasks: asClass(InProcessBackgroundTasks).singleton(),
+    eventBus: asClass(InMemoryEventBusAdapter).singleton(),
     accountNotifier: asClass(MailerAccountNotifier).singleton(),
     providerUserResolver: asClass(ProviderUserResolver).singleton(),
     sessionTokenIssuer: asClass(SessionTokenIssuer).singleton(),
@@ -153,6 +156,8 @@ export async function createAppContainer({
   if (overrides) {
     container.register(overrides);
   }
+
+  registerEventSubscribers(container);
 
   return container;
 }

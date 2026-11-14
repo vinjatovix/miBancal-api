@@ -12,6 +12,7 @@ import {
   toRegistrationName
 } from '../../../src/apps/agroApi/wiring/componentRoles.js';
 import { scanComponents } from '../../../src/apps/agroApi/wiring/scanComponents.js';
+import { InMemoryEventBusAdapter } from '../../../src/Contexts/shared/infrastructure/eventBus/index.js';
 import { InMemoryMailer } from '../../../src/Contexts/shared/infrastructure/mailer/index.js';
 import {
   GithubIdentityProviderAdapter,
@@ -179,5 +180,20 @@ describe('container wiring', () => {
     });
 
     expect(container.resolve('mailer')).toBeInstanceOf(InMemoryMailer);
+  });
+
+  it('resolves eventBus as a singleton InMemoryEventBusAdapter', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
+
+    const bus = container.resolve('eventBus');
+
+    expect(bus).toBeInstanceOf(InMemoryEventBusAdapter);
+    expect(container.resolve('eventBus')).toBe(bus);
   });
 });
