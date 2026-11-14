@@ -78,12 +78,7 @@ describe('DeleteBed', () => {
     it('re-announces the captured fact on a retried attempt without draining it to empty', async () => {
       const bed = BedFactory.fromUser(USER);
       bedRepository.addToStorage(bed);
-      // The write is decoupled from storage state so the replay does not fail
-      // on the already-deleted bed; this test isolates the draining contract.
       jest.spyOn(bedRepository, 'updateWithDiff').mockResolvedValue('written');
-      // A unit of work that runs `work` twice (a transient-error retry): the
-      // first attempt is discarded, the second commits. Events are captured
-      // before `run`, so both attempts must publish the same non-empty batch.
       const retryingUnitOfWork: UnitOfWork = {
         async run<T>(work: () => Promise<T>): Promise<T> {
           await work();

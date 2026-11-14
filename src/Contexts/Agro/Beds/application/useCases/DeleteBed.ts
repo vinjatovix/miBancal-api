@@ -40,11 +40,9 @@ export class DeleteBed {
     bed.markAsDeleted(user.username, at);
     const deleted = bedDomainMapper.toPrimitives(bed);
 
-    // Drain once, before `run`: the unit of work may retry `work` on a
-    // transient transaction error, and `work` must not depend on a previous
-    // attempt's side effects. Pulling inside `run` would drain an empty buffer
-    // on a retry, silently dropping both the outbox write and the in-process
-    // cascade while still committing the deletion.
+    // Pulled before `run` because the unit of work may retry its callback; a
+    // second attempt would drain an empty buffer and commit the deletion with
+    // no events.
     const events = bed.pullDomainEvents();
 
     await this.unitOfWork.run(async () => {

@@ -31,12 +31,6 @@ export abstract class DomainEvent<Payload extends object = object> {
     this.payload = props.payload;
   }
 
-  /**
-   * Self-contained serialization of the event. Pure domain primitive with no
-   * persistence/transport coupling: `occurredAt` is an ISO 8601 string so a
-   * forwarder can emit the object verbatim (e.g. a Kafka message value)
-   * without recomposition.
-   */
   public toPrimitives(): DomainEventPrimitives<Payload> {
     return {
       eventId: this.eventId,

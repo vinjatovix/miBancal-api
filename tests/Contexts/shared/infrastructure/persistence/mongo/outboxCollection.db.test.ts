@@ -25,7 +25,6 @@ type OutboxDocument = {
 
 type PlanNode = { stage?: unknown; indexName?: unknown };
 
-/** Every `{ stage, indexName }` of a query plan, depth first. */
 const planStages = (node: unknown): PlanNode[] => {
   if (!node || typeof node !== 'object') return [];
   const plan = node as Record<string, unknown>;

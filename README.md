@@ -68,6 +68,30 @@ Or just with:
 npm run docker:local
 ```
 
+#### Run the outbox worker (event bus)
+
+The HTTP API and the **outbox worker** are two separate processes that share the
+same codebase and the same MongoDB. The API, inside each write transaction,
+stages domain events into the `outbox` collection; the worker tails that
+collection and forwards every staged event downstream. See
+[`docs/spec/modules/event-bus.md`](docs/spec/modules/event-bus.md) for the full
+design.
+
+Run them in two terminals (Mongo must be up — see _Setup Local Persistence_):
+
+```bash
+npm run dev          # terminal A — HTTP API
+npm run worker:dev   # terminal B — outbox worker (watch mode, no build needed)
+```
+
+The worker reads a **MongoDB change stream**, which only works against a replica
+set. The local Mongo from `npm run docker:mongo` already runs as replica set
+`rs0`, so no extra setup is needed. The worker needs only the `MONGO_*` variables
+(it has no HTTP port and does not use Redis); the shared `.env` already covers it.
+
+Trigger an event (e.g. delete a bed) and the worker logs the forwarded event and
+persists its progress in the `outbox_progress` collection.
+
 ### Setup Local Persistence
 
 - Starts the Mongo database (and the optional Redis cache, see below)
