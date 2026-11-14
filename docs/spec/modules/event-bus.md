@@ -55,7 +55,9 @@ The routing key is the `DomainEvent.eventName` field (Iteration 45b); the port r
 
 ## 3. RESILIENCE & DATA INTEGRITY PATTERNS
 
-### 3.1 Transactional Outbox Pattern with Change Streams & Fallback Polling `[CRITICAL SECURITY RULE] [TARGET STATE (Pending [Iteration 46](../../roadmap.md#iteration-46-create-transactional-outbox-collection))]`
+### 3.1 Transactional Outbox Pattern with Change Streams & Fallback Polling `[CRITICAL SECURITY RULE] [PARTIALLY BUILT — store & index in [Iteration 46](../../roadmap.md#iteration-46-create-transactional-outbox-collection); writing, forwarding & cleanup pending Iterations 47–48+]`
+
+> **Built state ([Iteration 46](../../roadmap.md#iteration-46-create-transactional-outbox-collection)):** the durable `outbox` collection and its pending-lookup composite index `{ processedAt: 1, _id: 1 }` (name `outbox_processedAt_id`, non-partial, non-unique, **no TTL**) now exist, delivered DDL-only via the `20261114120000-create-outbox-collection` migration. This iteration does **not** write, forward, or clean up events: the atomic write (item 1), the Change Stream tailer (item 2), fallback polling (item 3), and the confirmation/cleanup routine (item 4) remain `[TARGET STATE]` for later iterations.
 
 To guarantee that "ghost events" are never published to Kafka (e.g., publishing a message for an operation that eventually rolled back or failed in MongoDB), the system enforces the **Transactional Outbox** pattern:
 
