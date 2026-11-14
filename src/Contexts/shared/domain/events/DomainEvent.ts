@@ -8,6 +8,14 @@ export interface DomainEventProps<Payload extends object> {
   readonly occurredAt?: Date;
 }
 
+export interface DomainEventPrimitives<Payload extends object> {
+  readonly eventId: string;
+  readonly eventName: string;
+  readonly aggregateId: string;
+  readonly occurredAt: string;
+  readonly payload: Payload;
+}
+
 export abstract class DomainEvent<Payload extends object = object> {
   public readonly eventId: string;
   public readonly occurredAt: Date;
@@ -21,5 +29,21 @@ export abstract class DomainEvent<Payload extends object = object> {
     this.aggregateId = props.aggregateId;
     this.eventName = props.eventName;
     this.payload = props.payload;
+  }
+
+  /**
+   * Self-contained serialization of the event. Pure domain primitive with no
+   * persistence/transport coupling: `occurredAt` is an ISO 8601 string so a
+   * forwarder can emit the object verbatim (e.g. a Kafka message value)
+   * without recomposition.
+   */
+  public toPrimitives(): DomainEventPrimitives<Payload> {
+    return {
+      eventId: this.eventId,
+      eventName: this.eventName,
+      aggregateId: this.aggregateId,
+      occurredAt: this.occurredAt.toISOString(),
+      payload: this.payload
+    };
   }
 }

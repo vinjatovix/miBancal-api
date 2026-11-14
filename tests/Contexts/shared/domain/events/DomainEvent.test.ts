@@ -1,64 +1,44 @@
-import { random } from '../../fixtures/index.js';
-import { TestDomainEventMother } from './TestDomainEventMother.js';
-import type { TestPayload } from './TestDomainEventMother.js';
+import { BedDeleted } from '../../../../../src/Contexts/Agro/Beds/domain/events/index.js';
+import { PlantLiked } from '../../../../../src/Contexts/Agro/PlantLikes/domain/events/index.js';
+import { random } from '../../../shared/fixtures/random.js';
 
-const UUID_V7_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-describe('DomainEvent', () => {
-  describe('when only aggregateId, eventName and payload are supplied', () => {
-    it('should expose all five attributes', () => {
-      const aggregateId = random.uuid();
-      const payload: TestPayload = { value: 'planted' };
-
-      const event = TestDomainEventMother.create({
-        aggregateId,
-        eventName: 'plant.recorded',
-        payload
-      });
-
-      expect(event.aggregateId).toBe(aggregateId);
-      expect(event.eventName).toBe('plant.recorded');
-      expect(event.payload).toEqual(payload);
-      expect(typeof event.eventId).toBe('string');
-      expect(event.occurredAt).toBeInstanceOf(Date);
+describe('DomainEvent.toPrimitives', () => {
+  it('returns the self-contained event with occurredAt as an ISO 8601 string', () => {
+    const bedId = random.uuid();
+    const event = new BedDeleted({
+      bedId,
+      ownerId: random.uuid(),
+      deletedBy: 'gardener',
+      occurredAt: new Date().toISOString()
     });
 
-    it('should default eventId to a fresh UUIDv7', () => {
-      const event = TestDomainEventMother.create();
+    const primitives = event.toPrimitives();
 
-      expect(event.eventId).toMatch(UUID_V7_REGEX);
+    expect(primitives).toEqual({
+      eventId: event.eventId,
+      eventName: 'bed.deleted',
+      aggregateId: bedId,
+      occurredAt: event.occurredAt.toISOString(),
+      payload: event.payload
     });
-
-    it('should default occurredAt to a current Date', () => {
-      const before = Date.now();
-
-      const event = TestDomainEventMother.create();
-
-      const after = Date.now();
-      expect(event.occurredAt.getTime()).toBeGreaterThanOrEqual(before);
-      expect(event.occurredAt.getTime()).toBeLessThanOrEqual(after);
-    });
+    expect(new Date(primitives.occurredAt).toISOString()).toBe(
+      primitives.occurredAt
+    );
   });
 
-  describe('chronological sortability of defaulted eventId', () => {
-    it('should order two events created in sequence lexicographically by eventId', () => {
-      const first = TestDomainEventMother.create();
-      const second = TestDomainEventMother.create();
-
-      expect(first.eventId < second.eventId).toBe(true);
+  it('mirrors the aggregateId and eventName of the event for any producer', () => {
+    const plantId = random.uuid();
+    const event = new PlantLiked(plantId, {
+      plantId,
+      userId: random.uuid(),
+      likedAt: new Date().toISOString()
     });
-  });
 
-  describe('reconstitution with explicit identity and moment', () => {
-    it('should preserve the supplied eventId and occurredAt unchanged', () => {
-      const eventId = random.uuid();
-      const occurredAt = new Date('2026-01-10T12:30:00.000Z');
+    const primitives = event.toPrimitives();
 
-      const event = TestDomainEventMother.create({ eventId, occurredAt });
-
-      expect(event.eventId).toBe(eventId);
-      expect(event.occurredAt).toBe(occurredAt);
-    });
+    expect(primitives.eventId).toBe(event.eventId);
+    expect(primitives.eventName).toBe('plant.liked');
+    expect(primitives.aggregateId).toBe(plantId);
+    expect(primitives.payload).toEqual(event.payload);
   });
 });

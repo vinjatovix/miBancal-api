@@ -26,6 +26,8 @@ export const EXPLICIT_NAMES: ReadonlySet<string> = new Set([
   'cacheCatalogTtlSeconds',
   'backgroundTasks',
   'eventBus',
+  'inProcessEventBus',
+  'outboxRepository',
   'accountNotifier',
   'providerUserResolver',
   'sessionTokenIssuer',

@@ -2,6 +2,7 @@ import { asClass } from 'awilix';
 import type { Db } from 'mongodb';
 
 import { up } from '../../../../../../../migrations/scripts/20261005140000-create-plant-instances-collection.js';
+import { up as createOutboxCollection } from '../../../../../../../migrations/scripts/20261114120000-create-outbox-collection.js';
 import { DeleteBed } from '../../../../../../../src/Contexts/Agro/Beds/application/useCases/index.js';
 import type { Bed } from '../../../../../../../src/Contexts/Agro/Beds/domain/entities/Bed.js';
 import type { BedRepository } from '../../../../../../../src/Contexts/Agro/Beds/domain/repositories/interfaces/BedRepository.js';
@@ -81,6 +82,7 @@ describe('DeleteBed transaction (integration)', () => {
     });
     db = context.db;
     await up(db);
+    await createOutboxCollection(db);
 
     const { container } = context;
     bedRepository = container.resolve<BedRepository>('bedRepository');

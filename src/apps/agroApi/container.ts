@@ -42,8 +42,12 @@ import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
 import type { DomainEvent } from '../../Contexts/shared/domain/events/index.js';
 import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
 import { createCache } from '../../Contexts/shared/infrastructure/cache/index.js';
-import { InMemoryEventBusAdapter } from '../../Contexts/shared/infrastructure/eventBus/index.js';
+import {
+  InMemoryEventBusAdapter,
+  OutboxEventBusAdapter
+} from '../../Contexts/shared/infrastructure/eventBus/index.js';
 import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
+import { MongoOutboxRepository } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoOutboxRepository.js';
 import { MongoUnitOfWork } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import {
   buildLogger,
@@ -127,7 +131,9 @@ export function buildExplicitRegistrations({
     ),
     cacheCatalogTtlSeconds: asValue(envs.CACHE_CATALOG_TTL_SECONDS),
     backgroundTasks: asClass(InProcessBackgroundTasks).singleton(),
-    eventBus: asClass(InMemoryEventBusAdapter).singleton(),
+    inProcessEventBus: asClass(InMemoryEventBusAdapter).singleton(),
+    outboxRepository: asClass(MongoOutboxRepository).singleton(),
+    eventBus: asClass(OutboxEventBusAdapter).singleton(),
     accountNotifier: asClass(MailerAccountNotifier).singleton(),
     providerUserResolver: asClass(ProviderUserResolver).singleton(),
     sessionTokenIssuer: asClass(SessionTokenIssuer).singleton(),
