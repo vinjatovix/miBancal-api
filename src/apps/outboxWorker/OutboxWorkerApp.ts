@@ -1,6 +1,9 @@
 import type { MongoClient } from 'mongodb';
 
-import type { OutboxTailer } from '../../Contexts/shared/application/outbox/index.js';
+import type {
+  OutboxTailer,
+  OutboxWatchdog
+} from '../../Contexts/shared/application/outbox/index.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/index.js';
 import {
   DBClientFactory,
@@ -30,6 +33,7 @@ export class OutboxWorkerApp {
 
   private client?: MongoClient;
   private tailer?: OutboxTailer;
+  private watchdog?: OutboxWatchdog;
 
   constructor({
     logger,
@@ -58,12 +62,20 @@ export class OutboxWorkerApp {
       workerConfig: this.workerConfig
     });
     this.tailer = container.resolve('outboxTailer');
+    this.watchdog = container.resolve('watchdog');
 
     this.logger.info('Outbox worker started; tailing the outbox collection');
-    await this.tailer.start();
+    const tailerPromise = this.tailer.start();
+    this.watchdog.start();
+    await tailerPromise;
   }
 
   public async stop(): Promise<void> {
+    if (this.watchdog) {
+      this.watchdog.stop();
+      this.logger.info('Outbox watchdog stopped');
+    }
+
     if (this.tailer) {
       await this.tailer.stop();
       this.logger.info('Outbox tailer stopped');

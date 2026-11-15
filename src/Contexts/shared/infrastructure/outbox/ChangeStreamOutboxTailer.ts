@@ -10,7 +10,8 @@ import type {
   EventForwarder,
   OutboxProgressRepository,
   OutboxRecord,
-  OutboxTailer
+  OutboxTailer,
+  OutboxTailerStatus
 } from '../../application/outbox/index.js';
 import type { AppLogger } from '../../plugins/logger.plugin.js';
 import { isUnresumableChangeStreamError } from '../persistence/mongo/mongoErrorCodes.js';
@@ -39,8 +40,10 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
   private readonly config: OutboxTailerConfig;
 
   private running = false;
-  private currentStream: ChangeStream<Document> | undefined;
+  private startedAt: Date | undefined;
+  private lastForwardedAt: Date | undefined;
   private lastForwardedId: string | undefined;
+  private currentStream: ChangeStream<Document> | undefined;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private resolveReconnect: (() => void) | undefined;
 
@@ -58,11 +61,29 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
     this.config = workerConfig;
   }
 
+  public status(): OutboxTailerStatus {
+    return {
+      running: this.running,
+      ...(this.startedAt !== undefined ? { startedAt: this.startedAt } : {}),
+      ...(this.lastForwardedAt !== undefined
+        ? { lastForwardedAt: this.lastForwardedAt }
+        : {}),
+      ...(this.lastForwardedId !== undefined
+        ? { lastForwardedId: this.lastForwardedId }
+        : {})
+    };
+  }
+
   public async start(): Promise<void> {
+    this.startedAt = new Date();
     this.running = true;
-    const progress = await this.outboxProgressRepository.load();
-    this.lastForwardedId = progress.lastForwardedId;
-    await this.runUntilStopped(progress.resumeToken);
+    try {
+      const progress = await this.outboxProgressRepository.load();
+      this.lastForwardedId = progress.lastForwardedId;
+      await this.runUntilStopped(progress.resumeToken);
+    } finally {
+      this.running = false;
+    }
   }
 
   public async stop(): Promise<void> {
@@ -143,6 +164,7 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
   ): Promise<void> {
     const record = this.toRecord(change.fullDocument);
     await this.eventForwarder.forward(record);
+    this.lastForwardedAt = new Date();
     this.lastForwardedId = record.eventId;
     await this.outboxProgressRepository.save({
       resumeToken: change._id,
@@ -192,6 +214,7 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
 
     const record = this.toRecord(document);
     await this.eventForwarder.forward(record);
+    this.lastForwardedAt = new Date();
     this.lastForwardedId = record.eventId;
     await this.outboxProgressRepository.save({
       lastForwardedId: record.eventId
