@@ -1,12 +1,9 @@
-import dotenv from 'dotenv';
 import env from 'env-var';
 
+import { loadEnvFile } from '../../../../shared/infrastructure/config/loadEnvFile.js';
+
 function loadEnvs() {
-  dotenv.config({
-    path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
-    override: true,
-    quiet: true
-  });
+  loadEnvFile();
 
   return {
     PORT: env.get('PORT').required().asPortNumber(),

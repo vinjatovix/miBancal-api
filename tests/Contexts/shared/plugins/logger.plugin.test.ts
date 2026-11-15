@@ -10,8 +10,7 @@ type FakeWinston = {
 
 type Environment = { NODE_ENV: string; TEST_LOGS: boolean };
 
-const ENVS_MODULE =
-  '../../../../src/apps/agroApi/config/plugins/envs.plugin.js';
+const ENVS_MODULE = '../../../../src/Contexts/shared/plugins/loggerEnv.js';
 const LOGGER_MODULE =
   '../../../../src/Contexts/shared/plugins/logger.plugin.js';
 
@@ -37,7 +36,7 @@ const loadLoggerWith = (environment: Environment): FakeWinston => {
   jest.isolateModules(() => {
     jest.doMock('winston', () => ({ __esModule: true, default: winston }));
     jest.doMock('winston-mongodb', () => ({}));
-    jest.doMock(ENVS_MODULE, () => ({ getEnvs: () => environment }));
+    jest.doMock(ENVS_MODULE, () => ({ getLoggerEnv: () => environment }));
     const { buildLogger } = jest.requireActual<{
       buildLogger: (s: string) => AppLogger;
     }>(LOGGER_MODULE);

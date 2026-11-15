@@ -1,9 +1,9 @@
-import { getEnvs } from '../../../../apps/agroApi/config/plugins/envs.plugin.js';
 import type { MongoConfig } from './interfaces/MongoConfig.js';
+import { getMongoEnv } from './mongoEnv.js';
 
 export class MongoConfigFactory {
   private static getRawConfig() {
-    const envs = getEnvs();
+    const envs = getMongoEnv();
     return {
       connection: envs.MONGO_CONNECTION,
       url: envs.MONGO_URL,
