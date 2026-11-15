@@ -63,6 +63,7 @@ export class MongoBedRepository
     if (filter?.locationId !== undefined) {
       const locationIdVal =
         typeof filter.locationId === 'object' &&
+        // eslint-disable-next-line sonarjs/different-types-comparison -- runtime null guard: typeof null is object, so the explicit null check the static type omits is required
         filter.locationId !== null &&
         'eq' in filter.locationId
           ? filter.locationId.eq

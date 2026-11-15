@@ -458,9 +458,9 @@ describe('MongoPlantReadRepository', () => {
       ]);
 
       expect(summaries).toHaveLength(2);
-      expect(summaries.map((s) => s.id).sort()).toEqual(
-        [plant1.id, plant2.id].sort()
-      );
+      expect(
+        summaries.map((s) => s.id).sort((a, b) => a.localeCompare(b))
+      ).toEqual([plant1.id, plant2.id].sort((a, b) => a.localeCompare(b)));
       const summary1 = summaries.find((s) => s.id === plant1.id);
       expect(summary1).toMatchObject({
         id: plant1.id,

@@ -128,7 +128,9 @@ describe('MongoPlantInstanceRepository (integration)', () => {
 
     const crops = await repository.findActiveByBedIds([bed1, bed2], userId);
 
-    expect(crops.map((c) => c.id).sort()).toEqual([crop1.id, crop2.id].sort());
+    expect(crops.map((c) => c.id).sort((a, b) => a.localeCompare(b))).toEqual(
+      [crop1.id, crop2.id].sort((a, b) => a.localeCompare(b))
+    );
   });
 
   it('reads only the id and bed of active crops, oldest planted first', async () => {
@@ -222,7 +224,9 @@ describe('MongoPlantInstanceRepository (integration)', () => {
     }
 
     expect(pageIds).toHaveLength(crops.length);
-    expect([...pageIds].sort()).toEqual(crops.map((c) => c.id).sort());
+    expect([...pageIds].sort((a, b) => a.localeCompare(b))).toEqual(
+      crops.map((c) => c.id).sort((a, b) => a.localeCompare(b))
+    );
   });
 
   describe('query index execution analysis', () => {

@@ -46,6 +46,7 @@ export class BedRepositoryMock
     const locationIdFilter = filter?.locationId;
     const targetLocationId =
       typeof locationIdFilter === 'object' &&
+      // eslint-disable-next-line sonarjs/different-types-comparison -- runtime null guard: typeof null is object, so the explicit null check the static type omits is required
       locationIdFilter !== null &&
       'eq' in locationIdFilter
         ? locationIdFilter.eq
@@ -55,6 +56,7 @@ export class BedRepositoryMock
       const matchesUser = bed.userId === userId && this.isActive(bed);
       if (!matchesUser) return false;
       if (targetLocationId !== undefined) {
+        // eslint-disable-next-line sonarjs/different-types-comparison -- intentional value comparison: operands share their runtime representation; only the nominal/nullable type difference is flagged
         return bed.locationId === targetLocationId;
       }
       return true;

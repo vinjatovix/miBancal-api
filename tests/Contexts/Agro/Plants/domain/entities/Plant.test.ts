@@ -202,24 +202,25 @@ describe('Plant (aggregate root)', () => {
   });
 
   it('should not allow a DELETED plant without deletedAt', () => {
-    expect(() => {
-      new Plant({
-        id: randomPlantId(),
-        identity: PlantIdentityBuilder.tomato(),
-        traits: {
-          lifecycle: PlantLifecycle.from('annual'),
-          size: {
-            height: Range.single(10),
-            spread: Range.single(20)
+    expect(
+      () =>
+        new Plant({
+          id: randomPlantId(),
+          identity: PlantIdentityBuilder.tomato(),
+          traits: {
+            lifecycle: PlantLifecycle.from('annual'),
+            size: {
+              height: Range.single(10),
+              spread: Range.single(20)
+            },
+            spacingCm: Range.single(15)
           },
-          spacingCm: Range.single(15)
-        },
-        phenology: buildPlant().phenology,
-        knowledge: PlantKnowledgeBuilder.minimal(),
-        metadata: Metadata.create('system'),
-        status: PlantStatus.DELETED
-      });
-    }).toThrow(InvalidArgumentException);
+          phenology: buildPlant().phenology,
+          knowledge: PlantKnowledgeBuilder.minimal(),
+          metadata: Metadata.create('system'),
+          status: PlantStatus.DELETED
+        })
+    ).toThrow(InvalidArgumentException);
   });
 
   it('should reject blank toxicity notes on creation', () => {

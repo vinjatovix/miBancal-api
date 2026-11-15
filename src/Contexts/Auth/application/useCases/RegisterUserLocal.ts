@@ -227,6 +227,7 @@ export class RegisterUserLocal {
     const holders = await this.authRepository.findByQuery({ username });
     const replaced = existing?.isReplaceableAt(at) ? existing.id : null;
 
+    // eslint-disable-next-line sonarjs/different-types-comparison -- intentional value comparison: operands share their runtime representation; only the nominal/nullable type difference is flagged
     if (holders.some((holder) => holder.id !== replaced)) {
       throw new DomainConflictException(USERNAME_TAKEN_MESSAGE);
     }

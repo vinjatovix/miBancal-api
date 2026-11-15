@@ -158,10 +158,11 @@ describe('outbox collection migration', () => {
     it('declares exactly the default _id index and the pending-lookup composite index', async () => {
       const indexes = await outbox().indexes();
 
-      expect(indexes.map((index) => index.name).sort()).toEqual([
-        '_id_',
-        INDEX_NAME
-      ]);
+      expect(
+        indexes
+          .map((index) => index.name)
+          .sort((a, b) => (a ?? '').localeCompare(b ?? ''))
+      ).toEqual(['_id_', INDEX_NAME]);
     });
 
     it('does not declare age-based TTL expiry on any index', async () => {
@@ -177,12 +178,12 @@ describe('outbox collection migration', () => {
     it('keeps an identical index set across repeated applies', async () => {
       const initialIndexes = (await outbox().indexes())
         .map((index) => index.name)
-        .sort();
+        .sort((a, b) => (a ?? '').localeCompare(b ?? ''));
 
       await createOutboxCollection(db);
       const indexesAfterReapply = (await outbox().indexes())
         .map((index) => index.name)
-        .sort();
+        .sort((a, b) => (a ?? '').localeCompare(b ?? ''));
 
       expect(indexesAfterReapply).toEqual(initialIndexes);
     });

@@ -50,6 +50,7 @@ export class PlantRelationRepositoryMock implements PlantRelationRepository {
   async findBySourcePlant(sourcePlantId: string): Promise<PlantRelation[]> {
     this.findBySourcePlantMock(sourcePlantId);
     return [...this.storage.values()].filter(
+      // eslint-disable-next-line sonarjs/different-types-comparison -- intentional value comparison: operands share their runtime representation; only the nominal/nullable type difference is flagged
       (r) => r.sourcePlantId === sourcePlantId
     );
   }
@@ -57,6 +58,7 @@ export class PlantRelationRepositoryMock implements PlantRelationRepository {
   async findByTargetPlant(targetPlantId: string): Promise<PlantRelation[]> {
     this.findByTargetPlantMock(targetPlantId);
     return [...this.storage.values()].filter(
+      // eslint-disable-next-line sonarjs/different-types-comparison -- intentional value comparison: operands share their runtime representation; only the nominal/nullable type difference is flagged
       (r) => r.targetPlantId === targetPlantId
     );
   }
@@ -68,6 +70,7 @@ export class PlantRelationRepositoryMock implements PlantRelationRepository {
     this.findBetweenPlantsMock(sourcePlantId, targetPlantId);
     return [...this.storage.values()].filter(
       (r) =>
+        // eslint-disable-next-line sonarjs/different-types-comparison -- intentional value comparison: operands share their runtime representation; only the nominal/nullable type difference is flagged
         r.sourcePlantId === sourcePlantId && r.targetPlantId === targetPlantId
     );
   }
@@ -79,7 +82,9 @@ export class PlantRelationRepositoryMock implements PlantRelationRepository {
     this.findForPlantPairMock(plantAId, plantBId);
     return [...this.storage.values()].filter(
       (r) =>
+        // eslint-disable-next-line sonarjs/different-types-comparison -- intentional value comparison: operands share their runtime representation; only the nominal/nullable type difference is flagged
         (r.sourcePlantId === plantAId && r.targetPlantId === plantBId) ||
+        // eslint-disable-next-line sonarjs/different-types-comparison -- intentional value comparison: operands share their runtime representation; only the nominal/nullable type difference is flagged
         (r.sourcePlantId === plantBId && r.targetPlantId === plantAId)
     );
   }

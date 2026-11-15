@@ -60,9 +60,9 @@ describe('add-aggregate-version migration', () => {
 
       await up(db);
 
-      expect(calls.map((call) => call.collection).sort()).toEqual(
-        VERSIONED_COLLECTIONS
-      );
+      expect(
+        calls.map((call) => call.collection).sort((a, b) => a.localeCompare(b))
+      ).toEqual(VERSIONED_COLLECTIONS);
     });
 
     it('should reject with the error of a failing update', async () => {

@@ -68,12 +68,9 @@ describe('OutboxWorkerApp', () => {
 
     await app.start();
 
-    expect(Object.keys(containerDeps[0] ?? {}).sort()).toEqual([
-      'client',
-      'db',
-      'logger',
-      'workerConfig'
-    ]);
+    expect(
+      Object.keys(containerDeps[0] ?? {}).sort((a, b) => a.localeCompare(b))
+    ).toEqual(['client', 'db', 'logger', 'workerConfig']);
   });
 
   it('stops the tailer before closing the Mongo client', async () => {

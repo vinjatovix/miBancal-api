@@ -108,7 +108,7 @@ describe('MongoOutboxRepository (integration)', () => {
       await unitOfWork.run(() => outboxRepository.stage([event]));
 
       const doc = await firstStored();
-      expect(Object.keys(doc).sort()).toEqual([
+      expect(Object.keys(doc).sort((a, b) => a.localeCompare(b))).toEqual([
         '_id',
         'aggregateId',
         'createdAt',

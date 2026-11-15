@@ -271,6 +271,7 @@ describe('zodIssuesToErrors', () => {
     it('should keep a custom regex message that hides the pattern', () => {
       const issues = issuesOf(sampleBodySchema(), {
         ...sampleValidBody(),
+        // eslint-disable-next-line sonarjs/no-hardcoded-passwords -- test fixture credential, not a real secret
         password: 'no-digits-here'
       });
 

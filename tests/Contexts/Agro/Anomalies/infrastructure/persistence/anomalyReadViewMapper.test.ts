@@ -53,6 +53,10 @@ describe('anomalyReadViewMapper', () => {
       'name'
     ]);
 
-    expect(Object.keys(sparse).sort()).toEqual(['id', 'name', 'slug']);
+    expect(Object.keys(sparse).sort((a, b) => a.localeCompare(b))).toEqual([
+      'id',
+      'name',
+      'slug'
+    ]);
   });
 });

@@ -37,6 +37,7 @@ export const familyExtra = (
   extra?: FamilyExtraPrimitives
 ): FamilyExtraPrimitives | undefined => {
   if (extra === undefined) return undefined;
+  // eslint-disable-next-line sonarjs/different-types-comparison -- runtime null guard: typeof null is object, so the explicit null check the static type omits is required
   if (typeof extra !== 'object' || extra === null || Array.isArray(extra)) {
     throw new InvalidArgumentException(`${PATH} must be an object`);
   }

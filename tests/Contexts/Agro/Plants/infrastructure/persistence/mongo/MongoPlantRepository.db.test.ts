@@ -134,9 +134,9 @@ describe('MongoPlantRepository', () => {
         random.uuid()
       ]);
 
-      expect(found.map((plant) => plant.id).sort()).toEqual(
-        [active.id, deleted.id].sort()
-      );
+      expect(
+        found.map((plant) => plant.id).sort((a, b) => a.localeCompare(b))
+      ).toEqual([active.id, deleted.id].sort((a, b) => a.localeCompare(b)));
     });
 
     it('should return an empty list for no ids', async () => {

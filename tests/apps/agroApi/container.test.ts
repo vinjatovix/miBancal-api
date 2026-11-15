@@ -38,9 +38,11 @@ describe('container wiring', () => {
     const expectedKeys = [
       ...components.map((component) => component.registrationName),
       ...EXPLICIT_NAMES
-    ].sort();
+    ].sort((a, b) => a.localeCompare(b));
 
-    const registeredKeys = Object.keys(container.registrations).sort();
+    const registeredKeys = Object.keys(container.registrations).sort((a, b) =>
+      a.localeCompare(b)
+    );
 
     expect(registeredKeys).toEqual(expectedKeys);
   });
@@ -58,8 +60,12 @@ describe('container wiring', () => {
       SOURCE_ROOT,
       'apps/agroApi/wiring/ContainerCradle.ts'
     );
-    const cradleProperties = getCradlePropertyNames(cradlePath).sort();
-    const registeredKeys = Object.keys(container.registrations).sort();
+    const cradleProperties = getCradlePropertyNames(cradlePath).sort((a, b) =>
+      a.localeCompare(b)
+    );
+    const registeredKeys = Object.keys(container.registrations).sort((a, b) =>
+      a.localeCompare(b)
+    );
 
     expect(registeredKeys).toEqual(cradleProperties);
   });
