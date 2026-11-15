@@ -10,6 +10,7 @@ import {
   ChangeStreamOutboxTailer,
   type OutboxTailerConfig
 } from '../../../../../src/Contexts/shared/infrastructure/outbox/index.js';
+import { MongoOutboxDispatchRepository } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoOutboxDispatchRepository.js';
 import { MongoOutboxProgressRepository } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoOutboxProgressRepository.js';
 import type { AppLogger } from '../../../../../src/Contexts/shared/plugins/logger.plugin.js';
 import {
@@ -130,6 +131,9 @@ const buildTailer = (
     outboxCollection: collection,
     eventForwarder: forwarder,
     outboxProgressRepository: new MongoOutboxProgressRepository({
+      db: context.db
+    }),
+    outboxDispatchRepository: new MongoOutboxDispatchRepository({
       db: context.db
     }),
     logger: noopLogger(),
@@ -305,6 +309,41 @@ describe('ChangeStreamOutboxTailer (real change stream)', () => {
       expect(ids).toContain(backlog2);
       expect(ids).toContain(liveId);
       expect(ids.indexOf(backlog1)).toBeLessThan(ids.indexOf(backlog2));
+    });
+
+    it('loses no event and marks each dispatched across an oplog rotation, tolerating duplicates (SC-001/SC-006)', async () => {
+      const backlog = await insertOutbox();
+
+      const scripted = new ScriptedOutboxCollection(
+        outbox as unknown as Collection<Document>
+      );
+      scripted.watchErrors.push(mongoError(286));
+
+      const forwarder = new RecordingForwarder();
+      const tailer = buildTailer(
+        forwarder,
+        scripted as unknown as Collection<Document>
+      );
+      const started = tailer.start();
+
+      await waitFor(() => forwarder.ids().includes(backlog));
+
+      await sleep(200);
+      const live = await insertOutbox();
+      await waitFor(() => forwarder.ids().includes(live));
+
+      await tailer.stop();
+      await started;
+
+      const ids = forwarder.ids();
+      expect(ids).toContain(backlog);
+      expect(ids).toContain(live);
+
+      const backlogDoc = await outbox.findOne({ _id: backlog });
+      const liveDoc = await outbox.findOne({ _id: live });
+      expect(backlogDoc?.processedAt).toBeInstanceOf(Date);
+      expect(liveDoc?.processedAt).toBeInstanceOf(Date);
+      expect(backlogDoc?.processedAt).not.toBeNull();
     });
   });
 });

@@ -6,10 +6,12 @@ import {
   createContainer,
   InjectionMode
 } from 'awilix';
+import { type Admin, Kafka, type Producer } from 'kafkajs';
 import type { Collection, Db, Document, MongoClient } from 'mongodb';
 
 import type {
   EventForwarder,
+  OutboxDispatchRepository,
   OutboxPendingWorkChecker,
   OutboxProgressRepository,
   OutboxTailer,
@@ -20,10 +22,12 @@ import { OutboxWatchdog } from '../../Contexts/shared/application/outbox/index.j
 import {
   ChangeStreamOutboxTailer,
   IntervalWatchdogScheduler,
-  LoggingEventForwarder,
+  KafkaEventBusAdapter,
+  type KafkaForwarderConfig,
   MongoOutboxPendingWorkChecker,
   MonotonicWatchdogClock
 } from '../../Contexts/shared/infrastructure/outbox/index.js';
+import { MongoOutboxDispatchRepository } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoOutboxDispatchRepository.js';
 import { MongoOutboxProgressRepository } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoOutboxProgressRepository.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/index.js';
 import type { WorkerConfig } from './config/workerConfig.js';
@@ -34,8 +38,13 @@ export type WorkerContainerCradle = {
   outboxCollection: Collection<Document>;
   logger: AppLogger;
   workerConfig: WorkerConfig;
+  kafka: Kafka;
+  kafkaProducer: Producer;
+  kafkaAdmin: Admin;
+  kafkaConfig: KafkaForwarderConfig;
   eventForwarder: EventForwarder;
   outboxProgressRepository: OutboxProgressRepository;
+  outboxDispatchRepository: OutboxDispatchRepository;
   outboxTailer: OutboxTailer;
   clock: WatchdogClock;
   scheduler: WatchdogScheduler;
@@ -69,9 +78,39 @@ export function createWorkerContainer({
     outboxCollection: asValue(db.collection<Document>('outbox')),
     logger: asValue(logger),
     workerConfig: asValue(workerConfig),
-    eventForwarder: asClass(LoggingEventForwarder).singleton(),
+    kafka: asFunction(
+      ({ workerConfig: config }: WorkerContainerCradle) =>
+        new Kafka({
+          clientId: config.kafka.clientId,
+          brokers: config.kafka.brokers,
+          retry: {
+            retries: config.kafka.producerRetries,
+            initialRetryTime: config.kafka.producerRetryBackoffMs
+          }
+        })
+    ).singleton(),
+    kafkaProducer: asFunction(({ kafka }: WorkerContainerCradle) =>
+      kafka.producer()
+    ).singleton(),
+    kafkaAdmin: asFunction(({ kafka }: WorkerContainerCradle) =>
+      kafka.admin()
+    ).singleton(),
+    kafkaConfig: asFunction(
+      ({
+        workerConfig: config
+      }: WorkerContainerCradle): KafkaForwarderConfig => ({
+        topic: config.kafka.topic,
+        acks: config.kafka.acks,
+        topicPartitions: config.kafka.topicPartitions,
+        replicationFactor: config.kafka.replicationFactor
+      })
+    ).singleton(),
+    eventForwarder: asClass(KafkaEventBusAdapter).singleton(),
     outboxProgressRepository: asClass(
       MongoOutboxProgressRepository
+    ).singleton(),
+    outboxDispatchRepository: asClass(
+      MongoOutboxDispatchRepository
     ).singleton(),
     outboxTailer: asClass(ChangeStreamOutboxTailer).singleton(),
     clock: asClass(MonotonicWatchdogClock).singleton(),

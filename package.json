@@ -119,6 +119,7 @@
     "ioredis": "^6.0.0",
     "js-yaml": "^5.4.2",
     "jsonwebtoken": "^9.0.3",
+    "kafkajs": "2.2.4",
     "migrate-mongo": "^14.0.7",
     "mongodb": "~7.5.0",
     "qs": "^6.16.1",
