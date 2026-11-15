@@ -1,9 +1,11 @@
 import type { MongoClient } from 'mongodb';
 
 import type {
+  ConnectableEventForwarder,
   OutboxTailer,
   OutboxWatchdog
 } from '../../Contexts/shared/application/outbox/index.js';
+import { isConnectableEventForwarder } from '../../Contexts/shared/application/outbox/index.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/index.js';
 import {
   DBClientFactory,
@@ -34,6 +36,7 @@ export class OutboxWorkerApp {
   private client?: MongoClient;
   private tailer?: OutboxTailer;
   private watchdog?: OutboxWatchdog;
+  private connectableForwarder?: ConnectableEventForwarder;
 
   constructor({
     logger,
@@ -64,6 +67,13 @@ export class OutboxWorkerApp {
     this.tailer = container.resolve('outboxTailer');
     this.watchdog = container.resolve('watchdog');
 
+    const eventForwarder = container.resolve('eventForwarder');
+    if (isConnectableEventForwarder(eventForwarder)) {
+      this.connectableForwarder = eventForwarder;
+      await eventForwarder.connect();
+      this.logger.info('Kafka producer connected and domain topic ensured');
+    }
+
     this.logger.info('Outbox worker started; tailing the outbox collection');
     const tailerPromise = this.tailer.start();
     this.watchdog.start();
@@ -79,6 +89,11 @@ export class OutboxWorkerApp {
     if (this.tailer) {
       await this.tailer.stop();
       this.logger.info('Outbox tailer stopped');
+    }
+
+    if (this.connectableForwarder) {
+      await this.connectableForwarder.disconnect();
+      this.logger.info('Kafka producer disconnected');
     }
 
     if (this.client) {

@@ -8,6 +8,7 @@ import type {
 
 import type {
   EventForwarder,
+  OutboxDispatchRepository,
   OutboxProgressRepository,
   OutboxRecord,
   OutboxTailer,
@@ -28,6 +29,7 @@ export type ChangeStreamOutboxTailerDependencies = {
   outboxCollection: Collection<Document>;
   eventForwarder: EventForwarder;
   outboxProgressRepository: OutboxProgressRepository;
+  outboxDispatchRepository: OutboxDispatchRepository;
   logger: AppLogger;
   workerConfig: OutboxTailerConfig;
 };
@@ -36,6 +38,7 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
   private readonly outboxCollection: Collection<Document>;
   private readonly eventForwarder: EventForwarder;
   private readonly outboxProgressRepository: OutboxProgressRepository;
+  private readonly outboxDispatchRepository: OutboxDispatchRepository;
   private readonly logger: AppLogger;
   private readonly config: OutboxTailerConfig;
 
@@ -51,12 +54,14 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
     outboxCollection,
     eventForwarder,
     outboxProgressRepository,
+    outboxDispatchRepository,
     logger,
     workerConfig
   }: ChangeStreamOutboxTailerDependencies) {
     this.outboxCollection = outboxCollection;
     this.eventForwarder = eventForwarder;
     this.outboxProgressRepository = outboxProgressRepository;
+    this.outboxDispatchRepository = outboxDispatchRepository;
     this.logger = logger;
     this.config = workerConfig;
   }
@@ -101,19 +106,20 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
 
   private async runUntilStopped(initialToken?: ResumeToken): Promise<void> {
     let resumeToken = initialToken;
+    let drainFirst = false;
     let backoff = this.config.OUTBOX_WORKER_RECONNECT_INITIAL_MS;
 
     while (this.running) {
       try {
-        await this.watchLive(resumeToken);
+        await this.watchLive(resumeToken, drainFirst);
         return;
       } catch (error) {
         if (!this.running) {
           return;
         }
         if (isUnresumableChangeStreamError(error)) {
-          await this.drainFallback();
           resumeToken = undefined;
+          drainFirst = true;
           backoff = this.config.OUTBOX_WORKER_RECONNECT_INITIAL_MS;
           continue;
         }
@@ -127,24 +133,41 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
           backoff * 2,
           this.config.OUTBOX_WORKER_RECONNECT_MAX_MS
         );
+        drainFirst = false;
         resumeToken = await this.reloadResumeToken();
       }
     }
   }
 
-  private async watchLive(resumeToken?: ResumeToken): Promise<void> {
+  private openInsertStream(resumeToken?: ResumeToken): ChangeStream<Document> {
     const options: Document = {};
     if (resumeToken !== undefined) {
       options.resumeAfter = resumeToken;
     }
 
-    const stream = this.outboxCollection.watch<Document>(
+    return this.outboxCollection.watch<Document>(
       [{ $match: { operationType: 'insert' } }],
       options
     );
+  }
+
+  private async watchLive(
+    resumeToken?: ResumeToken,
+    drainFirst = false
+  ): Promise<void> {
+    const stream = this.openInsertStream(resumeToken);
     this.currentStream = stream;
 
     try {
+      if (drainFirst) {
+        // Establish the live cursor from now *before* draining the rotated-oplog
+        // backlog, so no event committed during the hand-off slips the gap
+        // (Iteration 48 loss window). The discarded change is re-read by the
+        // backlog drain; overlap duplicates are tolerated (at-least-once).
+        await stream.tryNext();
+        await this.drainFallback();
+      }
+
       for await (const change of stream) {
         if (!this.running) {
           break;
@@ -164,6 +187,10 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
   ): Promise<void> {
     const record = this.toRecord(change.fullDocument);
     await this.eventForwarder.forward(record);
+    await this.outboxDispatchRepository.markDispatched(
+      record.eventId,
+      new Date()
+    );
     this.lastForwardedAt = new Date();
     this.lastForwardedId = record.eventId;
     await this.outboxProgressRepository.save({
@@ -214,6 +241,10 @@ export class ChangeStreamOutboxTailer implements OutboxTailer {
 
     const record = this.toRecord(document);
     await this.eventForwarder.forward(record);
+    await this.outboxDispatchRepository.markDispatched(
+      record.eventId,
+      new Date()
+    );
     this.lastForwardedAt = new Date();
     this.lastForwardedId = record.eventId;
     await this.outboxProgressRepository.save({

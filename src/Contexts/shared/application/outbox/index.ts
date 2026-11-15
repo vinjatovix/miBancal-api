@@ -1,4 +1,10 @@
+export {
+  type ConnectableEventForwarder,
+  isConnectableEventForwarder
+} from './ConnectableEventForwarder.js';
+export { derivePartitionKey } from './derivePartitionKey.js';
 export type { EventForwarder } from './EventForwarder.js';
+export type { OutboxDispatchRepository } from './OutboxDispatchRepository.js';
 export type { OutboxPendingWorkChecker } from './OutboxPendingWorkChecker.js';
 export type {
   OutboxProgress,

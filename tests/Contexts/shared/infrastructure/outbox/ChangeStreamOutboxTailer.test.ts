@@ -36,6 +36,13 @@ class FakeChangeStream {
 
   constructor(private readonly script: StreamScript) {}
 
+  tryNext(): Promise<Document | null> {
+    if (this.script.throwError !== undefined) {
+      return Promise.reject(this.script.throwError);
+    }
+    return Promise.resolve(null);
+  }
+
   async *[Symbol.asyncIterator](): AsyncGenerator<Document> {
     await Promise.resolve();
     for (const change of this.script.inserts ?? []) {
@@ -91,6 +98,7 @@ type FindCall = { filter: Document };
 class FakeOutboxCollection {
   public readonly watchCalls: WatchCall[] = [];
   public readonly findCalls: FindCall[] = [];
+  public readonly callLog: ('watch' | 'find')[] = [];
   private readonly streams: FakeChangeStream[];
   private readonly findResults: Document[][];
 
@@ -101,11 +109,13 @@ class FakeOutboxCollection {
 
   watch(_pipeline: unknown, options: { resumeAfter?: Document }): unknown {
     this.watchCalls.push({ options });
+    this.callLog.push('watch');
     return this.streams.shift() ?? new FakeChangeStream({ block: true });
   }
 
   find(filter: Document): unknown {
     this.findCalls.push({ filter });
+    this.callLog.push('find');
     return new FakeCursor(this.findResults.shift() ?? []);
   }
 }
@@ -137,6 +147,12 @@ const buildStatefulProgressRepository = (initial: OutboxProgress = {}) => {
   };
 };
 
+const buildDispatchRepository = () => ({
+  markDispatched: jest
+    .fn<Promise<void>, [string, Date]>()
+    .mockResolvedValue(undefined)
+});
+
 const resolvingForwarder = () => ({
   forward: jest.fn<Promise<void>, [OutboxRecord]>().mockResolvedValue(undefined)
 });
@@ -164,17 +180,19 @@ const insert = (id: string, token: Document): InsertChange => ({
 const buildTailer = (
   collection: FakeOutboxCollection,
   progress: OutboxProgress = {},
-  forwarder: EventForwarder = resolvingForwarder()
+  forwarder: EventForwarder = resolvingForwarder(),
+  dispatchRepository = buildDispatchRepository()
 ) => {
   const progressRepository = buildProgressRepository(progress);
   const tailer = new ChangeStreamOutboxTailer({
     outboxCollection: collection as unknown as Collection<Document>,
     eventForwarder: forwarder,
     outboxProgressRepository: progressRepository,
+    outboxDispatchRepository: dispatchRepository,
     logger: buildLogger(),
     workerConfig: CONFIG
   });
-  return { tailer, progressRepository };
+  return { tailer, progressRepository, dispatchRepository };
 };
 
 const forwardedIds = (forward: {
@@ -254,6 +272,58 @@ describe('ChangeStreamOutboxTailer', () => {
     });
   });
 
+  describe('dispatch marking (US3)', () => {
+    it('marks the record dispatched after a successful forward', async () => {
+      const collection = new FakeOutboxCollection([
+        { inserts: [insert('id-1', { _data: 't1' })] }
+      ]);
+      const forwarder = resolvingForwarder();
+      const { tailer, dispatchRepository } = buildTailer(
+        collection,
+        {},
+        forwarder
+      );
+
+      await tailer.start();
+
+      expect(dispatchRepository.markDispatched).toHaveBeenCalledTimes(1);
+      const [eventId, dispatchedAt] =
+        dispatchRepository.markDispatched.mock.calls[0] ?? [];
+      expect(eventId).toBe('id-1');
+      expect(dispatchedAt).toBeInstanceOf(Date);
+      const forwardOrder = forwarder.forward.mock.invocationCallOrder[0] ?? 0;
+      const markOrder =
+        dispatchRepository.markDispatched.mock.invocationCallOrder[0] ??
+        Infinity;
+      expect(forwardOrder).toBeLessThan(markOrder);
+    });
+
+    it('does not mark dispatched when the forward fails', async () => {
+      const collection = new FakeOutboxCollection([
+        { inserts: [insert('id-1', { _data: 't1' })] },
+        { inserts: [] }
+      ]);
+      const forwarder = {
+        forward: jest
+          .fn<Promise<void>, [OutboxRecord]>()
+          .mockRejectedValueOnce(new Error('downstream unavailable'))
+          .mockResolvedValue(undefined)
+      };
+      const { tailer, dispatchRepository } = buildTailer(
+        collection,
+        {},
+        forwarder
+      );
+
+      await tailer.start();
+
+      expect(dispatchRepository.markDispatched).not.toHaveBeenCalledWith(
+        'id-1',
+        expect.anything()
+      );
+    });
+  });
+
   describe('restart resume (US2)', () => {
     it('resumes the live watch from the stored resume token when present', async () => {
       const token = { _data: 'stored-token' };
@@ -279,8 +349,8 @@ describe('ChangeStreamOutboxTailer', () => {
     });
   });
 
-  describe('fallback catch-up (US3)', () => {
-    it('drains the backlog by _id range on an unresumable error then watches fresh from now', async () => {
+  describe('fallback catch-up (US2 recovery ordering)', () => {
+    it('opens the fresh live watch before draining the backlog, then watches from now', async () => {
       const collection = new FakeOutboxCollection(
         [{ throwError: mongoError(286) }, { inserts: [] }],
         [[outboxDocument('id-2'), outboxDocument('id-3')]]
@@ -294,6 +364,7 @@ describe('ChangeStreamOutboxTailer', () => {
 
       await tailer.start();
 
+      expect(collection.callLog).toEqual(['watch', 'watch', 'find']);
       expect(collection.findCalls[0]?.filter).toEqual({
         processedAt: null,
         _id: { $gt: 'id-1' }
@@ -350,8 +421,11 @@ describe('ChangeStreamOutboxTailer', () => {
           { inserts: [] }
         ],
         [
-          [outboxDocument('id-2'), outboxDocument('id-3')],
-          [outboxDocument('id-4')]
+          [
+            outboxDocument('id-2'),
+            outboxDocument('id-3'),
+            outboxDocument('id-4')
+          ]
         ]
       );
       const forwarder = resolvingForwarder();
@@ -368,7 +442,7 @@ describe('ChangeStreamOutboxTailer', () => {
     });
   });
 
-  describe('at-least-once on forward failure (FR-015)', () => {
+  describe('at-least-once on forward failure (FR-010)', () => {
     it('does not advance progress past a record whose forward rejected', async () => {
       const collection = new FakeOutboxCollection([
         { inserts: [insert('id-1', { _data: 't1' })] },
@@ -412,6 +486,7 @@ describe('ChangeStreamOutboxTailer', () => {
         outboxCollection: collection as unknown as Collection<Document>,
         eventForwarder: forwarder,
         outboxProgressRepository: progressRepository,
+        outboxDispatchRepository: buildDispatchRepository(),
         logger: buildLogger(),
         workerConfig: CONFIG
       });

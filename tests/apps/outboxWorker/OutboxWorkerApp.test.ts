@@ -23,6 +23,16 @@ const WORKER_CONFIG = {
   watchdog: {
     intervalMs: 5000,
     stallTimeoutMs: 30000
+  },
+  kafka: {
+    brokers: ['localhost:9092'],
+    topic: 'agro.domain.events',
+    clientId: 'agro-outbox-worker-test',
+    acks: 'all',
+    topicPartitions: 6,
+    replicationFactor: 1,
+    producerRetries: 5,
+    producerRetryBackoffMs: 300
   }
 };
 
@@ -35,6 +45,12 @@ const buildHarness = () => {
   const watchdog = {
     start: jest.fn<void, []>(),
     stop: jest.fn<void, []>()
+  };
+
+  const eventForwarder = {
+    forward: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
+    connect: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
+    disconnect: jest.fn<Promise<void>, []>().mockResolvedValue(undefined)
   };
 
   const close = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
@@ -51,6 +67,7 @@ const buildHarness = () => {
         resolve: jest.fn().mockImplementation((name: string) => {
           if (name === 'outboxTailer') return tailer;
           if (name === 'watchdog') return watchdog;
+          if (name === 'eventForwarder') return eventForwarder;
           return undefined;
         })
       } as unknown as WorkerContainer;
@@ -68,6 +85,7 @@ const buildHarness = () => {
     app,
     tailer,
     watchdog,
+    eventForwarder,
     client,
     close,
     connect,
@@ -92,6 +110,18 @@ describe('OutboxWorkerApp', () => {
     expect(tailerOrder).toBeLessThan(watchdogOrder);
   });
 
+  it('connects the Kafka forwarder (producer + topic ensure) before starting the tailer', async () => {
+    const { app, tailer, eventForwarder } = buildHarness();
+
+    await app.start();
+
+    expect(eventForwarder.connect).toHaveBeenCalledTimes(1);
+    const connectOrder =
+      eventForwarder.connect.mock.invocationCallOrder[0] ?? Infinity;
+    const tailerOrder = tailer.start.mock.invocationCallOrder[0] ?? Infinity;
+    expect(connectOrder).toBeLessThan(tailerOrder);
+  });
+
   it('wires no HTTP/Express dependency into the container', async () => {
     const { app, containerDeps } = buildHarness();
 
@@ -102,21 +132,25 @@ describe('OutboxWorkerApp', () => {
     ).toEqual(['client', 'db', 'logger', 'workerConfig']);
   });
 
-  it('stops the watchdog before stopping the tailer and closing the Mongo client', async () => {
-    const { app, tailer, watchdog, close } = buildHarness();
+  it('stops the watchdog, then the tailer, disconnects Kafka, and closes Mongo in order', async () => {
+    const { app, tailer, watchdog, eventForwarder, close } = buildHarness();
 
     await app.start();
     await app.stop();
 
     expect(watchdog.stop).toHaveBeenCalledTimes(1);
     expect(tailer.stop).toHaveBeenCalledTimes(1);
+    expect(eventForwarder.disconnect).toHaveBeenCalledTimes(1);
     expect(close).toHaveBeenCalledTimes(1);
     const watchdogStopOrder =
       watchdog.stop.mock.invocationCallOrder[0] ?? Infinity;
     const tailerStopOrder = tailer.stop.mock.invocationCallOrder[0] ?? Infinity;
+    const disconnectOrder =
+      eventForwarder.disconnect.mock.invocationCallOrder[0] ?? Infinity;
     const closeOrder = close.mock.invocationCallOrder[0] ?? Infinity;
     expect(watchdogStopOrder).toBeLessThan(tailerStopOrder);
-    expect(tailerStopOrder).toBeLessThan(closeOrder);
+    expect(tailerStopOrder).toBeLessThan(disconnectOrder);
+    expect(disconnectOrder).toBeLessThan(closeOrder);
   });
 
   it('is a no-op on stop when never started', async () => {

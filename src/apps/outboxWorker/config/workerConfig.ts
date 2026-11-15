@@ -14,6 +14,35 @@ function loadWorkerConfig() {
     .default('30000')
     .asIntPositive();
 
+  const kafka = {
+    brokers: env
+      .get('KAFKA_BROKERS')
+      .required()
+      .asString()
+      .split(',')
+      .map((broker) => broker.trim())
+      .filter((broker) => broker.length > 0),
+    topic: env.get('KAFKA_TOPIC').default('agro.domain.events').asString(),
+    clientId: env
+      .get('KAFKA_CLIENT_ID')
+      .default('agro-outbox-worker')
+      .asString(),
+    acks: env.get('KAFKA_ACKS').default('all').asString(),
+    topicPartitions: env
+      .get('KAFKA_TOPIC_PARTITIONS')
+      .default('6')
+      .asIntPositive(),
+    replicationFactor: env
+      .get('KAFKA_TOPIC_REPLICATION_FACTOR')
+      .default('1')
+      .asIntPositive(),
+    producerRetries: env.get('KAFKA_PRODUCER_RETRIES').default('5').asInt(),
+    producerRetryBackoffMs: env
+      .get('KAFKA_PRODUCER_RETRY_BACKOFF_MS')
+      .default('300')
+      .asIntPositive()
+  };
+
   return {
     OUTBOX_WORKER_FALLBACK_BATCH_SIZE: env
       .get('OUTBOX_WORKER_FALLBACK_BATCH_SIZE')
@@ -32,7 +61,8 @@ function loadWorkerConfig() {
     watchdog: {
       intervalMs: watchdogIntervalMs,
       stallTimeoutMs
-    }
+    },
+    kafka
   };
 }
 
