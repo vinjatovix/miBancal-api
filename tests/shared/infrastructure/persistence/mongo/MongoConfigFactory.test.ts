@@ -67,6 +67,7 @@ describe('MongoConfigFactory', () => {
           MONGO_URL: 'localhost:27017',
           MONGO_DB: 'agro_db',
           MONGO_USERNAME: 'admin',
+          // eslint-disable-next-line sonarjs/no-hardcoded-passwords -- test fixture credential, not a real secret
           MONGO_PASSWORD: 'p@ss:word#123',
           MONGO_APP_NAME: '',
           MONGO_REPLICA_SET: ''

@@ -70,7 +70,10 @@ Then(
     assert.lengthOf(docs, 1, `expected exactly one ${eventName} record`);
 
     const [doc] = docs as [OutboxDocument];
-    assert.deepEqual(Object.keys(doc).sort(), REQUIRED_KEYS);
+    assert.deepEqual(
+      Object.keys(doc).sort((a, b) => a.localeCompare(b)),
+      REQUIRED_KEYS
+    );
     assert.isFalse(
       Object.prototype.hasOwnProperty.call(doc, 'processedAt'),
       'processedAt must be absent, never null'

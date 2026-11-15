@@ -241,7 +241,11 @@ describe('toPlantSparseView', () => {
 
     const view = toPlantSparseView(projected(document, fields), fields);
 
-    expect(Object.keys(view).sort()).toEqual(['id', 'identity', 'traits']);
+    expect(Object.keys(view).sort((a, b) => a.localeCompare(b))).toEqual([
+      'id',
+      'identity',
+      'traits'
+    ]);
     expect(view.identity).toEqual(toPlantReadView(document).identity);
   });
 

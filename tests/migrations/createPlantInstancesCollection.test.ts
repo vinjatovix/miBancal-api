@@ -218,8 +218,12 @@ describe('create plant_instances collection migration', () => {
 
       await down(db);
 
-      expect(dropIndex.mock.calls.map(([name]) => name).sort()).toEqual(
-        INDEXES.map(([name]) => name).sort()
+      expect(
+        dropIndex.mock.calls
+          .map(([name]) => name)
+          .sort((a, b) => a.localeCompare(b))
+      ).toEqual(
+        INDEXES.map(([name]) => name).sort((a, b) => a.localeCompare(b))
       );
       expect(drop.mock.invocationCallOrder[0]).toBeGreaterThan(
         Math.max(...dropIndex.mock.invocationCallOrder)

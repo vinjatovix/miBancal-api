@@ -40,12 +40,15 @@ const DOMAIN_MAPPERS = /\b(plantDomainMapper|familyDomainMapper)\b/;
 
 // `import …` and `export … from` statements, multi-line included.
 const STATEMENT =
+  // eslint-disable-next-line sonarjs/super-linear-regex -- parses first-party source files only: input is trusted, bounded, and never attacker-controlled
   /^(import|export)\s+(type\s+)?[^'";]*?\s*from\s+['"]([^'"]+)['"]/gms;
 
 const AGGREGATE_FOLDERS = new Set(['entities', 'value-objects']);
 
 const readModuleFiles = (): string[] =>
-  globSync(READ_MODULES, { cwd: SOURCE_ROOT, absolute: true }).sort();
+  globSync(READ_MODULES, { cwd: SOURCE_ROOT, absolute: true }).sort((a, b) =>
+    a.localeCompare(b)
+  );
 
 const importsOf = (file: string): ImportStatement[] =>
   [...readFileSync(file, 'utf8').matchAll(STATEMENT)].map(

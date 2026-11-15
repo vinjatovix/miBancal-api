@@ -74,6 +74,7 @@ export const scopedCreatePlantRelationBody = z
     (data) =>
       !(
         data.source.scope === data.target.scope &&
+        // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
         data.source.value !== undefined &&
         data.source.value.toLowerCase() === data.target.value?.toLowerCase()
       ),

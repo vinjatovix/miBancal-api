@@ -68,7 +68,9 @@ describe('MongoAuthRepository role concurrency', () => {
       revokeAdmin(second)
     ]);
 
-    const statuses = [firstOutcome.status, secondOutcome.status].sort();
+    const statuses = [firstOutcome.status, secondOutcome.status].sort((a, b) =>
+      a.localeCompare(b)
+    );
     expect(statuses).toEqual(['fulfilled', 'rejected']);
 
     const rejected = [firstOutcome, secondOutcome].find(

@@ -102,9 +102,9 @@ describe('MongoLocationRepository', () => {
         userId
       );
 
-      expect(results.map((l) => l.id).sort()).toEqual(
-        [loc1.id, loc2.id].sort()
-      );
+      expect(
+        results.map((l) => l.id).sort((a, b) => a.localeCompare(b))
+      ).toEqual([loc1.id, loc2.id].sort((a, b) => a.localeCompare(b)));
     });
 
     it('returns empty array when findActiveByIdsForOwner receives empty IDs array', async () => {

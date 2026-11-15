@@ -542,8 +542,8 @@ describe('MongoBedRepository', () => {
 
       const found = await repository.findByUserId(userId, { locationId: locA });
 
-      expect(found.map((b) => b.id).sort()).toEqual(
-        [bedA1.id, bedA2.id].sort()
+      expect(found.map((b) => b.id).sort((a, b) => a.localeCompare(b))).toEqual(
+        [bedA1.id, bedA2.id].sort((a, b) => a.localeCompare(b))
       );
     });
 

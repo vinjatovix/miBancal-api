@@ -244,12 +244,28 @@ Shared HTTP middlewares that no route uses yet (e.g. `validateRequest`) are prov
 
 ---
 
-## 5. SONAR RULES
+## 5. STATIC ANALYSIS: LOCAL ESLint vs SONARCLOUD
 
-- PRs MUST pass Sonar checks
-- no critical vulnerabilities allowed
-- no duplicated logic above threshold
-- maintainability rating enforced
+Code-smell and bug detection is shifted left into the local pass (`npm run lint`,
+`check`, `full-check`) via `eslint-plugin-sonarjs`; SonarCloud stays authoritative
+for everything that needs a full build, coverage report, or cross-file analysis.
+
+| Analysis category                  | Local ESLint (`npm run lint`)   | SonarCloud (`sonar_check.yml`) |
+| ---------------------------------- | ------------------------------- | ------------------------------ |
+| JS/TS code smells                  | Enforced (`error`)              | Audits merged branches         |
+| JS/TS bug rules                    | Enforced (`error`)              | Audits merged branches         |
+| Cyclomatic complexity              | Enforced (`complexity`, max 10) | —                              |
+| Cognitive complexity               | Enforced (`sonarjs`, max 15)    | Enforced (threshold 15)        |
+| Test coverage (LCOV)               | —                               | Authoritative                  |
+| Copy-paste duplication (CPD)       | —                               | Authoritative                  |
+| Taint analysis & security hotspots | —                               | Authoritative                  |
+| Deep / multi-file security rules   | —                               | Authoritative                  |
+
+Rules:
+
+- PRs MUST pass both the local gate (SonarJS at `error`) and SonarCloud checks.
+- No critical vulnerabilities; no duplicated logic above threshold; maintainability rating enforced (SonarCloud).
+- Suppress a SonarJS finding only with `// eslint-disable-next-line sonarjs/<rule-id> -- <rationale>`. Config-level `off` is allowed only for `tests/**`, never `src/`. See `AGENTS.md` → _Static Analysis (SonarJS)_.
 
 ---
 

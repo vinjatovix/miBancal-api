@@ -121,8 +121,10 @@ describe('Bed requestSchemas', () => {
     it('should report one error per missing field for an empty body', async () => {
       const errors = await errorsOf(createBedRequest, { body: {} });
 
-      expect(Object.keys(errors).sort()).toEqual(
-        ['depth', 'height', 'id', 'locationId', 'name', 'width'].sort()
+      expect(Object.keys(errors).sort((a, b) => a.localeCompare(b))).toEqual(
+        ['depth', 'height', 'id', 'locationId', 'name', 'width'].sort((a, b) =>
+          a.localeCompare(b)
+        )
       );
     });
 

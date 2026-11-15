@@ -57,7 +57,7 @@ describe('cacheAside', () => {
 
   it('deduplicates concurrent cold reads of the same key into one loader run', async () => {
     const cache = buildCache();
-    let resolveLoader: (value: { id: number }) => void = () => undefined;
+    let resolveLoader: (value: { id: number }) => void = (_value) => undefined;
     const loaderPromise = new Promise<{ id: number }>((resolve) => {
       resolveLoader = resolve;
     });

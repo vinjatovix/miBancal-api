@@ -304,6 +304,6 @@ Then(
   function (this: AgroWorld) {
     const ctx = getContext(this);
     assert.exists(ctx.evaluationResult, 'Evaluation result does not exist');
-    assert.strictEqual(ctx.evaluationResult.activeRelations.length, 0);
+    assert.lengthOf(ctx.evaluationResult.activeRelations, 0);
   }
 );

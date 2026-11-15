@@ -48,7 +48,7 @@ describe('gardenInputReadViewMapper', () => {
       'category'
     ]);
 
-    expect(Object.keys(sparse).sort()).toEqual([
+    expect(Object.keys(sparse).sort((a, b) => a.localeCompare(b))).toEqual([
       'category',
       'id',
       'name',

@@ -291,7 +291,7 @@ Then(
     const response = await currentResponse(this);
     const body: unknown = response.body;
     assert.isArray(body);
-    assert.strictEqual((body as unknown[]).length, count);
+    assert.lengthOf(body as unknown[], count);
   }
 );
 
