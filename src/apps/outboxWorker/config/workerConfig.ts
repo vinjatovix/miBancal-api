@@ -5,6 +5,15 @@ import { loadEnvFile } from '../../../shared/infrastructure/config/loadEnvFile.j
 function loadWorkerConfig() {
   loadEnvFile();
 
+  const watchdogIntervalMs = env
+    .get('OUTBOX_WORKER_WATCHDOG_INTERVAL_MS')
+    .default('5000')
+    .asIntPositive();
+  const stallTimeoutMs = env
+    .get('OUTBOX_WORKER_STALL_TIMEOUT_MS')
+    .default('30000')
+    .asIntPositive();
+
   return {
     OUTBOX_WORKER_FALLBACK_BATCH_SIZE: env
       .get('OUTBOX_WORKER_FALLBACK_BATCH_SIZE')
@@ -17,7 +26,13 @@ function loadWorkerConfig() {
     OUTBOX_WORKER_RECONNECT_MAX_MS: env
       .get('OUTBOX_WORKER_RECONNECT_MAX_MS')
       .default('5000')
-      .asIntPositive()
+      .asIntPositive(),
+    OUTBOX_WORKER_WATCHDOG_INTERVAL_MS: watchdogIntervalMs,
+    OUTBOX_WORKER_STALL_TIMEOUT_MS: stallTimeoutMs,
+    watchdog: {
+      intervalMs: watchdogIntervalMs,
+      stallTimeoutMs
+    }
   };
 }
 

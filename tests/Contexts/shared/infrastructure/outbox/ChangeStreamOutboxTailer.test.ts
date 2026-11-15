@@ -163,8 +163,8 @@ const insert = (id: string, token: Document): InsertChange => ({
 
 const buildTailer = (
   collection: FakeOutboxCollection,
-  progress: OutboxProgress,
-  forwarder: EventForwarder
+  progress: OutboxProgress = {},
+  forwarder: EventForwarder = resolvingForwarder()
 ) => {
   const progressRepository = buildProgressRepository(progress);
   const tailer = new ChangeStreamOutboxTailer({
@@ -426,6 +426,52 @@ describe('ChangeStreamOutboxTailer', () => {
         resumeToken: tokenFailed,
         lastForwardedId: 'id-1'
       });
+    });
+  });
+
+  describe('status() seam', () => {
+    it('reports running false and undefined timestamps before first start', () => {
+      const collection = new FakeOutboxCollection([]);
+      const { tailer } = buildTailer(collection);
+
+      const status = tailer.status();
+
+      expect(status.running).toBe(false);
+      expect(status.startedAt).toBeUndefined();
+      expect(status.lastForwardedAt).toBeUndefined();
+      expect(status.lastForwardedId).toBeUndefined();
+    });
+
+    it('tracks running true and startedAt while active, and running false after stop', async () => {
+      const collection = new FakeOutboxCollection([{ block: true }]);
+      const { tailer } = buildTailer(collection);
+
+      const startPromise = tailer.start();
+      await tick();
+
+      const activeStatus = tailer.status();
+      expect(activeStatus.running).toBe(true);
+      expect(activeStatus.startedAt).toBeInstanceOf(Date);
+
+      await tailer.stop();
+      await startPromise;
+
+      const stoppedStatus = tailer.status();
+      expect(stoppedStatus.running).toBe(false);
+      expect(stoppedStatus.startedAt).toEqual(activeStatus.startedAt);
+    });
+
+    it('refreshes lastForwardedAt and lastForwardedId together on a successful forward', async () => {
+      const collection = new FakeOutboxCollection([
+        { inserts: [insert('id-1', { _data: 't1' })] }
+      ]);
+      const { tailer } = buildTailer(collection);
+
+      await tailer.start();
+
+      const status = tailer.status();
+      expect(status.lastForwardedId).toBe('id-1');
+      expect(status.lastForwardedAt).toBeInstanceOf(Date);
     });
   });
 });

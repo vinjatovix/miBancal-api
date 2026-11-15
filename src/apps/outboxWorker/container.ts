@@ -1,5 +1,6 @@
 import {
   asClass,
+  asFunction,
   asValue,
   type AwilixContainer,
   createContainer,
@@ -9,12 +10,19 @@ import type { Collection, Db, Document, MongoClient } from 'mongodb';
 
 import type {
   EventForwarder,
+  OutboxPendingWorkChecker,
   OutboxProgressRepository,
-  OutboxTailer
+  OutboxTailer,
+  WatchdogClock,
+  WatchdogScheduler
 } from '../../Contexts/shared/application/outbox/index.js';
+import { OutboxWatchdog } from '../../Contexts/shared/application/outbox/index.js';
 import {
   ChangeStreamOutboxTailer,
-  LoggingEventForwarder
+  IntervalWatchdogScheduler,
+  LoggingEventForwarder,
+  MongoOutboxPendingWorkChecker,
+  MonotonicWatchdogClock
 } from '../../Contexts/shared/infrastructure/outbox/index.js';
 import { MongoOutboxProgressRepository } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoOutboxProgressRepository.js';
 import type { AppLogger } from '../../Contexts/shared/plugins/index.js';
@@ -29,6 +37,10 @@ export type WorkerContainerCradle = {
   eventForwarder: EventForwarder;
   outboxProgressRepository: OutboxProgressRepository;
   outboxTailer: OutboxTailer;
+  clock: WatchdogClock;
+  scheduler: WatchdogScheduler;
+  pendingChecker: OutboxPendingWorkChecker;
+  watchdog: OutboxWatchdog;
 };
 
 export type WorkerContainer = AwilixContainer<WorkerContainerCradle>;
@@ -61,7 +73,31 @@ export function createWorkerContainer({
     outboxProgressRepository: asClass(
       MongoOutboxProgressRepository
     ).singleton(),
-    outboxTailer: asClass(ChangeStreamOutboxTailer).singleton()
+    outboxTailer: asClass(ChangeStreamOutboxTailer).singleton(),
+    clock: asClass(MonotonicWatchdogClock).singleton(),
+    scheduler: asClass(IntervalWatchdogScheduler).singleton(),
+    pendingChecker: asClass(MongoOutboxPendingWorkChecker).singleton(),
+    watchdog: asFunction(
+      ({
+        outboxTailer,
+        pendingChecker,
+        clock,
+        scheduler,
+        logger: appLogger,
+        workerConfig: config
+      }: WorkerContainerCradle) =>
+        new OutboxWatchdog({
+          tailer: outboxTailer,
+          pendingChecker,
+          clock,
+          scheduler,
+          logger: appLogger,
+          exit: (code: number) => {
+            process.exit(code);
+          },
+          config: config.watchdog
+        })
+    ).singleton()
   });
 
   return container;

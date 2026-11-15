@@ -17,13 +17,24 @@ const buildLogger = (): AppLogger => ({
 const WORKER_CONFIG = {
   OUTBOX_WORKER_FALLBACK_BATCH_SIZE: 100,
   OUTBOX_WORKER_RECONNECT_INITIAL_MS: 500,
-  OUTBOX_WORKER_RECONNECT_MAX_MS: 5000
+  OUTBOX_WORKER_RECONNECT_MAX_MS: 5000,
+  OUTBOX_WORKER_WATCHDOG_INTERVAL_MS: 5000,
+  OUTBOX_WORKER_STALL_TIMEOUT_MS: 30000,
+  watchdog: {
+    intervalMs: 5000,
+    stallTimeoutMs: 30000
+  }
 };
 
 const buildHarness = () => {
   const tailer = {
     start: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
     stop: jest.fn<Promise<void>, []>().mockResolvedValue(undefined)
+  };
+
+  const watchdog = {
+    start: jest.fn<void, []>(),
+    stop: jest.fn<void, []>()
   };
 
   const close = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
@@ -37,7 +48,11 @@ const buildHarness = () => {
     (deps: CreateWorkerContainerDeps): WorkerContainer => {
       containerDeps.push(deps);
       return {
-        resolve: jest.fn().mockReturnValue(tailer)
+        resolve: jest.fn().mockImplementation((name: string) => {
+          if (name === 'outboxTailer') return tailer;
+          if (name === 'watchdog') return watchdog;
+          return undefined;
+        })
       } as unknown as WorkerContainer;
     }
   );
@@ -49,18 +64,32 @@ const buildHarness = () => {
     workerConfig: WORKER_CONFIG
   });
 
-  return { app, tailer, client, close, connect, buildContainer, containerDeps };
+  return {
+    app,
+    tailer,
+    watchdog,
+    client,
+    close,
+    connect,
+    buildContainer,
+    containerDeps
+  };
 };
 
 describe('OutboxWorkerApp', () => {
-  it('connects, builds the container and starts the tailer', async () => {
-    const { app, tailer, connect, buildContainer } = buildHarness();
+  it('connects, builds the container, starts the tailer and arms the watchdog', async () => {
+    const { app, tailer, watchdog, connect, buildContainer } = buildHarness();
 
     await app.start();
 
     expect(connect).toHaveBeenCalledTimes(1);
     expect(buildContainer).toHaveBeenCalledTimes(1);
     expect(tailer.start).toHaveBeenCalledTimes(1);
+    expect(watchdog.start).toHaveBeenCalledTimes(1);
+    const tailerOrder = tailer.start.mock.invocationCallOrder[0] ?? Infinity;
+    const watchdogOrder =
+      watchdog.start.mock.invocationCallOrder[0] ?? Infinity;
+    expect(tailerOrder).toBeLessThan(watchdogOrder);
   });
 
   it('wires no HTTP/Express dependency into the container', async () => {
@@ -73,23 +102,28 @@ describe('OutboxWorkerApp', () => {
     ).toEqual(['client', 'db', 'logger', 'workerConfig']);
   });
 
-  it('stops the tailer before closing the Mongo client', async () => {
-    const { app, tailer, close } = buildHarness();
+  it('stops the watchdog before stopping the tailer and closing the Mongo client', async () => {
+    const { app, tailer, watchdog, close } = buildHarness();
 
     await app.start();
     await app.stop();
 
+    expect(watchdog.stop).toHaveBeenCalledTimes(1);
     expect(tailer.stop).toHaveBeenCalledTimes(1);
     expect(close).toHaveBeenCalledTimes(1);
-    const stopOrder = tailer.stop.mock.invocationCallOrder[0] ?? Infinity;
+    const watchdogStopOrder =
+      watchdog.stop.mock.invocationCallOrder[0] ?? Infinity;
+    const tailerStopOrder = tailer.stop.mock.invocationCallOrder[0] ?? Infinity;
     const closeOrder = close.mock.invocationCallOrder[0] ?? Infinity;
-    expect(stopOrder).toBeLessThan(closeOrder);
+    expect(watchdogStopOrder).toBeLessThan(tailerStopOrder);
+    expect(tailerStopOrder).toBeLessThan(closeOrder);
   });
 
   it('is a no-op on stop when never started', async () => {
-    const { app, tailer, close } = buildHarness();
+    const { app, tailer, watchdog, close } = buildHarness();
 
     await expect(app.stop()).resolves.toBeUndefined();
+    expect(watchdog.stop).not.toHaveBeenCalled();
     expect(tailer.stop).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
   });
