@@ -1,14 +1,14 @@
-import * as envsPlugin from '../../../../../src/apps/agroApi/config/plugins/envs.plugin.js';
 import { MongoConfigFactory } from '../../../../../src/shared/infrastructure/persistence/mongo/MongoConfigFactory.js';
+import * as mongoEnv from '../../../../../src/shared/infrastructure/persistence/mongo/mongoEnv.js';
 
 describe('MongoConfigFactory', () => {
-  const originalGetEnvs = envsPlugin.getEnvs;
+  const originalGetMongoEnv = mongoEnv.getMongoEnv;
 
   const mockEnvironment = (
-    overrides: Partial<ReturnType<typeof envsPlugin.getEnvs>>
+    overrides: Partial<ReturnType<typeof mongoEnv.getMongoEnv>>
   ) => {
-    jest.spyOn(envsPlugin, 'getEnvs').mockReturnValue({
-      ...originalGetEnvs(),
+    jest.spyOn(mongoEnv, 'getMongoEnv').mockReturnValue({
+      ...originalGetMongoEnv(),
       ...overrides
     });
   };

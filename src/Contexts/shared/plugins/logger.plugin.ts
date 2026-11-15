@@ -1,7 +1,7 @@
 import type { MongoClient } from 'mongodb';
 import winston from 'winston';
 import 'winston-mongodb';
-import { getEnvs } from '../../../apps/agroApi/config/plugins/envs.plugin.js';
+import { getLoggerEnv } from './loggerEnv.js';
 
 export interface AppLogger {
   debug: (message: string) => void;
@@ -50,7 +50,7 @@ const buildFileTransports = (): winston.transports.FileTransportInstance[] => [
 ];
 
 const buildTransports = (): winston.transport[] => {
-  const envs = getEnvs();
+  const envs = getLoggerEnv();
   if (envs.NODE_ENV === 'test') {
     return [buildConsoleTransport(!envs.TEST_LOGS)];
   }
@@ -74,7 +74,7 @@ const getRootLogger = (): winston.Logger => {
 };
 
 export const attachMongoTransport = (client: MongoClient): void => {
-  if (getEnvs().NODE_ENV === 'test') return;
+  if (getLoggerEnv().NODE_ENV === 'test') return;
 
   getRootLogger().add(
     new winston.transports.MongoDB({
