@@ -204,7 +204,10 @@ function strictify(schema: z.core.$ZodType, walk: Walk): z.core.$ZodType {
   // A schema outside that union (third-party) has no own entry: fail closed.
   // `Object.hasOwn` keeps inherited keys such as `constructor` from matching.
   const type = known._zod.def.type;
-  if (!Object.hasOwn(HANDLERS, type)) return rejectUnsupported(known, walk);
+  if (!Object.hasOwn(HANDLERS, type)) {
+    // eslint-disable-next-line sonarjs/no-extra-arguments -- rejectUnsupported conforms to the Handler (schema, walk) contract; it ignores walk, which the uniform dispatch still passes
+    return rejectUnsupported(known, walk);
+  }
   const handler = HANDLERS[type];
 
   inProgress.add(schema);

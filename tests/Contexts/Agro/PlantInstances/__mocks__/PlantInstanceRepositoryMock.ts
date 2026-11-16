@@ -14,6 +14,7 @@ import type { Nullable } from '../../../../../src/shared/domain/types/Nullable.j
 export class PlantInstanceRepositoryMock implements PlantInstanceRepository {
   private readonly storage = new Map<string, PlantInstance>();
   public saveCalls: PlantInstance[] = [];
+  public saveManyCalls: PlantInstance[][] = [];
 
   // eslint-disable-next-line @typescript-eslint/require-await
   async save(instance: PlantInstance): Promise<void> {
@@ -22,13 +23,25 @@ export class PlantInstanceRepositoryMock implements PlantInstanceRepository {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
+  async saveMany(instances: PlantInstance[]): Promise<void> {
+    this.saveManyCalls.push(instances);
+    for (const instance of instances) {
+      this.saveCalls.push(instance);
+      this.storage.set(instance.id, instance);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
   async updateWithDiff(
-    _current: PlantInstancePrimitives,
+    current: PlantInstancePrimitives,
     updated: PlantInstancePrimitives
   ): Promise<WriteOutcome> {
     this.storage.set(
       updated.id,
-      plantInstanceDomainMapper.fromPrimitives(updated)
+      plantInstanceDomainMapper.fromPrimitives({
+        ...updated,
+        version: current.version + 1
+      })
     );
     return 'written';
   }
@@ -47,6 +60,19 @@ export class PlantInstanceRepositoryMock implements PlantInstanceRepository {
       return null;
     }
     return instance;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async findOwnedActiveByIds(
+    ids: string[],
+    userId: string
+  ): Promise<PlantInstance[]> {
+    return Array.from(this.storage.values()).filter(
+      (c) =>
+        ids.includes(c.id) &&
+        c.userId === userId &&
+        c.instanceStatus === PlantInstanceLifecycleStatus.ACTIVE
+    );
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await

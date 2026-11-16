@@ -27,6 +27,8 @@ export type PlantInstanceRef = {
 export interface PlantInstanceRepository {
   /** Inserts a new crop; an id already in use fails with a conflict. */
   save(instance: PlantInstance): Promise<void>;
+  /** Inserts multiple crops atomically; an id already in use fails with a conflict. */
+  saveMany(instances: PlantInstance[]): Promise<void>;
   updateWithDiff(
     current: PlantInstancePrimitives,
     updated: PlantInstancePrimitives
@@ -35,6 +37,7 @@ export interface PlantInstanceRepository {
     id: string,
     userId: string
   ): Promise<Nullable<PlantInstance>>;
+  findOwnedActiveByIds(ids: string[], userId: string): Promise<PlantInstance[]>;
   listOwnedActive(
     params: ListPlantInstancesParams
   ): Promise<PaginatedResult<PlantInstance>>;

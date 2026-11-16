@@ -6,7 +6,7 @@ Contract-driven REST API for agricultural asset management.
 
 ## Stack
 
-- Node.js v22.x (asdf) & npm >= v10.1.0
+- Node.js v24.x (asdf) & npm >= v10.1.0
 - TypeScript v6.x (Strict typing, no `any`)
 - MongoDB (native driver, `migrate-mongo` migrations)
 - Awilix (Dependency injection)
@@ -19,9 +19,10 @@ Contract-driven REST API for agricultural asset management.
 - **PATCH Semantics:** `undefined` fields are ignored; `null` explicitly deletes/clears fields. Domain validation must occur before persistence.
 - **Validation vs Business Logic:** Validate transport/schema shape with Zod via `validateRequest` (modules not yet migrated still use `express-validator`). Never enforce business logic or DB checks in validation.
 - **Error Handling:** Use `shared/errors/index.ts` (`createError` factory). Let errors bubble up to global `errorHandler`.
+- **Static Analysis (SonarJS):** `npm run lint` runs `eslint-plugin-sonarjs` (recommended ruleset) at `error` severity across `src/` and `tests/`, so JS/TS code-smell and bug findings are caught locally before they reach SonarCloud. Two complexity gates run together: cyclomatic `complexity` (max 10) and `sonarjs/cognitive-complexity` (max 15). SonarCloud stays authoritative for coverage, duplication (CPD), taint, and security hotspots — do not duplicate those locally. Suppress a finding **only** with a line-scoped, rule-specific directive carrying a mandatory rationale: `// eslint-disable-next-line sonarjs/<rule-id> -- <why the code must stay as written>`. Config-level `off` overrides are allowed **only** for `tests/**` (a categorically inapplicable rule or the fixture-scaffolding dir) and **never** for `src/`. Banned: blanket `eslint-disable`, suppression without a `-- <rationale>`, excluding `src/` paths to dodge findings, and silencing a finding with `@ts-ignore` or `as any`.
 - **Contract Testing:** HTTP responses must match the OpenAPI contract (`assertResponseMatchesOpenApi` / Gherkin step).
 - **Acceptance Test Setup:** In Gherkin scenarios, call the API only in the `When` step under test. Build prior state (created, updated, soft-deleted…) in `Given` steps with seeders/DB helpers (e.g. `a soft-deleted bed exists for the current user`), never with setup `PATCH`/`DELETE` requests, so scenarios don't depend on unrelated rules such as `If-Match` versions.
-- **Dependency Injection:** Config in `src/apps/agroApi/container.ts`. Use constructor injection.
+- **Dependency Injection:** Config in `src/apps/agroApi/container.ts`. Use constructor injection. When you add, remove, or rename an explicit registration (`buildExplicitRegistrations`) or an event subscription, update `EXPLICIT_NAMES` in `scripts/wiringIntrospection.ts` in the same change and delete any now-orphaned handler/source files and their tests. The `commit-msg` hook runs `validate-wiring` (cradle ↔ container sync) but NOT the `container.test.ts` keys assertion, so a stale `EXPLICIT_NAMES` entry only fails at `pre-push`; run the `no-db` suite before closing.
 - **Test Groups:** A Jest file opens a real Mongo connection if and only if it is named `*.db.test.ts` (project `db`); every other `*.test.ts` is in `no-db`, where a real `connect()` fails at once. Database tests build their components with `createDbTestContext` (`tests/shared/infrastructure/persistence/mongo/dbTestContext.ts`), never `createAppContainer`. `npm run test:unit:nodb` needs no database. Never use `--forceExit`; a leak fails the file and points to `npm run test:unit:leaks`. `TEST_LOGS=1` prints application logs during tests.
 - **Imports Order:**
   1. **External dependencies** (from `package.json`): Node.js built-ins, then npm packages, **all alphabetical**.
@@ -74,6 +75,7 @@ Contract-driven REST API for agricultural asset management.
 - Do not use manual inline object creation/duplication in tests; prefer factories/seeders.
 - Do not assert exact raw error strings in tests (use semantic matching or pre-defined error paths).
 - Do not write `// Arrange` / `// Act` / `// Assert` comments in tests; ESLint (`no-warning-comments`) rejects them.
+- Do not add explanatory inline comments or JSDoc that describe _what_ the code does. Code must be self-documenting through expressive names, single-purpose helpers, and semantic Aggregate Root methods. If a snippet seems to need a comment, that is the signal to rename, extract a helper, or expose a semantic method — not to comment. The only allowed comment is a short _why_ that is not derivable from the code (an external-bug workaround, a counter-intuitive decision forced by a constraint), never a _what_.
 - **NEVER use `npx tsc`, `npx tsc --noEmit`, or any other manual compilation/checking command. ALWAYS run the scripts defined in `package.json` (e.g., `npm run build`, `npm run lint`, `npm run check`).**
 
 ## graphify

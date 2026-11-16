@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { SUPPORT_RESOURCE_TYPES } from '../../../Contexts/Agro/shared/domain/supportResource/index.js';
+
 // Declared as `query` on routes that take no query string: the validation step
 // makes it strict, so any key is reported as an unknown field.
 export const emptyQuery = z.object({});
@@ -64,6 +66,20 @@ export const listSchema = <T extends z.ZodType>(item: T) =>
 export const httpUrlSchema = z
   .url({ protocol: /^https?$/, hostname: z.regexes.domain })
   .max(REQUEST_LIMITS.url);
+
+/**
+ * A single support-resource definition shared by every Agro catalog (plants,
+ * anomalies, a future inputs/remedies catalog): a recognised `type`, an absolute
+ * `http(s)` `url`, and optional trimmed labels. An image is never required here;
+ * the mandatory-image rule stays plant-specific.
+ */
+export const supportResourceSchema = z.object({
+  type: z.enum(SUPPORT_RESOURCE_TYPES),
+  url: httpUrlSchema,
+  title: shortTextSchema.exactOptional(),
+  source: shortTextSchema.exactOptional(),
+  tags: listSchema(shortTextSchema).exactOptional()
+});
 
 /** A record with at most `REQUEST_LIMITS.recordKeys` keys. */
 export const boundedRecordSchema = <

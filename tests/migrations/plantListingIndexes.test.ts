@@ -166,8 +166,12 @@ describe('plant listing indexes migration', () => {
 
       await down(db);
 
-      expect(dropIndex.mock.calls.map(([name]) => name).sort()).toEqual(
-        LISTING_INDEXES.map(([name]) => name).sort()
+      expect(
+        dropIndex.mock.calls
+          .map(([name]) => name)
+          .sort((a, b) => a.localeCompare(b))
+      ).toEqual(
+        LISTING_INDEXES.map(([name]) => name).sort((a, b) => a.localeCompare(b))
       );
       const lastDrop = Math.max(...dropIndex.mock.invocationCallOrder);
       expect(createIndex.mock.invocationCallOrder).toEqual([

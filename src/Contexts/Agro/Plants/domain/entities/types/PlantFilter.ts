@@ -6,8 +6,11 @@ import type { PlantLifecycleValue } from './PlantLifecycleValue.js';
 import type { PlantStatus } from './PlantStatus.js';
 
 export interface PlantFilter {
+  id?: { in?: string[]; nin?: string[] };
+  bookmarked?: ExactFilter<boolean>;
   identity?: StringFilter;
   family?: ExactFilter<string>;
+  genus?: ExactFilter<string>;
   lifeCycle?: ExactFilter<PlantLifecycleValue>;
   spacingCm?: RangeFilter;
   sowingMonths?: ArrayFilter<number>;

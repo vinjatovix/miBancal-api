@@ -209,17 +209,17 @@ _Exposed endpoints contract can be referenced in Section 3.1 of this document._
 
 ---
 
-### 5.6 Anomalies `[TARGET STATE (Pending [Iteration 39](../../roadmap.md#iteration-39-implement-anomaly-domain-and-crud-endpoints))]`
+### 5.6 Anomalies `[DELIVERED (specs 041 & 042, Iteration 39)]`
 
-Unifies pests, diseases (pathogens), physiological disorders, and weeds into a single domain concept under Phase 5 ([Iteration 39](../../roadmap.md#iteration-39-implement-anomaly-domain-and-crud-endpoints)).
+Unifies pests, diseases (pathogens), and physiological disorders into a single diagnostic catalog with public read and curator write.
 
 > **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
 ---
 
-### 5.7 GardenInputs `[TARGET STATE (Pending [Iteration 40](../../roadmap.md#iteration-40-implement-gardeninput-domain-and-crud-endpoints))]`
+### 5.7 GardenInputs `[DELIVERED (spec 043, Iteration 40)]`
 
-Unifies organic remedies, treatments, repellents, and organic fertilizers into a single domain concept under Phase 5 ([Iteration 40](../../roadmap.md#iteration-40-implement-gardeninput-domain-and-crud-endpoints)).
+Unifies organic remedies, treatments, repellents, bio-stimulants, and organic fertilizers into a single catalog with structured recipes, precise dosages, and academic citations.
 
 > **For exposed HTTP endpoints, routing, payloads, and REST semantics, refer strictly to Module: OpenAPI Contract (openapi.md).**
 
@@ -325,20 +325,25 @@ To guarantee resilience against network instability (e.g., poor 3G/4G connectivi
 ### Implemented
 
 - Plants, Beds: READ + CREATE + PATCH + DELETE
-- Families: READ + CREATE + PATCH (DELETE is pending `[TARGET STATE (Pending [Iteration 32](../../roadmap.md#iteration-32-implement-deletefamily-and-enable-polymorphic-lookups-for-family-mutations))]`)
-- Auth system (functional end-to-end, Swagger tested)
-- validation middleware: Zod `validateRequest` on every route, listings included (`express-validator`, `validateReqSchema` and `validateBody` removed in Iteration 14)
-- error handling (structured)
+- Families: READ + CREATE + PATCH + DELETE (polymorphic lookups)
+- PlantInstances: READ + CREATE + PATCH + DELETE (standalone aggregate with spatial collision check)
+- Anomalies: READ + CREATE + PATCH + DELETE (polymorphic lookups, visual SupportResources, confusedWith)
+- GardenInputs: READ + CREATE + PATCH + DELETE (polymorphic lookups, structured recipes and dosages)
+- User Bookmarks: READ + CREATE + DELETE
+- Plant Likes: CREATE + DELETE (atomic counters)
+- Auth system: local, Google OAuth, GitHub OAuth, email activation, password reset, roles (`admin`, `collaborator`, `user`)
+- Validation middleware: Zod `validateRequest` on every route
+- Error handling (structured `errorHandler`)
 
 ### Partially designed
 
-- PlantInstances
 - Events system
 
-### Missing
+### Missing / Target State
 
-- Anomalies and GardenInputs system (Mock Data Only)
-- email provider integration
+- SeedBank (seed inventories & germination tests)
+- Plant Relations (companion biological graph)
+- Reminders & Weather integration (Open-Meteo)
 
 ---
 

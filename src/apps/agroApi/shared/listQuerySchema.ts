@@ -125,6 +125,16 @@ export const identifierField = () =>
     })
   );
 
+/** An exact scalar of `item`: `eq`, `in`. */
+export const exactField = <T>(item: ItemSchema<T>) =>
+  oneOperator(
+    z.object({
+      eq: singleWithoutComma(item, USE_IN).exactOptional(),
+      in: list(item).exactOptional(),
+      ...scalarHints
+    })
+  );
+
 /** One of the declared values: `eq`, `in`. */
 export const enumField = <const T extends readonly [string, ...string[]]>(
   values: T

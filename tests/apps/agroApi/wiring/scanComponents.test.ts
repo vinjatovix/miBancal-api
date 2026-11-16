@@ -51,7 +51,7 @@ describe('scanComponents', () => {
     const components = await scanComponents(validFixturePath, COMPONENT_ROLES);
     const names = components
       .map((component) => component.registrationName)
-      .sort();
+      .sort((a, b) => a.localeCompare(b));
 
     expect(names).toEqual(['demoRepository', 'doThing', 'doThingController']);
   });

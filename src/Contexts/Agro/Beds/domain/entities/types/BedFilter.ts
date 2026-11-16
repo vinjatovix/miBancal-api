@@ -4,4 +4,5 @@ export interface BedFilter {
   depth?: ExactFilter<number>;
   height?: ExactFilter<number>;
   width?: ExactFilter<number>;
+  locationId?: ExactFilter<string> | string;
 }

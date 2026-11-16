@@ -21,6 +21,7 @@ const identityWith = (
 ): Record<string, unknown> =>
   Object.fromEntries(
     Object.entries({ ...LEGACY_IDENTITY, ...overrides }).filter(
+      // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
       ([, value]) => value !== undefined
     )
   );
@@ -56,6 +57,7 @@ const legacyPruningEntry = (
       season: 'spring',
       frequencyPerYear: 1,
       ...overrides
+      // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     }).filter(([, value]) => value !== undefined)
   );
 

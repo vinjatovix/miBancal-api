@@ -35,6 +35,29 @@ Feature: Update Family
       """
     And response matches OpenAPI contract
 
+  Scenario: Collaborator updates a family successfully
+    Given the family was last updated by another user
+    And I record the current family
+    And I use If-Match '"0"'
+    When I send a PATCH collaborator request to "/api/v1/families/<familyId>" with body
+      """
+      {
+        "name": "Collaborator Updated Family Name",
+        "scientificName": "Collaboratorus familiae"
+      }
+      """
+    Then the response status code should be 200
+    And the response should have ETag '"1"'
+    And the response body should contain
+      """
+      {
+        "name": "Collaborator Updated Family Name",
+        "scientificName": "Collaboratorus familiae"
+      }
+      """
+    And the response audit data should show the collaborator as last editor
+    And response matches OpenAPI contract
+
   Scenario: Admin updates a family by slug successfully
     Given I use If-Match '"0"'
     When I send a PATCH admin request to "/api/v1/families/<familySlug>" with body

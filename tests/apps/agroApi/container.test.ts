@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { Lifetime } from 'awilix';
+import { asValue, Lifetime } from 'awilix';
 import { MongoClient } from 'mongodb';
 
 import {
@@ -12,8 +12,18 @@ import {
   toRegistrationName
 } from '../../../src/apps/agroApi/wiring/componentRoles.js';
 import { scanComponents } from '../../../src/apps/agroApi/wiring/scanComponents.js';
+import {
+  InMemoryEventBusAdapter,
+  OutboxEventBusAdapter
+} from '../../../src/Contexts/shared/infrastructure/eventBus/index.js';
 import { InMemoryMailer } from '../../../src/Contexts/shared/infrastructure/mailer/index.js';
+import {
+  GithubIdentityProviderAdapter,
+  GoogleIdTokenVerifierAdapter
+} from '../../../src/Contexts/shared/plugins/index.js';
+import { GoogleIdTokenVerifierMock } from '../../Contexts/Auth/__mocks__/index.js';
 import { SOURCE_ROOT } from '../../shared/sourceRoot.js';
+import { FakeGithubIdentityProvider } from './features/shared/fakes/FakeGithubIdentityProvider.js';
 
 describe('container wiring', () => {
   it('registers every discovered component plus the explicit registrations', async () => {
@@ -28,9 +38,11 @@ describe('container wiring', () => {
     const expectedKeys = [
       ...components.map((component) => component.registrationName),
       ...EXPLICIT_NAMES
-    ].sort();
+    ].sort((a, b) => a.localeCompare(b));
 
-    const registeredKeys = Object.keys(container.registrations).sort();
+    const registeredKeys = Object.keys(container.registrations).sort((a, b) =>
+      a.localeCompare(b)
+    );
 
     expect(registeredKeys).toEqual(expectedKeys);
   });
@@ -48,8 +60,12 @@ describe('container wiring', () => {
       SOURCE_ROOT,
       'apps/agroApi/wiring/ContainerCradle.ts'
     );
-    const cradleProperties = getCradlePropertyNames(cradlePath).sort();
-    const registeredKeys = Object.keys(container.registrations).sort();
+    const cradleProperties = getCradlePropertyNames(cradlePath).sort((a, b) =>
+      a.localeCompare(b)
+    );
+    const registeredKeys = Object.keys(container.registrations).sort((a, b) =>
+      a.localeCompare(b)
+    );
 
     expect(registeredKeys).toEqual(cradleProperties);
   });
@@ -107,6 +123,62 @@ describe('container wiring', () => {
     }
   });
 
+  it('resolves an override instead of the scanned component', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const fake = new GoogleIdTokenVerifierMock();
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT,
+      overrides: { googleIdTokenVerifier: asValue(fake) }
+    });
+
+    expect(container.resolve('googleIdTokenVerifier')).toBe(fake);
+  });
+
+  it('resolves the real Google verifier without overrides', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
+
+    expect(container.resolve('googleIdTokenVerifier')).toBeInstanceOf(
+      GoogleIdTokenVerifierAdapter
+    );
+  });
+
+  it('resolves the GitHub override instead of the scanned provider', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const fake = new FakeGithubIdentityProvider();
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT,
+      overrides: { githubIdentityProvider: asValue(fake) }
+    });
+
+    expect(container.resolve('githubIdentityProvider')).toBe(fake);
+  });
+
+  it('resolves the real GitHub provider without overrides', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
+
+    expect(container.resolve('githubIdentityProvider')).toBeInstanceOf(
+      GithubIdentityProviderAdapter
+    );
+  });
+
   it('resolves the mailer as the in-memory recorder in test mode', async () => {
     const client = new MongoClient('mongodb://localhost:27017');
     const db = client.db('test');
@@ -117,5 +189,23 @@ describe('container wiring', () => {
     });
 
     expect(container.resolve('mailer')).toBeInstanceOf(InMemoryMailer);
+  });
+
+  it('resolves eventBus as a singleton OutboxEventBusAdapter over the in-process bus', async () => {
+    const client = new MongoClient('mongodb://localhost:27017');
+    const db = client.db('test');
+    const container = await createAppContainer({
+      db,
+      client,
+      sourceRoot: SOURCE_ROOT
+    });
+
+    const bus = container.resolve('eventBus');
+
+    expect(bus).toBeInstanceOf(OutboxEventBusAdapter);
+    expect(container.resolve('eventBus')).toBe(bus);
+    expect(container.resolve('inProcessEventBus')).toBeInstanceOf(
+      InMemoryEventBusAdapter
+    );
   });
 });

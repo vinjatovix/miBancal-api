@@ -32,11 +32,17 @@ Feature: Get Plant
       """
     And response matches OpenAPI contract
 
-  Scenario: Get a plant with invalid ID
+  # A non-UUID path segment is treated as a slug; an unknown one is simply
+  # not found (the id/slug param only rejects an empty value).
+  Scenario: Get a plant by a slug that does not exist
     Given a GET request to "/api/v1/plants/invalid-id"
-    Then the response status code should be 400
-    And the response errors should include "id"
-    And the response body should not echo "invalid-id"
+    Then the response status code should be 404
+    Then the response body should be
+      """
+      {
+        "message": "Plant not found with slug: invalid-id"
+      }
+      """
     And response matches OpenAPI contract
 
   Scenario: Get a plant with an unknown query parameter
@@ -135,7 +141,7 @@ Feature: Get Plant
   Scenario: Get a plant with every field listed
     Given a family exists
     And a plant exists
-    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,version"
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=id,slug,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,version,likesCount"
     Then the response status code should be 200
     And a GET user request to "/api/v1/plants/<plantId>" should return the same body
     And the response should not have an ETag
@@ -231,6 +237,32 @@ Feature: Get Plant
     When I send a GET request to "/api/v1/plants/<plantId>?include=family&fields[plants]=traits"
     Then the response status code should be 200
     And the response body should hold exactly the fields "id,traits"
+    And response matches OpenAPI contract
+
+  Scenario: Detail read of a sowing-free plant omits the sowing block
+    Given a family exists
+    And a plant without a sowing block exists
+    When I get the plant
+    Then the response status code should be 200
+    And the response phenology should omit sowing
+    And response matches OpenAPI contract
+
+  Scenario: Detail read of a seed crop keeps the full sowing block
+    Given a family exists
+    And a plant with a sowing block exists
+    When I get the plant
+    Then the response status code should be 200
+    And the response phenology should include sowing
+    And response matches OpenAPI contract
+
+  Scenario: A sparse phenology fieldset on a sowing-free plant omits sowing
+    Given a family exists
+    And a plant without a sowing block exists
+    When I send a GET request to "/api/v1/plants/<plantId>?fields[plants]=phenology"
+    Then the response status code should be 200
+    And the response body should hold exactly the fields "id,phenology"
+    And the response phenology should omit sowing
+    And the response should not have an ETag
     And response matches OpenAPI contract
 
   Scenario Outline: A malformed fields or include on a plant answers 400 (<query>)

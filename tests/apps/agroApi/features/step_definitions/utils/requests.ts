@@ -71,14 +71,8 @@ export const buildRequest = ({
 export const parseBody = (
   body: string,
   world: AgroWorld
-): Record<string, unknown> => {
-  const parsed = parseJsonObject(interpolateJson(body, world.placeholders()));
-
-  if (Array.isArray(parsed)) {
-    throw new TypeError('Expected object but received array in request body');
-  }
-
-  return parsed;
+): Record<string, unknown> | unknown[] => {
+  return parseJsonObject(interpolateJson(body, world.placeholders()));
 };
 
 const conditionalHeaders = (

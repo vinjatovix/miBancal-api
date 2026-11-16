@@ -1,6 +1,9 @@
 import type { PlantInstance } from '../../../PlantInstances/domain/entities/PlantInstance.js';
 import type { PlantInstanceRepository } from '../../../PlantInstances/domain/repositories/interfaces/PlantInstanceRepository.js';
 import type { Bed } from '../../domain/entities/Bed.js';
+import type { LocationSummary } from '../../domain/entities/types/LocationSummary.js';
+
+export type { BedWithRelations } from '../../domain/entities/types/BedWithRelations.js';
 
 /** A bed read together with its active crops, which live in their own aggregate. */
 export type BedWithCrops = {
@@ -8,10 +11,12 @@ export type BedWithCrops = {
   cropIds: string[];
   /** Full crops, loaded only when the client asked to embed them. */
   crops?: PlantInstance[] | undefined;
+  location?: LocationSummary | null | undefined;
 };
 
 export type BedReadOptions = {
   embedCrops: boolean;
+  embedLocation?: boolean;
 };
 
 const groupByBedId = <T extends { bedId: string }>(

@@ -93,7 +93,12 @@ const post = (
     query?: Record<string, string>;
     body?: object;
   } = {}
-): request.Test => request(app).post(samplePath(id)).query(query).send(body);
+): request.Test =>
+  request(app)
+    .post(samplePath(id))
+    .query(query)
+    .set('Connection', 'close')
+    .send(body);
 
 const expectValidationError = async (
   response: request.Response

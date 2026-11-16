@@ -78,6 +78,16 @@ export class MongoPlantInstanceRepository
     );
   }
 
+  async saveMany(instances: PlantInstance[]): Promise<void> {
+    if (instances.length === 0) return;
+    const mongoDocuments = instances.map((instance) =>
+      this.toMongoDocument(instance)
+    );
+    await this.handleMongoError(() =>
+      this.collection().insertMany(mongoDocuments, this.sessionOptions())
+    );
+  }
+
   async findOwnedActiveById(
     id: string,
     userId: string
@@ -87,6 +97,26 @@ export class MongoPlantInstanceRepository
       userId: toMongoId(userId),
       ...this.activeFilter()
     });
+  }
+
+  async findOwnedActiveByIds(
+    ids: string[],
+    userId: string
+  ): Promise<PlantInstance[]> {
+    if (ids.length === 0) return [];
+    const documents = await this.collection()
+      .find<MongoPlantInstanceDocument>(
+        {
+          _id: { $in: ids.map((id) => toMongoId(id)) },
+          userId: toMongoId(userId),
+          ...this.activeFilter()
+        },
+        this.sessionOptions()
+      )
+      .sort(BED_CROPS_SORT)
+      .toArray();
+
+    return documents.map((doc) => this.toDomain(doc));
   }
 
   async listOwnedActive(

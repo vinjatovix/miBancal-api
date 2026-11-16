@@ -17,10 +17,27 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
     return Bed.create({
       id: createBedId(fromMongoId(document._id)),
       userId: createUserId(fromMongoId(document.userId)),
+      locationId:
+        document.locationId != null ? fromMongoId(document.locationId) : null,
       name: new BedName(document.name),
       width: PositiveNumber.create(document.width),
       height: PositiveNumber.create(document.height),
       depth: PositiveNumber.create(document.depth),
+      ...(document.latitude !== undefined && {
+        latitude: document.latitude
+      }),
+      ...(document.longitude !== undefined && {
+        longitude: document.longitude
+      }),
+      ...(document.position !== undefined && {
+        position: document.position ?? undefined
+      }),
+      ...(document.rotation !== undefined && {
+        rotation: document.rotation
+      }),
+      ...(document.netOrientation !== undefined && {
+        netOrientation: document.netOrientation
+      }),
       metadata: Metadata.fromPrimitives(document.metadata),
       deleted: document.deleted,
       ...(document.deletedAt && { deletedAt: new Date(document.deletedAt) }),
@@ -32,10 +49,18 @@ export const bedPersistenceMapper: BedPersistenceMapper = {
     return {
       _id: toMongoId(bed.id),
       userId: toMongoId(bed.userId),
+      locationId: bed.locationId !== null ? toMongoId(bed.locationId) : null,
       name: bed.name.value,
       width: bed.width.value,
       height: bed.height.value,
       depth: bed.depth.value,
+      ...(bed.latitude !== undefined && { latitude: bed.latitude }),
+      ...(bed.longitude !== undefined && { longitude: bed.longitude }),
+      ...(bed.position !== undefined && { position: bed.position }),
+      ...(bed.rotation !== undefined && { rotation: bed.rotation }),
+      ...(bed.netOrientation !== undefined && {
+        netOrientation: bed.netOrientation
+      }),
       metadata: bed.metadata.toPrimitives(),
       deleted: bed.isDeleted,
       ...(bed.deletedAt && { deletedAt: bed.deletedAt.toISOString() }),

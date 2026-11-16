@@ -80,6 +80,49 @@ Feature: Update Plant Instance (Crop)
         And response matches OpenAPI contract
         And the bed stored version should be 0
 
+    Scenario: Move a crop near a neighbor without overlapping vital circles returns 200
+        Given a family exists
+        And a plant exists
+        And a bed exists
+        And a crop exists in the bed at 30, 30
+        And a crop exists in the bed at 70, 70
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/plant-instances/<cropId>" with body
+            """
+            {
+                "position": {
+                    "x": 50,
+                    "y": 50
+                }
+            }
+            """
+        Then the response status code should be 200
+        And response matches OpenAPI contract
+        And the response should have ETag '"1"'
+        And the bed stored version should be 1
+        And the crop should be stored at 50, 50
+
+    Scenario: Moving the only crop in a bed never collides with itself
+        Given a family exists
+        And a plant exists
+        And a bed exists
+        And a crop exists in the bed at 30, 30
+        And I use If-Match '"0"'
+        When I send a PATCH user request to "/api/v1/plant-instances/<cropId>" with body
+            """
+            {
+                "position": {
+                    "x": 31,
+                    "y": 31
+                }
+            }
+            """
+        Then the response status code should be 200
+        And response matches OpenAPI contract
+        And the response should have ETag '"1"'
+        And the bed stored version should be 1
+        And the crop should be stored at 31, 31
+
     Scenario: Update with stale If-Match returns 412 Precondition Failed
         Given a family exists
         And a plant exists

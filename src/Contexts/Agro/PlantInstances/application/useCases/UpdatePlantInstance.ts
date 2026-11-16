@@ -169,7 +169,7 @@ export class UpdatePlantInstance {
       },
       proposed: {
         position,
-        spacingCm: plant.traits.spacingCm.max
+        vitalRadiusCm: plant.traits.spacingCm.min / 2
       },
       existingCrops,
       excludeCropId: crop.id

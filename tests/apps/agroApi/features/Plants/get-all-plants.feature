@@ -212,7 +212,7 @@ Feature: Get All Plants
     And a plant exists
     When I send a GET request to "/api/v1/plants"
     Then the response status code should be 200
-    And each item should hold exactly the fields "id,version,identity,traits,phenology,knowledge,image,metadata,status,deletedAt"
+    And each item should hold exactly the fields "id,slug,version,identity,traits,phenology,knowledge,image,metadata,status,deletedAt,likesCount"
     And response matches OpenAPI contract
 
   Scenario: List plants with their image and without their knowledge
@@ -257,6 +257,30 @@ Feature: Get All Plants
     When I send a GET request to "/api/v1/plants?include=family"
     Then the response status code should be 200
     And every listed plant should carry the summary of its own family
+    And response matches OpenAPI contract
+
+  Scenario: Listing a sowing-free plant omits its sowing block
+    Given a family exists
+    And a plant without a sowing block exists
+    When I send a GET request to "/api/v1/plants?fields[plants]=phenology"
+    Then the response status code should be 200
+    And the list should contain at least 1 item
+    And every item should match:
+      | field               | operator | value |
+      | phenology.flowering | exists   |       |
+      | phenology.sowing    | absent   |       |
+    And response matches OpenAPI contract
+
+  Scenario: The sowing-month filter excludes sowing-free plants
+    Given a family exists
+    And a plant that sows in 3 exists
+    And a plant without a sowing block exists
+    When I send a GET request to "/api/v1/plants?filter[sowingMonths][has]=3"
+    Then the response status code should be 200
+    And the list should contain at least 1 item
+    And every item should match:
+      | field                   | operator | value |
+      | phenology.sowing.months | hasAny   | 3     |
     And response matches OpenAPI contract
 
   Scenario Outline: A malformed fields or include on the listing answers 400 (<query>)

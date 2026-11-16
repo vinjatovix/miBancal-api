@@ -14,6 +14,7 @@ describe('bedPersistenceMapper', () => {
       expect(document.width).toBe(bed.width.value);
       expect(document.height).toBe(bed.height.value);
       expect(document.depth).toBe(bed.depth.value);
+      expect(document.locationId).toBeDefined();
 
       expect(document.deleted).toBe(bed.isDeleted);
 
@@ -45,6 +46,27 @@ describe('bedPersistenceMapper', () => {
 
       expect(document.deletedAt).toBeUndefined();
     });
+
+    it('should include geographic fields when present', () => {
+      const bed = BedFactory.create({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
+
+      const document = bedPersistenceMapper.toMongoDocument(bed);
+
+      expect(document.latitude).toBe(40.4168);
+      expect(document.longitude).toBe(-3.7038);
+    });
+
+    it('should omit geographic fields when absent', () => {
+      const bed = BedFactory.create();
+
+      const document = bedPersistenceMapper.toMongoDocument(bed);
+
+      expect(document.latitude).toBeUndefined();
+      expect(document.longitude).toBeUndefined();
+    });
   });
 
   describe('fromMongoDocument', () => {
@@ -63,8 +85,42 @@ describe('bedPersistenceMapper', () => {
       expect(bed.width.value).toBe(original.width.value);
       expect(bed.height.value).toBe(original.height.value);
       expect(bed.depth.value).toBe(original.depth.value);
+      expect(bed.locationId).toBe(original.locationId);
 
       expect(bed.isDeleted).toBe(original.isDeleted);
+    });
+
+    it('should default locationId to null when missing from legacy mongo document', () => {
+      const original = BedFactory.create();
+      const document = bedPersistenceMapper.toMongoDocument(original);
+      const { locationId: _locationId, ...legacyDocument } = document;
+
+      const bed = bedPersistenceMapper.fromMongoDocument(legacyDocument);
+
+      expect(bed.locationId).toBeNull();
+    });
+
+    it('should map geographic fields from mongo document correctly', () => {
+      const original = BedFactory.create({
+        latitude: 40.4168,
+        longitude: -3.7038
+      });
+
+      const document = bedPersistenceMapper.toMongoDocument(original);
+      const bed = bedPersistenceMapper.fromMongoDocument(document);
+
+      expect(bed.latitude).toBe(40.4168);
+      expect(bed.longitude).toBe(-3.7038);
+    });
+
+    it('should leave geographic fields undefined when absent in mongo document', () => {
+      const original = BedFactory.create();
+
+      const document = bedPersistenceMapper.toMongoDocument(original);
+      const bed = bedPersistenceMapper.fromMongoDocument(document);
+
+      expect(bed.latitude).toBeUndefined();
+      expect(bed.longitude).toBeUndefined();
     });
 
     it('should round-trip the version', () => {

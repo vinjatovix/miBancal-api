@@ -1,6 +1,9 @@
 import type { Router } from 'express';
 
 import {
+  batchPlacePlantInstancesRequest,
+  batchRemovePlantInstancesRequest,
+  batchUpdatePlantInstancesRequest,
   deletePlantInstanceRequest,
   getPlantInstanceByIdRequest,
   listPlantInstancesRequest,
@@ -31,6 +34,27 @@ export const registerRoutes: RegisterRoutes = (router: Router): void => {
     auth,
     validateRequest(listPlantInstancesRequest),
     plantInstanceApiInvoker('listPlantInstances')
+  );
+
+  router.post(
+    `${prefix}/batch`,
+    auth,
+    validateRequest(batchPlacePlantInstancesRequest),
+    plantInstanceApiInvoker('placePlantInstanceBatch')
+  );
+
+  router.patch(
+    `${prefix}/batch`,
+    auth,
+    validateRequest(batchUpdatePlantInstancesRequest),
+    plantInstanceApiInvoker('updatePlantInstanceBatch')
+  );
+
+  router.delete(
+    `${prefix}/batch`,
+    auth,
+    validateRequest(batchRemovePlantInstancesRequest),
+    plantInstanceApiInvoker('removePlantInstanceBatch')
   );
 
   router.get(

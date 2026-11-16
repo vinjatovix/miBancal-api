@@ -1,3 +1,5 @@
-export const PLANT_RESOURCE_TYPES = ['image', 'article', 'video'] as const;
-
-export type PlantResourceType = (typeof PLANT_RESOURCE_TYPES)[number];
+/** Back-compat alias: a plant resource type is a shared support-resource type. */
+export {
+  SUPPORT_RESOURCE_TYPES as PLANT_RESOURCE_TYPES,
+  type SupportResourceType as PlantResourceType
+} from '../../../../shared/domain/supportResource/index.js';

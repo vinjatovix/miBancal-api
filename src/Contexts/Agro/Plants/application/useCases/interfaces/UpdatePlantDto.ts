@@ -28,6 +28,8 @@ export interface UpdatePlantDto {
   };
 
   phenology?: {
+    // `null` clears the sowing block; a partial object merges when sowing
+    // exists, or must be a full valid block when it is absent.
     sowing?: {
       months?: number[];
       seedsPerHole?: PartialRange;
@@ -36,7 +38,7 @@ export interface UpdatePlantDto {
         direct?: { depthCm?: PartialRange };
         starter?: { depthCm?: PartialRange } | null;
       };
-    };
+    } | null;
     flowering?: {
       months?: number[];
       pollination?: {
@@ -51,4 +53,7 @@ export interface UpdatePlantDto {
   };
 
   knowledge?: PlantKnowledgeChanges;
+
+  /** Replace the anomaly slug list; `null` clears it, an absent key keeps it. */
+  anomalies?: string[] | null;
 }

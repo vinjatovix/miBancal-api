@@ -1,10 +1,16 @@
 import { UpdateFamily } from '../../../../../../src/Contexts/Agro/Families/application/useCases/UpdateFamily.js';
 import { familyDomainMapper } from '../../../../../../src/Contexts/Agro/Families/mappers/familyDomainMapper.js';
 import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
+import {
   DomainNotFoundException,
   DomainStaleVersionException,
   InvalidArgumentException
 } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/random.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
@@ -12,11 +18,16 @@ import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
 describe('UpdateFamily', () => {
   const CURRENT_VERSION = 0;
   let repository: FamilyRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: UpdateFamily;
 
   beforeEach(() => {
     repository = new FamilyRepositoryMock();
-    useCase = new UpdateFamily({ familyRepository: repository });
+    cache = new CacheRepositoryFake();
+    useCase = new UpdateFamily({
+      familyRepository: repository,
+      cacheRepository: cache
+    });
   });
 
   afterEach(() => {
@@ -362,6 +373,60 @@ describe('UpdateFamily', () => {
       repository.assertUpdateCalledTimes(1);
       repository.assertExistenceCountCalledTimes(0);
     });
+  });
+
+  it('invalidates the entry and bumps the generation after a successful update', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    await useCase.execute(
+      { idOrSlug: family.idValue, name: 'Renamed' },
+      'test-user',
+      [family.version]
+    );
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('families', family.idValue)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('families')
+    );
+  });
+
+  it('invalidates both the previous and the new slug when the slug changes', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+    const previousSlug = family.slug;
+
+    const updated = await useCase.execute(
+      { idOrSlug: family.idValue, slug: 'renamed-family-slug' },
+      'test-user',
+      [CURRENT_VERSION]
+    );
+
+    expect(updated.slug).toBe('renamed-family-slug');
+    expect(previousSlug).not.toBe('renamed-family-slug');
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('families', previousSlug)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('families', 'renamed-family-slug')
+    );
+  });
+
+  it('does not invalidate the cache when the version is stale', async () => {
+    const family = FamilyScenarios.domainRandom();
+    repository.addToStorage(family);
+
+    await expect(
+      useCase.execute(
+        { idOrSlug: family.idValue, name: 'Renamed' },
+        'test-user',
+        [family.version + 1]
+      )
+    ).rejects.toBeInstanceOf(DomainStaleVersionException);
+
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
   });
 
   it('should return updated family', async () => {

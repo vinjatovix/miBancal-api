@@ -95,6 +95,48 @@ export class PlantSowing {
     });
   }
 
+  /**
+   * Builds a complete `PlantSowing` from a change set treated as a full
+   * creation payload, used when adding sowing to a plant that had none. Each
+   * range is materialized via `Range.fromPartial`, so a missing bound or
+   * sub-field throws the usual `InvalidArgumentException`.
+   */
+  static fromChanges(changes: PlantSowingChanges): PlantSowing {
+    return new PlantSowing({
+      seedsPerHole: Range.fromPartial(
+        changes.seedsPerHole ?? {},
+        'phenology.sowing.seedsPerHole'
+      ),
+      germinationDays: Range.fromPartial(
+        changes.germinationDays ?? {},
+        'phenology.sowing.germinationDays'
+      ),
+      months: MonthSet.fromArray(changes.months ?? []),
+      methods: PlantSowing.methodsFromChanges(changes.methods)
+    });
+  }
+
+  private static methodsFromChanges(
+    methods: PlantSowingChanges['methods']
+  ): PlantSowingProps['methods'] {
+    const direct: SowingMethod = {
+      depthCm: Range.fromPartial(
+        methods?.direct?.depthCm ?? {},
+        'phenology.sowing.methods.direct.depthCm'
+      )
+    };
+    const starter = methods?.starter
+      ? {
+          depthCm: Range.fromPartial(
+            methods.starter.depthCm ?? {},
+            'phenology.sowing.methods.starter.depthCm'
+          )
+        }
+      : undefined;
+
+    return { direct, ...(starter !== undefined && { starter }) };
+  }
+
   private static mergeStarter(
     change: NonNullable<NonNullable<PlantSowingChanges['methods']>['starter']>,
     current: SowingMethod | undefined

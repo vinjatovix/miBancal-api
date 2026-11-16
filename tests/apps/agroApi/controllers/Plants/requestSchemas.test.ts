@@ -66,6 +66,17 @@ describe('Plant requestSchemas', () => {
       expect(error).toBeUndefined();
     });
 
+    it('should accept a payload that omits the optional phenology.sowing', async () => {
+      const body = withoutPath(
+        buildMinimalCreatePlantBody(),
+        'phenology.sowing'
+      );
+
+      const error = await validate(createPlantRequest, { body });
+
+      expect(error).toBeUndefined();
+    });
+
     it.each([['id'], ['identity'], ['traits'], ['phenology'], ['knowledge']])(
       'should reject when top-level field "%s" is missing',
       async (field) => {
@@ -85,7 +96,6 @@ describe('Plant requestSchemas', () => {
       ['traits.lifecycle'],
       ['traits.size.height'],
       ['traits.spacingCm'],
-      ['phenology.sowing'],
       ['knowledge.rootSystem'],
       ['knowledge.soil'],
       ['knowledge.light'],
@@ -822,20 +832,27 @@ describe('Plant requestSchemas', () => {
     });
   });
 
-  describe.each([
-    ['getPlantByIdRequest', getPlantByIdRequest],
-    ['deletePlantRequest', deletePlantRequest]
-  ])('%s', (_, schemas) => {
+  describe('getPlantByIdRequest', () => {
     const params = { id: randomPlantId() };
 
     it('should accept a valid UUID param without query or body', async () => {
-      const error = await validate(schemas, { params });
+      const error = await validate(getPlantByIdRequest, { params });
 
       expect(error).toBeUndefined();
     });
 
-    it('should reject an invalid UUID param', async () => {
-      const errors = await errorsOf(schemas, { params: { id: 'not-a-uuid' } });
+    it('should accept a slug as the id param', async () => {
+      const error = await validate(getPlantByIdRequest, {
+        params: { id: 'solanum-lycopersicum' }
+      });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should reject an empty id param', async () => {
+      const errors = await errorsOf(getPlantByIdRequest, {
+        params: { id: '' }
+      });
 
       expect(errors).toHaveProperty(['id']);
     });
@@ -843,7 +860,7 @@ describe('Plant requestSchemas', () => {
     it('should reject unknown query parameters', async () => {
       const query = { extraQuery: 'not-allowed' };
 
-      const errors = await errorsOf(schemas, { params, query });
+      const errors = await errorsOf(getPlantByIdRequest, { params, query });
 
       expect(errors).toHaveProperty(['extraQuery'], 'Unknown field');
     });
@@ -851,7 +868,41 @@ describe('Plant requestSchemas', () => {
     it('should reject an unexpected body payload', async () => {
       const body = { unexpected: true };
 
-      const errors = await errorsOf(schemas, { params, body });
+      const errors = await errorsOf(getPlantByIdRequest, { params, body });
+
+      expect(errors).toHaveProperty(['unexpected'], 'Unknown field');
+    });
+  });
+
+  describe('deletePlantRequest', () => {
+    const params = { id: randomPlantId() };
+
+    it('should accept a valid UUID param without query or body', async () => {
+      const error = await validate(deletePlantRequest, { params });
+
+      expect(error).toBeUndefined();
+    });
+
+    it('should reject an invalid UUID param', async () => {
+      const errors = await errorsOf(deletePlantRequest, {
+        params: { id: 'not-a-uuid' }
+      });
+
+      expect(errors).toHaveProperty(['id']);
+    });
+
+    it('should reject unknown query parameters', async () => {
+      const query = { extraQuery: 'not-allowed' };
+
+      const errors = await errorsOf(deletePlantRequest, { params, query });
+
+      expect(errors).toHaveProperty(['extraQuery'], 'Unknown field');
+    });
+
+    it('should reject an unexpected body payload', async () => {
+      const body = { unexpected: true };
+
+      const errors = await errorsOf(deletePlantRequest, { params, body });
 
       expect(errors).toHaveProperty(['unexpected'], 'Unknown field');
     });
@@ -905,6 +956,20 @@ describe('Plant requestSchemas', () => {
 
       expect(query.filter).toHaveProperty([field, operator]);
     });
+
+    it.each([['true'], ['false']])(
+      'should accept filter[bookmarked][eq]=%s',
+      async (value) => {
+        const query = await listQueryOf({
+          filter: { bookmarked: { eq: value } }
+        });
+
+        expect(query.filter).toHaveProperty(
+          ['bookmarked', 'eq'],
+          value === 'true'
+        );
+      }
+    );
 
     it.each([
       ['family', 'contains'],

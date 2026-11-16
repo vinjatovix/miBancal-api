@@ -6,6 +6,35 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 ---
 
+## Audit Snapshot (2026-11-13)
+
+Delivery has **not** followed phase order strictly — several late features (hierarchical companions, genus, slug) shipped ahead of mid-phase work. Status below is audited against the codebase (bounded contexts, routes, migrations) and git history, **not** against phase numbers. The governing rule for what to do next is **dependencies, not phase order**.
+
+Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
+
+| Phase                         | Iterations                                                                                                                                                                                                                | Status  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 0 — Core Architecture         | 1–19b                                                                                                                                                                                                                     | ✅ Done |
+| 1 — Spatial Engine Prep       | 20–24                                                                                                                                                                                                                     | ✅ Done |
+| 2 — Identity & Access         | 25–30b                                                                                                                                                                                                                    | ✅ Done |
+| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                                                                                                                                         | 🟡      |
+| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                                                                                                                                     | 🟡      |
+| 5 — Organics & Diagnostics    | 39–42                                                                                                                                                                                                                     | ✅ Done |
+| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                                                                                                                                      | ⬜      |
+| **7 — Distributed Event Bus** | **45b ✅ · 45c ✅ · 45d ✅ · 46 ✅ · 47 ✅ · 48 ✅ (Change Stream tailer) · 48b ✅ (watchdog self-exit) · 49 ✅ (Kafka routing by partition key) · 49b ✅ (Local Kafka Web UI) · 45e, 50, 51, 51b ⬜ (no consumers yet)** | 🟡      |
+| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                                                                                                                                                 | ⬜      |
+| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                                                                                                                                                  | 🟡      |
+| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                                                                                                                                                  | ⬜      |
+| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                                                                                                                                         | 🟡      |
+| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                                                                                                                                            | ⬜      |
+| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                                                                                                                                      | ⬜      |
+| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                                                                                                                                                  | 🟡      |
+| GDPR                          | 91, 92 ⬜                                                                                                                                                                                                                 | ⬜      |
+
+**Blocking the most work:** Phase 7 (the event bus). Its async consumers (69, 76, 80–82) and GDPR deletion (91) all sit behind it. See the sequencing note at the head of Phase 7.
+
+---
+
 # Phase 0: Core Architecture
 
 ## Iteration 1: Relocate Mongo Primitives to Shared Domain
@@ -578,6 +607,22 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 - **Dependencies**: Tooling: Faster Test Suite.
 - **Risks**: Migrations that now run independent indexes or collections concurrently can leave a different partial state after a failure (other operations may still finish). Accepted because migrate-mongo does not mark a failed migration as applied and every operation is safe to repeat, so a retried `up` reaches the same final state. Behaviour was checked with the unit, migration and acceptance suites and by running the old and new migrations side by side on copies of the local database (same collections, indexes and documents after `up`, a second `up` and `down`).
 
+## Tooling: Shift-Left SonarJS via ESLint
+
+**Spec Module(s)**: [testing.md](spec/modules/testing.md)
+
+- **Status**: Proposed, not yet scheduled (requested by the maintainer on 2026-11-14; tackle once the current outbox work lands, as a follow-up to **Tooling: SonarCloud Issues Cleanup**). Not a numbered iteration because it changes no product behaviour.
+- **Value delivered**: Moves SonarJS code-smell and bug detection into the local/CI ESLint pass (`npm run lint`, `check`, `full-check`), so findings surface inside the PR instead of on the SonarCloud web UI after the fact. Removes the recurring need to open separate alignment branches to drain accumulated findings (the reactive counterpart of this is **Tooling: SonarCloud Issues Cleanup**).
+- **Scope and boundary (important)**: `eslint-plugin-sonarjs` is **not** the full SonarQube/SonarCloud engine. It reimplements the JS/TS **code-smell and bug** rules (cognitive complexity, duplicate/collapsible branches, dead code, redundant boolean/collection usage…). It does **not** cover test coverage, project-wide duplication, taint/security hotspots, or several security-category rules that live in the Sonar analyzer. SonarCloud therefore stays in CI for those; this change only shifts the rules ESLint can enforce locally.
+- **Compatibility**: `eslint-plugin-sonarjs@4.x` (latest `4.2.2`) declares `peerDependencies.eslint: ^8 || ^9 || ^10` and ships a flat-config `recommended`, so it drops into the repo's ESLint 10 flat config (`eslint.config.cjs`) without the `FlatCompat` shim.
+- **Open decision (resolve during implementation)**: how to onboard the `recommended` ruleset, since it will light up existing findings in `src/` and `tests/`:
+  - **Dry run first**: install the plugin, run `lint` against `src`/`tests` with the ruleset active but uncommitted, and count findings per rule to size the work.
+  - **Option A — `error` from day one (preferred for the portfolio showcase)**: block the build until the current findings are fixed; cleanest alignment, but requires fixing the backlog up front.
+  - **Option B — `warn` first, then ratchet**: land the plugin without breaking CI, measure the volume, and promote rules to `error` group by group.
+- **Definition of Done (sketch, to refine when scheduled)**: `eslint-plugin-sonarjs` added as a dev dependency; its flat `recommended` wired into `eslint.config.cjs` on the TS block; onboarding level (A or B) decided from the dry-run numbers and any intentional suppressions documented in version control (consistent with the `// NOSONAR` / `sonar-project.properties` conventions already established); `lint`, `check` and `full-check` pass; AGENTS.md / testing.md note that SonarJS rules now run in the ESLint pass and what SonarCloud still owns.
+- **Dependencies**: Tooling: SonarCloud Issues Cleanup (shares the suppression conventions and the finding backlog this would otherwise re-surface).
+- **Risks**: Rule overlap or disagreement between the plugin and the SonarCloud server version (a finding fixed for one may not match the other); mitigated by keeping SonarCloud authoritative for the categories the plugin does not cover and treating the plugin as the fast local gate.
+
 ---
 
 # Phase 2: Identity & Access
@@ -683,9 +728,18 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
+- **Status**: Completed (2026-10-17, spec `specs/032-google-oauth-login/`)
 - **Value delivered**: Enhances sign-in security and user onboarding with single-sign-on.
 - **Definition of Done**: Google OAuth endpoint receives a Google ID token (`idToken`, obtained by the client through Google Sign-In), verifies its signature and audience, requires a verified email, resolves or creates the user, and issues a stateless JWT.
 - **Implementation notes**: `POST /auth/google` takes `idToken`, not an authorization `code`: the client runs the Google Sign-In flow and the API verifies the token with `google-auth-library`, without storing any state. Since [Iteration 26](#iteration-26-implement-email-account-activation-flow), linking Google to an existing account by email follows the pre-hijacking rules (`User.linkProvider`).
+- **Hardened in this iteration** (details in [auth.md §3.1](spec/modules/auth.md)):
+  - New Google accounts are inserted with `AuthRepository.create` (built by `User.registerWithProvider`); the upsert `save` was removed.
+  - A taken username no longer blocks a first sign-in: the base derived from the email, then 3 random 4-digit variants, then one 8-hex variant; only if all are taken, `409`.
+  - Two simultaneous first sign-ins of the same person both succeed on one account (the losing insert resolves the account again).
+  - Unique sparse index `users_auth_provider_user_id_unique` on `authMethods.providerUserId`: one Google identity per account, and `searchByProvider` no longer scans `users`.
+  - The production verifier lost its `test` mode shortcut (`test-google|…`), receives the client id by injection and checks the single web client id; acceptance tests use a fake verifier registered through the container `overrides` option.
+  - Google's public keys unreachable → `503` (new `DomainServiceUnavailableException`); untrusted tokens keep the uniform `401`.
+  - `GOOGLE_CLIENT_ID` is required in every mode. **The Railway environment must define it before deploying**, or the application will not start.
 - **Dependencies**: None.
 - **Risks**: External provider changes breaking authentication.
 - **Prompt for /speckit.specify**:
@@ -699,12 +753,14 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md)
 
+- **Status**: Completed (2026-10-17, spec `specs/033-github-oauth-login/`)
 - **Value delivered**: Expands single-sign-on options for developer-centric users.
 - **Definition of Done**: GitHub OAuth endpoint receives an authorization `code` (with the PKCE `code_verifier` the client generated), exchanges it with GitHub using the `client_secret`, reads the user's id and their **primary, verified** email from `GET /user/emails`, and issues a stateless JWT. No email that is both primary and verified means `401`. Google and GitHub resolve the user through one shared step (find by provider id, then by email, then link or create) that applies the pre-hijacking rules from [Iteration 26](#iteration-26-implement-email-account-activation-flow).
 - **Implementation notes**: GitHub does not issue ID tokens (it is OAuth 2.0, not OpenID Connect), so it cannot follow Google's flow literally: the API must exchange the code server-side, and that call needs the `client_secret`. What stays common is everything after the provider has given a verified email and a stable user id. Extract that step from `AuthenticateWithGoogle` instead of copying it. Accounts are matched by GitHub's numeric user id, never by login name, which users can change.
 - **Dependencies**: Iterations 26 and 27.
 - **Risks**: Users whose GitHub email is private or unverified cannot sign in until they verify one.
-- **Proposal (from the Iteration 26 analysis, not yet decided)**: the "provider linked" notice from Iteration 26 says the account's password still works. That is true while Google is the only provider (an active account without Google always has a password), but linking GitHub to an active Google-only account would send a false statement. Option: say that the account's existing sign-in methods keep working, or name them, without assuming a password.
+- **Resolved (the re-check from Iteration 27)**: the value-only index `users_auth_provider_user_id_unique` (unique, sparse, on `authMethods.providerUserId`) is kept. A per-provider compound index on `{ authMethods.provider, authMethods.providerUserId }` was evaluated and rejected: because `authMethods` is one array holding both provider methods and the `local` method, a compound multikey unique index indexes every account's `local` method as `(local, null)`, colliding across all password accounts, and MongoDB does not serve the `searchByProvider` `$elemMatch` from it (COLLSCAN). The persistence-only `providerKeys` field was also rejected (no new User field). The value-only index already guarantees one identity per account; a GitHub numeric id (short integer) can never equal a Google `sub` (21 digits), so cross-provider collision is not reachable in practice.
+- **Resolved (the Iteration 26 proposal)**: the "provider linked" notice now uses one reusable, method-agnostic wording ("Tus accesos anteriores siguen funcionando como hasta ahora.") that never mentions a password and never names the account's methods, so it is correct for a password, Google-only or any account and leaks nothing about which providers the account holds.
 - **Prompt for /speckit.specify**:
   ```text
   IMPLEMENT STATELESS GITHUB OAUTH
@@ -712,35 +768,73 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHAT: Integrate GitHub OAuth login: exchange the authorization code (with PKCE) server-side, require a primary verified email, and link it to a unified User account through a user-resolution step shared with Google that applies the account pre-hijacking rules.
   ```
 
-## Iteration 29: Add Geographic Fields to User Profile and Bed Aggregate
+## Iteration 29: User Locations Aggregate and Bed Climate Snapshot
 
-**Spec Module(s)**: [auth.md](spec/modules/auth.md), [bed.md](spec/modules/bed.md), [domain-core.md](spec/modules/domain-core.md)
+**Spec Module(s)**: [location.md](spec/modules/location.md), [bed.md](spec/modules/bed.md), [modules-map.md](spec/modules/modules-map.md)
 
-- **Value delivered**: Sets the schema and inheritance foundation for localized, climate-aware agricultural rules.
-- **Definition of Done**: User profile stores `postalCode`, `country`, `timezone`, and `hemisphere`. Additionally, Bed aggregate and MongoDB schema are updated to support `postalCode`, `country`, `timezone`, and `hemisphere`. The `CreateBed` usecase is refactored to fetch the User profile (or Redis cache) and copy/persist these fields as static, immutable properties inside the Bed document upon creation.
+- **Status**: Completed (2026-11-02, spec `specs/049-user-locations/`). Supersedes the original "Add Geographic Fields to User Profile and Bed Aggregate" scope (see the decision note below). Branch `048-add-geographic-fields` is superseded by this model: the geographic fields it added to the `User` profile are removed, `Hemisphere`/`isValidIanaTimezone` relocated to the `Locations` context, and its `GetUserProfile`/`UpdateUserProfile` plumbing is kept (identity/roles only).
+- **Value delivered**: Sets the schema foundation for localized, climate-aware rules while letting one user keep several growing sites (e.g. a year-round home garden and a seasonal holiday plot).
+- **Definition of Done**:
+  - A new per-user `Location` aggregate (collection `locations`, one document per location) stores a `name` plus optional `postalCode`, `country`, `timezone` and `hemisphere` — every geographic field optional. CRUD is scoped to the owner, mirroring the existing per-user Bookmarks aggregate.
+  - Geographic fields do **not** live on the `User` profile: `Location` is the single source of truth. The `User` aggregate keeps only auth/identity state.
+  - `CreateBed` accepts an optional `locationId`. When present, it snapshots that location's geographic fields as static, immutable properties inside the Bed document on creation (immutable climate-context history: editing or moving the `Location` afterwards never changes existing beds). Without a `locationId` the bed has no geographic context.
+- **Decision (2026-11-02)**: the original model stored a single geographic context on the `User` profile and copied it into each Bed. It cannot represent a user with gardens in different places. It is replaced by a first-class, per-user `Location` aggregate; beds reference a location at creation time and snapshot its geography. Snapshot (not a live reference) is kept so a bed's climate-context history stays immutable, preserving the original iteration's intent. Geographic fields are removed from the `User` profile accordingly.
 - **Dependencies**: None.
-- **Risks**: Overlooking Bed aggregate schema changes during profile model updates.
+- **Risks**: Leaving the geographic fields already added to the `User` profile on branch `048` orphaned instead of removing/relocating them; the Bed snapshot drifting from the `Location` shape.
 - **Prompt for /speckit.specify**:
   ```text
-  ADD GEOGRAPHIC FIELDS TO USER PROFILE AND BED AGGREGATE
-  WHY: Storing geographic context in JWTs bloats headers. We need these fields on the User document and copied statically inside Bed documents on creation to guarantee immutable climate context history.
-  WHAT: Add postalCode, country, timezone, and hemisphere to both User and Bed aggregates/schemas. Update CreateBed usecase to copy these fields.
+  USER LOCATIONS AGGREGATE AND BED CLIMATE SNAPSHOT
+  WHY: A user can grow in several places (a year-round home garden, a seasonal holiday plot), so a single geographic context on the profile cannot represent them, and geography is fully optional.
+  WHAT: Add a per-user Location aggregate (collection `locations`) holding a name plus optional postalCode, country, timezone and hemisphere, with owner-scoped CRUD. Remove the geographic fields from the User profile; Location is the single source of truth. CreateBed accepts an optional locationId and snapshots that location's geographic fields as static, immutable properties inside the Bed document on creation; without a locationId the bed has no geographic context.
   ```
 
-## Iteration 30: Build Redis Cache Repository with Memory Fallback
+## Iteration 30: Build Redis Cache Foundation with Memory Fallback (+ Catalog Read Caching)
 
-**Spec Module(s)**: [auth.md](spec/modules/auth.md), [persistence.md](spec/modules/persistence.md)
+**Spec Module(s)**: [persistence.md](spec/modules/persistence.md), [api-layer.md](spec/modules/api-layer.md)
 
-- **Value delivered**: Enables rapid access to geographic contexts without database bottlenecks.
-- **Definition of Done**: `RedisCacheRepository` implemented with immediate local memory fallback for resilience.
-- **Dependencies**: Iteration 29.
-- **Risks**: Redis connection drops causing hangs.
+- **Status**: Completed (2026-11-13)
+- **Outcome**: A domain-neutral `CacheRepository` port (`get` / `set`-with-TTL / `delete` / generation-based listing invalidation) plus a `cacheAside` helper with process-local single-flight. The resilience stack is a `ResilientCache` decorator over an `ioredis`-backed `RedisCache` and a bounded, short-lived in-memory LRU fallback: every Redis call races a 50 ms ceiling, backend errors are swallowed and logged once per state transition, and the backend auto-recovers. With no `REDIS_URL` the factory returns the in-memory cache alone, so tests and local dev need no Redis. The four reference catalogs (plants, families, anomalies, garden inputs) are cached in their read use cases with a 24 h TTL and invalidated from the write use cases (delete the affected id/slug keys and bump the catalog generation). Curator reads and sparse single-entry reads bypass the cache, so soft-deleted records never populate the public cache and single-entry keys hold only the full canonical representation. The plant `likesCount` is excluded from the cached projection and merged live on every read (single read for one plant, one batch read for a listing). Volatile aggregates (beds, plant instances, locations) are never cached. No OpenAPI change and no migration.
+- **Spec**: `specs/058-redis-caching-integration/`.
+- **Re-scoped (2026-11-13)**: the original premise — caching the user's `Location` documents — is dropped. Location documents are tiny and owner-scoped, so caching them adds little. This iteration instead delivers (1) a reusable, resilient cache **foundation** (a storage-agnostic `CacheRepository` port backed by Redis with an immediate, short-lived local-memory fallback) and (2) caching of the **read-only reference catalogs** — plants, families, anomalies, garden inputs — with a long TTL and active invalidation on curator writes. It is the smallest slice that proves Redis + Railway + fallback end to end against endpoints that already exist, with no new external dependency.
+- **Value delivered**: Removes the database from the hot path for the rarely-changing reference catalogs, and establishes the caching capability the weather and idempotence features later reuse.
+- **Explicitly out of scope / deferred to reuse this foundation**: Open-Meteo weather forecasts cached ~2 h by geographic cell (needs the weather integration built first — see Iteration 83) and the consumer-idempotence TTL store (Iteration 50). Volatile aggregates — beds, plant instances, locations — are **never** cached (they can change minute to minute).
+- **Definition of Done**: a `CacheRepository` port (read / write-with-TTL / delete) with an immediate, bounded, short-lived local-memory fallback; the four catalog read paths served from cache with a long TTL and invalidated on write; the API degrades gracefully (no hangs, no cache-induced errors) when Redis is unreachable, and the test suite and local dev run with no Redis provisioned.
+- **Dependencies**: None blocking (the catalog endpoints already exist). Iteration 29 is no longer a prerequisite now that Location caching is dropped.
+- **Risks**: Redis connection drops causing hangs (mitigated by the bounded-timeout + local-memory fallback); long-TTL staleness hiding curator edits (mitigated by invalidation on write); the plant `likesCount` projection lagging within the TTL (accepted as eventually consistent, or excluded from the cached projection).
 - **Prompt for /speckit.specify**:
   ```text
-  BUILD REDIS CACHE REPOSITORY WITH MEMORY FALLBACK
-  WHY: Dynamic geolocalized queries must utilize high-performance, resilient caching to avoid DB lag.
-  WHAT: Build a CacheRepository port using Redis, incorporating an immediate, short-lived local memory fallback on connection failure.
+  BUILD REDIS CACHE FOUNDATION WITH MEMORY FALLBACK AND CATALOG READ CACHING
+  WHY: The read-only reference catalogs (plants, families, anomalies, garden inputs) rarely change yet are read repeatedly, and future features (external weather forecasts, duplicate-message suppression) need a shared, resilient cache. Operating on Railway, an unreachable cache must never make the API slower or more fragile.
+  WHAT: Build a storage-agnostic CacheRepository port backed by Redis with an immediate, short-lived, bounded local-memory fallback. Cache the four catalog read paths with a long TTL and invalidate on curator writes. Never cache volatile aggregates (beds, plant instances, locations). Degrade gracefully when Redis is down; require no Redis for tests or local dev.
   ```
+
+## Iteration 30b: Admin Manages User Roles (with Admin Account Lookup)
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
+
+- **Spec**: `specs/034-manage-user-roles/` (delivered).
+- **Status**: Delivered. `PATCH /api/v1/users/{userId}/roles` (admin-only, `If-Match`, delta over the manageable role `admin`, idempotent, last-administrator safeguard → 409, overlapping add/remove → 422, minimal `{id, roles, metadata}` + `ETag`) and `GET /api/v1/users/lookup` (admin-only exact lookup by email XOR username → `{id, username, email, roles}` + `ETag`). The `User` aggregate gained a persisted `version`; no migration (version is in-code-defaulted and materialised by `$inc`).
+- **Value delivered**: Lets an administrator grant and revoke roles on other accounts so trusted people can perform privileged actions and permissions can be withdrawn, without reaching into the database.
+- **Definition of Done**: An admin-only endpoint adds and/or removes roles on a target account, identified by its stable `UserId`. The change is expressed as a delta over the _manageable_ (elevated) roles only — in this iteration just `admin`; the base role `user` is permanent and never grantable/revocable (sending it in the delta is a 400), so an account always keeps at least `user` by construction (`collaborator` is added later in Iteration 31). The delta is idempotent, guarded by optimistic concurrency (`If-Match`), recorded in audit metadata, never removes the last administrator (409), and returns a minimal payload (id + resulting roles). A separate admin-only exact lookup by email OR username returns a matching account's id plus minimal identifying fields, with no substring search or navigable user listing.
+- **Dependencies**: Iteration 26 (`User` mutation methods and audit metadata). Note: `User` gets a `version` / `If-Match` for this feature, which Iteration 26 had deferred as unnecessary for its own endpoints.
+- **Risks**: Accidentally exposing the user base through the lookup (mitigated by exact-match only, using the existing unique email/username indexes) or locking the platform out of administration (mitigated by the last-administrator safeguard, within the concurrency limit noted below).
+- **Known limitations / follow-ups**:
+  - ~~**Last-administrator safeguard is not concurrency-safe.**~~ Resolved (2026-10-18, spec `specs/035-admin-safeguard-concurrency/`, commit `822c42f`): the administrator count and the role write now run inside one transaction with a re-check after writing, so two simultaneous revocations of the last two administrators can no longer both succeed.
+  - **`countByRole` has no supporting index.** Counting accounts by role is an equality filter on `roles` with no index, so it scans the collection. It runs only when revoking `admin` (a rare operation) over a tiny set of accounts, so it is left unindexed for now. Add an index on `roles` (a migration) if role-based counts or filters become frequent.
+- **Prompt for /speckit.specify**:
+  ```text
+  ADMIN MANAGES USER ROLES WITH ADMIN ACCOUNT LOOKUP
+  WHY: There is no way to create new administrators or withdraw permissions after registration, and no in-API way for an admin to find the id of the account to change.
+  WHAT: Add an admin-only endpoint to grant/revoke the manageable (elevated) roles on an account by its stable id (delta semantics over `admin` only; base role `user` permanent and non-manageable; optimistic concurrency, audit metadata, last-admin safeguard, minimal response), plus an admin-only exact lookup by email or username that returns the account id and minimal identifying fields.
+  ```
+
+## Tooling: Per-User Rate Limiting on Authenticated Routes
+
+**Spec Module(s)**: [api-layer.md](spec/modules/api-layer.md), [auth.md](spec/modules/auth.md)
+
+- **Status**: Partially done (spec `specs/037-client-ip-rate-limit/`, commits `3e6eab1`, `a07c819`; not a numbered iteration — cross-cutting middleware with no product-behaviour change of its own). The per-user rate limiter on authenticated routes and the client-IP resolution are in place (`middlewares/rateLimiters.ts`), on top of the `authLimiter`/`registrationLimiter`/`passwordResetLimiter` introduced in Iterations 26 and 26b.
+- **Still open (`tasks.md`)**: route the request logger through the shared client-IP resolver (T007), run the quickstart validation (T009), and make sure rate limits are bypassed under test so runs stay fast and deterministic (T010).
+- **Dependencies**: Iteration 26 (`authLimiter`).
 
 ---
 
@@ -750,8 +844,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md), [family.md](spec/modules/family.md), [openapi.md](spec/modules/openapi.md), [plant-relation.md](spec/modules/plant-relation.md)
 
+- **Status**: Completed (2026-10-19, spec `specs/036-collaborator-role/`, commit `9025a82`)
 - **Value delivered**: Enables secure community-driven catalog updates.
 - **Definition of Done**: `collaborator` role is recognized in authorization middleware and applied to catalog write endpoints.
+- **Implementation notes**: `collaborator` joins `admin` and the base `user` in `UserRoles` (`USER_ROLES`); it is a manageable role alongside `admin` (`MANAGEABLE_ROLES`), so Iteration 30b's role-management endpoint grants and revokes it too. `EnsureAuthentication` recognizes it, and the five catalog write endpoints (`POST`/`PATCH`/`DELETE` on Plants and Families) now authorize `admin` **or** `collaborator`; the OpenAPI descriptions state it.
 - **Dependencies**: None.
 - **Risks**: Broadening access inadvertently if role hierarchy is flawed.
 - **Prompt for /speckit.specify**:
@@ -781,8 +877,11 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [auth.md](spec/modules/auth.md), [plant.md](spec/modules/plant.md)
 
+- **Status**: Completed (2026-10-23, specs `specs/038-user-bookmarks/` and `specs/039-filter-plants-bookmarked/`, commits `656720a`, `3ce8631`)
 - **Value delivered**: Provides a high-performance productivity tool for users to bookmark favorite plants without causing document size bloat.
 - **Definition of Done**: Bookmarks are stored in a private `user_bookmarks` collection with CRUD endpoints.
+- **Implementation notes**: New `Contexts/Agro/Bookmarks` aggregate (`UserBookmarks`, one document per user) with its own `MongoUserBookmarksRepository` and the `user_bookmarks` collection + indexes created by migration `20261023120000-create-user-bookmarks-collection`. Endpoints under `/api/v1/bookmarks`: list (optional `include=plant` enriches each favorite with a plant summary), add a plant (`POST /bookmarks/plants`, idempotent — a repeat returns the existing reference), remove (`DELETE /bookmarks/plants/{plantId}`) and check presence (`GET /bookmarks/plants/{plantId}`). Each user sees only their own collection (privacy feature). OpenAPI publishes the routes and the `UserBookmarksResponse`/`CheckPlantBookmarkResponse` schemas.
+- **Catalog filter (spec 039)**: `GET /plants` accepts `filter[bookmarked][eq]=true|false`, resolved in `ListPlants.applyBookmarkFilter` against the user's bookmarks (`PlantFilter.bookmarked` → `id.in`/`id.nin`); it requires authentication (`401` otherwise). Known v1 limitation documented in code: two simultaneous first-ever adds for the same user can surface a write conflict instead of transparently retrying.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
@@ -796,8 +895,10 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [plant.md](spec/modules/plant.md)
 
+- **Status**: Completed (2026-10-24, spec `specs/040-plant-like-counters/`, commit `24f090f`). Functionally complete and shipped; the spec's final verification steps (full `npm test`, format/lint/build, diff review) remain unchecked in `tasks.md`, so run them before the next release cut.
 - **Value delivered**: Enables social popularity ranking without heavy query joins.
-- **Definition of Done**: Likes and dislikes project as read-only counters (`likesCount`, `dislikesCount`) on the `Plant` aggregate.
+- **Definition of Done**: Likes project as a read-only counter (`likesCount`) on the `Plant` aggregate. Dislikes (`dislikesCount`) are deferred to a later iteration — v1 covers likes only (decided 2026-10-23, see `specs/040-plant-like-counters/spec.md`).
+- **Implementation notes**: New `Contexts/Agro/PlantLikes` aggregate with the `plant_likes` collection (migration `20261023130000-create-plant-likes-collection`) recording one like per user per plant. `likesCount` is a read-only projection on the plant: stored on the document (default backfilled by `20261023140000-plants-likes-count-default`), surfaced in `PlantReadView`/`PLANT_FIELDS` and in the write responses, and never writable through any plant create/update path. Endpoints: `POST`/`DELETE /api/v1/plants/{plantId}/likes` (both idempotent, the counter never drops below zero) and `GET /api/v1/plants/{plantId}/likes/me`. OpenAPI and three acceptance features (`like-plant`, `check-plant-like`, `likes-count-projection`) cover it.
 - **Dependencies**: None.
 - **Risks**: Syncing projected counters with individual interaction events.
 - **Prompt for /speckit.specify**:
@@ -815,10 +916,12 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [plant.md](spec/modules/plant.md), [validation.md](spec/modules/validation.md), [openapi.md](spec/modules/openapi.md)
 
+- **Status**: Completed (2026-11-13, spec `specs/059-optional-plant-sowing/`)
 - **Value delivered**: Enables cataloging non-seed and vegetatively propagated plants.
 - **Definition of Done**: `Plant` aggregate sowing block is refactored to be optional.
 - **Dependencies**: Iteration 12.
 - **Risks**: Validation failure of legacy plant seed-mandatory records.
+- **Outcome**: `phenology.sowing` is an optional (omittable) value object across the domain, DTOs, mappers, Zod schemas and the OpenAPI contract. Absence is modeled by omitting the key (never a persisted `null`); `PATCH` clears with `null`, merges a partial block when sowing exists, and requires a full valid block when adding sowing to a plant that had none. No database migration (existing documents stay valid under the relaxed schema). The `starter`→`nursery` method rename remains a separate target.
 - **Prompt for /speckit.specify**:
   ```text
   MAKE PLANT SOWING BLOCK OPTIONAL
@@ -831,7 +934,8 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 **Spec Module(s)**: [plant-instance.md](spec/modules/plant-instance.md), [bed.md](spec/modules/bed.md), [plant.md](spec/modules/plant.md)
 
 - **Value delivered**: Ensures global users receive accurate planting calendars without duplicating catalog data.
-- **Definition of Done**: If user profile hemisphere is `'south'`, crop calendars shift by 6 months dynamically in-memory.
+- **Definition of Done**: If the applicable hemisphere is `'south'`, crop calendars shift by 6 months dynamically in-memory.
+- **Note (2026-11-02, from the Iteration 29 re-spec)**: the hemisphere driving the shift comes from the bed's snapshotted geography (the `Location` chosen at creation), not the `User` profile, which no longer holds geographic fields. A calendar previewed without a bed uses a chosen `Location`.
 - **Dependencies**: Iteration 29.
 - **Risks**: Calculation errors in circular modular arithmetic.
 - **Prompt for /speckit.specify**:
@@ -879,8 +983,9 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [knowledge.md](spec/modules/knowledge.md), [api-layer.md](spec/modules/api-layer.md), [openapi.md](spec/modules/openapi.md)
 
-- **Value delivered**: Unifies crop diagnosis (pests, diseases, weeds) into a central database.
-- **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented.
+- **Status**: Completed (features `041-anomaly-domain` and `042-anomaly-encyclopedic-content`: spec module [knowledge.md](spec/modules/knowledge.md) delivered; `Anomaly` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, visual `SupportResource` attachments, differential diagnosis `confusedWith` pointers, and a one-directional `Plant.anomalies` slug list validated at write time; collection and endpoints fully implemented).
+- **Value delivered**: Unifies crop diagnosis (pests, diseases, disorders) into a central database.
+- **Definition of Done**: `Anomaly` aggregate, collection, and Admin/Collaborator CRUD endpoints are fully implemented. Spec module [knowledge.md](spec/modules/knowledge.md) is documented.
 - **Dependencies**: None.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
@@ -894,10 +999,11 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [knowledge.md](spec/modules/knowledge.md)
 
+- **Status**: Completed (feature `043-gardeninput-domain`: `GardenInput` bounded context with public-read / curator-write CRUD, soft-delete, unique-slug index, structured recipes, dosage, and linkability; collection and endpoints fully implemented).
 - **Value delivered**: Catalogs organic remedies, treatments, and bio-stimulants with structured recipes.
 - **Definition of Done**: `GardenInput` aggregate and CRUD endpoints are fully implemented.
 - **Dependencies**: None.
-- **Risks**: Schema complexity.
+- **Risks**: None.
 - **Prompt for /speckit.specify**:
   ```text
   IMPLEMENT GARDENINPUT DOMAIN AND CRUD ENDPOINTS
@@ -988,13 +1094,79 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 # Phase 7: Distributed Event Bus
 
+> **Sequencing note (revised 2026-11-13):** The event bus is built **foundation-first**. Iterations 45b–45d deliver a fully functional **in-process** event bus (domain-event primitives, the `EventBus` port and the synchronous `InMemoryEventBusAdapter` described in [event-bus.md](spec/modules/event-bus.md) §2.1–2.2), so every cross-module consumer can be authored and tested with **zero broker infrastructure**. The Transactional Outbox (Iterations 46–48) then adds delivery _reliability_, and Kafka (Iterations 49–51) adds _distribution_ — each as a swap-in behind the **same** `EventBus` port, never a prerequisite for the consumer business logic. Consequently Kafka is a late transport detail, not the thing that makes events work.
+
+## Iteration 45b: Establish Domain Event Primitives and Aggregate Recording
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md), [architecture-boundaries.md](spec/modules/architecture-boundaries.md)
+
+- **Status**: ✅ Delivered (2026-11-13, branch `060-domain-event-primitives`). Base `DomainEvent` at `src/Contexts/shared/domain/events/DomainEvent.ts` (+ barrel) and `AggregateRoot.record()` / `pullDomainEvents()` in place; pure in-memory, zero infrastructure coupling. This is the base the EventBus port (45c) and use-case publishing (45d) build on.
+- **Value delivered**: Gives every aggregate a first-class, technology-agnostic way to emit domain events — the precondition for any event-driven side effect.
+- **Definition of Done**: A base `DomainEvent` type (UUIDv7 `eventId`, `occurredAt`, `aggregateId`, `eventName`, typed `payload`) lives in `shared/domain`. `AggregateRoot` gains `record()` and `pullDomainEvents()` so aggregates buffer events without any persistence or transport coupling. No infrastructure (Mongo, Kafka, Express) is touched.
+- **Dependencies**: Iteration 3 (UUIDv7 generation), Iteration 7 (state mutations encapsulated in aggregates).
+- **Risks**: None (pure domain, in-memory).
+- **Prompt for /speckit.specify**:
+  ```text
+  ESTABLISH DOMAIN EVENT PRIMITIVES AND AGGREGATE RECORDING
+  WHY: Aggregates must be able to express what happened as first-class domain events before any transport or persistence concern exists.
+  WHAT: Add a base DomainEvent value object (UUIDv7 eventId, occurredAt, aggregateId, eventName, typed payload) in shared/domain and extend AggregateRoot with record()/pullDomainEvents() buffering, with no infrastructure coupling.
+  ```
+
+## Iteration 45c: Define EventBus Port and In-Process InMemory Adapter
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Status**: ✅ Delivered (2026-11-14, branch `061-eventbus-port-adapter`). `EventBus` port (`publish`/`subscribe`) in `src/Contexts/shared/application/eventBus/`, synchronous `InMemoryEventBusAdapter` in `src/Contexts/shared/infrastructure/eventBus/`, and a central subscriber registry (`src/apps/agroApi/wiring/eventSubscriptions.ts`) wired once at container assembly. The registry list is empty this iteration; the first real consumer arrives in 45d.
+- **Value delivered**: A working, synchronous event bus for local builds, unit tests and Cucumber ATDD — the entire event-driven architecture becomes exercisable without any broker.
+- **Definition of Done**: The `EventBus` port (`publish(events)`, `subscribe(eventName, handler)`) is defined in the application layer and the synchronous `InMemoryEventBusAdapter` (spec §2.2) implements it. A subscriber registry is wired in the Awilix container; handlers dispatch in-process within the current request.
+- **Dependencies**: Iteration 15 (automated Awilix DI), Iteration 45b.
+- **Risks**: None.
+- **Prompt for /speckit.specify**:
+  ```text
+  DEFINE EVENTBUS PORT AND IN-PROCESS INMEMORY ADAPTER
+  WHY: Consumers must talk to a technology-agnostic port so Kafka can later be swapped in without touching business logic.
+  WHAT: Define the EventBus port (publish/subscribe) in the application layer, implement a synchronous InMemoryEventBusAdapter, and register a subscriber map in the Awilix container.
+  ```
+
+## Iteration 45d: Publish Domain Events from Use Cases and Wire First In-Process Consumer
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Status**: ✅ Delivered (2026-11-14, branch `062-publish-domain-events`). Two real cross-module producer/consumer pairs run in-process on the shared seam: `Beds.DeleteBed` records `bed.deleted` → `PlantInstances.RemoveCropsOnBedDeleted` removes the bed's crops; `PlantLikes.LikePlant`/`UnlikePlant` publish `plant.liked`/`plant.unliked` only on a genuine change → `Plants` reactors adjust the like counter. Publishing happens as the last step inside `unitOfWork.run()`, so each reactor joins the producing transaction via the ambient Mongo session (commit/abort as one). Reactors are wired by one row each in `EVENT_SUBSCRIPTIONS`; producers reference only the `EventBus` port. The follow-up `PlantLike` demotion is [Iteration 45e](#iteration-45e-demote-plantlike-from-aggregate-root-to-relationship-record).
+- **Value delivered**: End-to-end event-driven side effects with zero infrastructure: use cases publish recorded events through the bus and a first real consumer reacts. Unblocks all later consumer iterations (69, 76, 80, 81, 82) so their business logic can be built and tested now, before any broker exists.
+- **Definition of Done**: Application use cases pull aggregate events after a successful mutation and publish them via the `EventBus` port; at least one real cross-module consumer runs in-process and is covered by unit + ATDD tests.
+- **Dependencies**: Iteration 45c, Iteration 24 (ACID transactions).
+- **Risks**: In-process handlers share the request lifecycle; long-running side effects must stay deferrable to the async tiers added in Iterations 46–51.
+- **Prompt for /speckit.specify**:
+  ```text
+  PUBLISH DOMAIN EVENTS FROM USE CASES AND WIRE FIRST IN-PROCESS CONSUMER
+  WHY: The event-driven side effects must be demonstrably working in-process before reliability (outbox) or distribution (Kafka) are introduced.
+  WHAT: Have use cases pull and publish recorded aggregate events through the EventBus after a successful mutation, and implement one real cross-module consumer with unit and Cucumber ATDD coverage.
+  ```
+
+## Iteration 45e: Demote PlantLike from Aggregate Root to Relationship Record
+
+**Spec Module(s)**: [architecture-boundaries.md](spec/modules/architecture-boundaries.md), [domain-core.md](spec/modules/domain-core.md)
+
+- **Status**: ⬜ Pending (hygiene cleanup raised while planning 45d, branch `062-publish-domain-events`, 2026-11-14).
+- **Value delivered**: Removes an anemic-aggregate smell. `PlantLike` (`id`, `userId`, `plantId`, `likedAt`) protects no invariant and has no state transition — it is a user↔plant relationship record, not a true aggregate root. It was made to extend `AggregateRoot` for no earned reason; once 45d emits `plant.liked`/`plant.unliked` as **use-case-level interaction events** (not facts pulled from the aggregate's buffer), nothing relies on its `record()`/`pullDomainEvents()`, so the inheritance is dead weight that misrepresents the model.
+- **Definition of Done**: `PlantLike` no longer extends `AggregateRoot`; it is modelled as a plain relationship record (entity or value object) with its existing fields and `toPrimitives`. The event-recording API is no longer reachable on it. Its persistence mapper, repository (`add`/`remove`/`find`) and the like/unlike use cases keep working unchanged (the events are already owned by the use cases after 45d). No collection, schema, migration, OpenAPI or endpoint change — this is an internal domain-shape cleanup only.
+- **Dependencies**: Iteration 45d (must land first: it moves `plant.liked`/`plant.unliked` ownership to the use cases, which is what frees `PlantLike` from needing the aggregate event buffer).
+- **Risks**: None functional — behaviour is identical. Only risk is forgetting a caller that still expects `record()`/`pullDomainEvents()` on `PlantLike` (none expected after 45d); the wiring test and unit tests guard it.
+- **Prompt for /speckit.specify**:
+  ```text
+  DEMOTE PLANTLIKE FROM AGGREGATE ROOT TO RELATIONSHIP RECORD
+  WHY: PlantLike holds no invariant and no state transition — it is a user↔plant relationship record, and extending AggregateRoot misrepresents the model and leaves a dead event-recording API on it once like/unlike events are owned by the use cases.
+  WHAT: Stop PlantLike extending AggregateRoot; model it as a plain relationship record keeping its fields and toPrimitives, with no change to its persistence mapper, repository, use cases, collection, contract or endpoints.
+  ```
+
 ## Iteration 46: Create Transactional Outbox Collection
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
-- **Value delivered**: Establishes the database staging area for guaranteed event delivery.
+- **Value delivered**: Adds a **reliability** layer to the existing in-process event bus: a database staging area so events survive crashes and are delivered at-least-once (no ghost events, no lost events). The `EventBus` port and its consumers from Iterations 45c–45d are unchanged.
 - **Definition of Done**: An `outbox` collection is added to MongoDB schema.
-- **Dependencies**: None.
+- **Dependencies**: Iteration 45d.
 - **Risks**: None.
 - **Prompt for /speckit.specify**:
   ```text
@@ -1007,6 +1179,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md), [cultivation-logs.md](spec/modules/cultivation-logs.md)
 
+- **Status**: ✅ Delivered (2026-11-14, branch `065-write-outbox-transactions`). Staging is delivered generically behind the `EventBus` port: an `OutboxEventBusAdapter` decorates the in-process bus and, on `publish`, stages every event into the `outbox` collection through a new `OutboxRepository` (joining the active unit-of-work session via `MongoSessionContext`) before dispatching to in-process handlers — so the outbox write commits or rolls back atomically with the aggregate mutation, with zero per-use-case wiring. `DomainEvent.toPrimitives()` serialises the self-contained event; each record stores `_id` = UUIDv7 `eventId`, `eventName`, `aggregateId`, `occurredAt`, the complete `payload`, and `createdAt`, omitting `processedAt` entirely (never `null`). `DeleteBed` was made retry-safe (events drained once before `unitOfWork.run`). No new migration, no OpenAPI/contract change. Forwarding (Change Stream tailer) and cleanup stay in Iterations 48+.
 - **Value delivered**: Guarantees atomic domain state and event logging without ghost events.
 - **Definition of Done**: Application use cases write target aggregates and outbox event records atomically within single MongoDB client sessions.
 - **Dependencies**: Iteration 24, Iteration 46.
@@ -1022,6 +1195,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
+- **Status**: ✅ Delivered (2026-11-14, branch `066-outbox-change-stream-tailer`). A standalone worker (`src/apps/outboxWorker/`, a second composition root fully decoupled from the Express API — run exactly 1 replica) watches the `outbox` collection with a Change Stream filtered to inserts and forwards each staged event, in ascending `_id` (UUIDv7 commit) order carrying its full stored representation, to a technology-agnostic `EventForwarder` seam (this iteration's only adapter is a `LoggingEventForwarder` no-op; Kafka is Iteration 49). Progress is persisted after each forward in a new singleton `outbox_progress` collection (DDL migration `20261114130000-create-outbox-progress-collection`) as two artifacts: the change-stream resume token (seamless restart resume, no replay) and the `_id` high-water mark. On an unresumable change stream (`ChangeStreamHistoryLost` 286 / `CappedPositionLost` 136 — classified by code, never message text) it drains the stranded backlog via an index-served `find({ _id: { $gt: lastForwardedId } }).sort({ _id: 1 }).hint('outbox_processedAt_id')` (verified by `explain` to use `IXSCAN` with no `SORT` stage), then re-establishes a fresh live watch from now without replaying the drained backlog; a transient drop with a still-valid token reconnects and resumes live without entering fallback. **Known loss window (closed in [Iteration 49](#iteration-49-route-events-to-kafka-domain-topic-by-partition-key)):** draining _before_ reopening the live watch leaves a brief gap — events committed between the catch-up query finishing and the fresh watch's start point are skipped, and a crash mid-catch-up (only the high-water mark is persisted, the resume token is cleared) reopens live from now without re-draining the remainder. Harmless while the only forwarder is the no-op `LoggingEventForwarder`; the at-least-once closure (open the live watch before draining and tolerate the overlap) lands with the Kafka adapter. `processedAt` is never read or written (reserved for the Iteration 49+ cleanup). npm scripts `worker:dev` / `start:worker`.
 - **Value delivered**: Enables decoupled, high-performance asynchronous event dispatching.
 - **Definition of Done**: A background worker tails the `outbox` collection via Change Streams, processing unpublished entries.
 - **Dependencies**: Iteration 46.
@@ -1033,19 +1207,55 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   WHAT: Build a Change Stream tailer to poll the outbox collection for new inserts, including a fallback polling query for rotated oplogs.
   ```
 
+## Iteration 48b: Recover a Stalled Outbox Worker via Watchdog Self-Exit
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Value delivered**: Gives the standalone outbox worker (Iteration 48) **automatic recovery from an _alive-but-stuck_ state** — process up, change stream silently dead, no forwards progressing — which today nothing detects or fixes. The worker is a Singleton (exactly 1 replica), so a silent stall has no second replica to cover it. The worker already `process.exit(1)`s on `uncaughtException`, `unhandledRejection` and `start()` failure, cases the hosting platform's restart policy already recovers; the only uncovered gap is the stall with **no crash**. This iteration closes it with a **watchdog that turns "stuck" into "crash"**: an in-process timer that, when the tailer has not made progress within a configured window (distinguishing a quiet-but-healthy idle worker from a stuck one), logs and calls `process.exit(1)`, letting the platform restart policy bring the worker back. Resume token + fallback catch-up mean a restart loses nothing.
+- **Why this shape (Railway deployment reality)**: The API and the worker run as **separate Railway services**. Railway does **not** run continuous HTTP liveness probes against a running service — its `healthcheckPath` is evaluated **only at deploy time** to gate zero-downtime traffic switching, and a worker serves no traffic. The only thing that restarts an already-running Railway service is the **restart policy, which fires on process exit (code ≠ 0)**. A `/health` endpoint returning non-2xx would therefore trigger **no automatic restart** on Railway, and a worker service typically exposes no public networking to poll anyway. Self-exit is the platform-idiomatic recovery mechanism here; an HTTP endpoint is not.
+- **Definition of Done**: The worker (`src/apps/outboxWorker/`) runs a watchdog that reads tailer liveness state (`running`, timestamp of the most recent successful forward) through the existing `OutboxTailer` seam (or a small status port) **without coupling the watchdog to the change-stream internals**. When the tailer is not running, or a forward-progress deadline elapses while there is pending work (idle ≠ stuck — a quiet outbox with no new events must **not** trip it), the watchdog logs a diagnostic and calls `process.exit(1)`. The stall threshold is configurable (e.g. `OUTBOX_WORKER_STALL_TIMEOUT_MS`) and documented, along with the expectation that the Railway restart policy performs recovery. Graceful shutdown (`SIGTERM`/`SIGINT`) stops the watchdog cleanly. No HTTP server and no exposed port are added.
+- **Out of scope / deferred**: A `/health` HTTP endpoint and external alerting (an uptime check pinging the worker to warn before the backlog grows) is **observability, not recovery**, and is deferred to a separate optional iteration — it would require exposing worker networking and an external monitor, and buys nothing for auto-restart on Railway.
+- **Dependencies**: Iteration 48.
+- **Risks**: A naive watchdog that treats a legitimately idle worker (no new events to forward) as stalled would crash-loop a healthy worker; the deadline must be armed only against **pending, un-forwarded work**, not elapsed wall-clock. A too-short threshold restarts during normal reconnect/backoff windows.
+- **Prompt for /speckit.specify**:
+  ```text
+  RECOVER A STALLED OUTBOX WORKER VIA WATCHDOG SELF-EXIT
+  WHY: The singleton outbox worker can enter an alive-but-stuck state (dead change stream, no forwards) with no crash, so the Railway restart policy never recovers it; Railway runs no continuous HTTP liveness probe, so only a process exit triggers a restart.
+  WHAT: Run an in-process watchdog that reads tailer liveness through the existing seam and calls process.exit(1) when the tailer is stopped or has made no forward progress against pending work within a configured, documented threshold, distinguishing a quiet-but-healthy idle worker from a stuck one, with no HTTP server added.
+  ```
+
 ## Iteration 49: Route Events to Kafka Domain Topic by Partition Key
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
-- **Value delivered**: Guarantees strict chronological processing order for specific crops or beds.
+- **Status**: ✅ Delivered (2026-11-15, branch `069-kafka-event-routing`). The outbox worker now forwards every staged event to the single Apache Kafka topic `agro.domain.events` through a real `KafkaEventBusAdapter` (`kafkajs` producer, `acks: all`) swapped in behind the unchanged `EventForwarder` seam. The message key is a dynamic partition key derived by the pure application function `derivePartitionKey` with strict precedence `payload.plantInstanceId → payload.bedId → record.aggregateId`, so same-aggregate events share one partition in UUIDv7 commit order; the value is the record's unaltered stored representation (`eventId`, `eventName`, `aggregateId`, `occurredAt`, `payload`). The Iteration 48 catch-up loss window is closed: the tailer opens the fresh live Change Stream **before** draining the rotated-oplog backlog and tolerates the overlap (at-least-once; duplicates acceptable, loss not). Each record is flagged `processedAt` (a `Date`, never `null`, never on publish failure) only after the broker durably acknowledges, via a dedicated `OutboxDispatchRepository`. A single-node Apache Kafka (KRaft) broker was added to the shared Docker Compose stack (same engine local/CI/prod; only `KAFKA_BROKERS` differs), governed solely by the worker's own config slice (fail-fast on missing `KAFKA_BROKERS`). The topic is ensured idempotently (default 6 partitions; replication factor configurable via `KAFKA_TOPIC_REPLICATION_FACTOR`, default 1) at worker startup as a best-effort step (skips creation when present, non-fatal when topic administration is denied, so a managed broker can provision the topic out-of-band); the producer connects on start and disconnects on stop.
+- **Value delivered**: Adds **distribution**: the `KafkaEventBusAdapter` (spec §2.3) is swapped in behind the same `EventBus` port used since Iteration 45c, so no consumer business logic changes. Guarantees strict chronological processing order for specific crops or beds via partitioning.
 - **Definition of Done**: The tailer publishes events to `agro.domain.events` using dynamic partition keys (`plantInstanceId` or `bedId`). Processed outbox events are flagged.
+- **Also closes the Iteration 48 catch-up loss window**: with a real at-least-once consumer behind the seam, the tailer opens the live Change Stream _before_ draining the rotated-oplog backlog and tolerates the overlap (duplicates are acceptable under Kafka at-least-once — loss is not), eliminating the gap between the fallback query and the fresh watch, and the crash-mid-catch-up stranding. Consumer-side dedup is Iteration 50.
 - **Dependencies**: Iteration 48.
-- **Risks**: Broker connection failures.
+- **Risks**: Broker connection failures. Over-draining duplicates on the overlap window (bounded, and absorbed by the Iteration 50 idempotence store).
 - **Prompt for /speckit.specify**:
   ```text
   ROUTE EVENTS TO KAFKA DOMAIN TOPIC BY PARTITION KEY
   WHY: To prevent race conditions, events for the same bed or plant must be routed to the same physical Kafka partition.
   WHAT: Implement a Kafka EventBus adapter routing messages via plantInstanceId or bedId partitions, and flag them as processed in the outbox.
+  ```
+
+## Iteration 49b: Local Kafka Web UI for Developer Observability
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Status**: ✅ Delivered (2026-11-16, branch `070-local-kafka-web-ui`). Developer-tooling only; no application code.
+- **Value delivered**: Inspect topics, messages, partitions, consumer groups and lag on the **local** broker from a browser, so published `agro.domain.events` (with their partition key) can be verified locally without waiting for a dev deployment.
+- **Definition of Done**: A `kafbat-ui` (Apache-2.0, maintained fork of the former provectus/kafka-ui) service is added to the development Docker Compose stack (`docker/docker-compose.yml`) on `http://localhost:8080`, pointing at the broker through an **internal** listener. The broker is reconfigured with a dual listener — `INTERNAL://agro-api-kafka:29092` for in-network containers and `HOST://localhost:9092` for host clients — in a backward-compatible way, so the host-run outbox worker keeps connecting on `localhost:9092` unchanged. Dev-only: the service is absent from the production stack and off the production request path.
+- **Rationale**: The current single listener advertises `localhost:9092`, which an in-network UI container cannot reach (it would resolve the broker's advertised address to its own localhost). The dual-listener split is the standard fix and the only broker change required.
+- **Dependencies**: Iteration 49 (needs the broker and the `agro.domain.events` topic).
+- **Risks**: None at application runtime — a read-only observability tool outside the production path.
+- **Prompt for /speckit.specify**:
+  ```text
+  ADD LOCAL KAFKA WEB UI FOR DEVELOPER OBSERVABILITY
+  WHY: Developers must inspect local topics, messages and consumer lag without deploying to dev.
+  WHAT: Add a kafbat-ui service to the development Docker Compose stack and give the broker a dual listener (internal for containers, host for the worker) so the UI can connect in-network while host clients keep localhost:9092. Dev-only, absent in production.
   ```
 
 ## Iteration 50: Implement Consumer Idempotence with TTL Store
@@ -1054,6 +1264,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Protects asynchronous side-effects against duplicate message processing.
 - **Definition of Done**: Kafka consumers implement an idempotence check, tracking processed UUIDs in a store with a TTL.
+- **First / reference consumer**: the like-counter handler (`IncrementLikeCountOnPlantLiked` / `DecrementLikeCountOnPlantUnliked`, on `plant.liked` / `plant.unliked`) is migrated to the first real Kafka consumer as the validation case for the idempotence store. It is the lowest-criticality side-effect (a miscounted like is cosmetic), and because a counter increment is itself **not** idempotent, it genuinely exercises the TTL-backed dedup. The higher-criticality bed-deletion crop cascade is deliberately deferred to [Iteration 51b](#iteration-51b-migrate-bed-deletion-crop-cascade-to-async-kafka-consumer), after the full safety net (idempotence + retry/DLQ) is in place.
 - **Dependencies**: Iteration 49.
 - **Risks**: Redis/Store drops causing idempotence failures.
 - **Prompt for /speckit.specify**:
@@ -1076,6 +1287,23 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   BUILD PROGRESSIVE RETRY AND DLQ CONSUMER FLOWS
   WHY: Poison pills or transient DB drops must not block healthy messages in the same partition.
   WHAT: Route consumer exceptions through progressive delay topics. If retries are exhausted, route to a Dead Letter Queue (DLQ).
+  ```
+
+## Iteration 51b: Migrate Bed-Deletion Crop Cascade to Async Kafka Consumer
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Status**: ⬜ Proposed (2026-11-16). First business side-effect moved off the in-process bus onto Kafka.
+- **Value delivered**: Decouples PlantInstances from Beds **at runtime** — deleting the crops of a bed stops happening synchronously inside the bed-deletion request and becomes an asynchronous consumer of `bed.deleted`. The bed-deletion API no longer blocks on, or fails because of, the crop cascade.
+- **Definition of Done**: `RemoveCropsOnBedDeleted` runs as a Kafka consumer (no longer dispatched in-process by the API), idempotent over `markAllInBedAsRemoved` (naturally a set-to-state operation, reinforced by the Iteration 50 dedup store) and protected by the Iteration 51 retry/DLQ flow. The API's in-process subscription for `bed.deleted` is removed.
+- **Why after Iteration 51 (not earlier)**: the crop cascade is a data-integrity concern, so the full safety net — idempotence **and** retry/DLQ — must exist before the logic moves async. Its natural idempotence gives headroom but does not justify jumping ahead of the DLQ.
+- **Dependencies**: Iteration 51.
+- **Risks**: Eventual-consistency window — a bed is deleted while its crops are still active until the consumer processes the event; must be acceptable to the read models and clients that observe both.
+- **Prompt for /speckit.specify**:
+  ```text
+  MIGRATE BED-DELETION CROP CASCADE TO ASYNC KAFKA CONSUMER
+  WHY: Deleting a bed's crops should not run synchronously inside the bed-deletion request; decouple PlantInstances from Beds at runtime.
+  WHAT: Move RemoveCropsOnBedDeleted from the in-process event bus to a Kafka consumer of bed.deleted, idempotent over markAllInBedAsRemoved and protected by the progressive-retry/DLQ flow. Remove the in-process bed.deleted subscription from the API.
   ```
 
 ---
@@ -1470,7 +1698,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Keeps inventory accurate without causing transaction bottlenecks, while preventing false deductions.
 - **Definition of Done**: Asynchronous consumer decrements `remainingQuantity` upon receiving `BedLayoutSaved` or nursery sowing events. Specifically, it only decrements stock for IDs listed inside the `added` placements array (ignoring coordinate updates to prevent false depletions during mere spatial reorganization on the UI Canvas). It must also implement the Grace Period Refund Rule: if a crop instance is soft-deleted or its seed quantity is reduced within 24 hours of its creation (`createdAt` timestamp), the subscriber automatically refunds or increments the `remainingQuantity` of the linked `SeedBatch` (proportionately for quantity reductions).
-- **Dependencies**: Iteration 51, Iteration 52, Iteration 69.
+- **Dependencies**: Iteration 45d (the `EventBus` port — consumer logic is built and tested in-process), Iteration 52, Iteration 69. _Production hardening (outbox reliability / Kafka distribution) comes from Iterations 46–51 but is not required to build this consumer's logic._
 - **Risks**: Inaccurate quantities if events are dropped (prevented by Outbox pattern).
 - **Prompt for /speckit.specify**:
   ```text
@@ -1534,7 +1762,7 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
 
 - **Value delivered**: Keeps care schedules perfectly synced with real actions and automatically clears resolved issues.
 - **Definition of Done**: Logging a cultivation event completes matching pending Reminders and schedules the next iteration asynchronously. Specifically, logging a recovery event must close active anomaly cycles and automatically cancel any recurring treatment reminders in cascade.
-- **Dependencies**: Iteration 79, Iteration 72, Iteration 51.
+- **Dependencies**: Iteration 79, Iteration 72, Iteration 45d (the `EventBus` port — consumer logic is built and tested in-process). _Production hardening (outbox reliability / Kafka distribution) comes from Iterations 46–51 but is not required to build this consumer's logic._
 - **Risks**: Race conditions in asynchronous scheduling.
 - **Prompt for /speckit.specify**:
   ```text
@@ -1631,4 +1859,140 @@ Deliver a secure, high-performance, and event-driven permaculture backend utiliz
   BYPASS RAIN DELAYS FOR INDOOR/GREENHOUSE BEDS
   WHY: Protected environments have roofs; external rainfall does not water these crops.
   WHAT: Apply the Protected Environment Bypass rule in the Reminders engine, skipping Open-Meteo checks for indoor and greenhouse beds.
+  ```
+
+## Iteration 87: Hierarchical Taxonomic and Broadcast Companion Resolution for Plant Relations
+
+**Spec Module(s)**: [plant-relation.md](spec/modules/plant-relation.md), [spatial.md](spec/modules/spatial.md)
+
+- **Status**: In progress (read-side resolution delivered; spatial evaluation engine pending).
+- **Implementation notes (read-side, delivered)**: The relations listing resolves a whole plant in one query via `filter[appliesToPlantId][eq]=<plantId>`. The application layer loads the plant and derives its genus from the scientific name (first word, capitalized — stored scientific names are lower-case while a relation's stored genus value is capitalized, so the derivation normalizes before matching; a name with no derivable genus, e.g. a leading hybrid "×", skips the genus tier only, never fails) and takes its family id; the query mapper then matches, in a single `$or` clause (correct pagination/order/totals), the plant as source OR target across the plant, genus and family tiers plus broadcast (`target.scope = all`, never on source). Each item on such a query carries `appliesVia` (`plant | genus | family | all`, most specific tier, precedence `plant > genus > family > all`) and `role` (`source | target`, tie between sides resolved to `target`). Unknown plant → matches plant + broadcast tiers only. The scope model itself (plant/genus/family/all on source and target, with broadcast forbidden on source) landed with the aggregate and CRUD (Iterations 37–38). Still pending here: the spatial **evaluation** engine that shadows broader tiers with narrower ones by proximity. See plant-relation.md §8bis.
+- **Value delivered**: Prevents relationship gaps for cultivars, generic soil pest repellents (e.g. _Tagetes_ spp.), nitrogen fixers (e.g. _Trifolium_ / clover), and broader botanical groups by supporting scoped taxonomic relationships and broadcast neighborhood services (`target: all`).
+- **Definition of Done**:
+  - `PlantRelation` supports defining relationships with explicit taxonomic scopes (Plant, Genus, Family) and universal broadcast (`target: all` for general soil/neighborhood benefits like nitrogen fixation, dynamic accumulation, or nematode suppression within proximity radius).
+  - Companion evaluation engine resolves compatibility in 4 tiers: exact plant pair (Tier 1: Species) -> Genus fallback derived from scientific names (Tier 2) -> Botanical Family fallback derived from the `families` collection (Tier 3) -> Broadcast neighborhood rules within distance (Tier 4: `all`).
+  - Strict specificity precedence: narrower rules shadow/override broader rules for the same mechanism (Species > Genus > Family > Broadcast) so that specific antagonistic exceptions (e.g. Fennel vs Tomato) are never overridden by family synergies.
+  - Full backward compatibility with existing direct species-to-species `PlantRelation` records.
+- **Dependencies**: Iteration 37, Iteration 38, Iteration 64.
+- **Risks**: Over-generalization of rare species-specific antagonisms if family-level or broadcast rules override specific exceptions without an explicit precedence rule (mitigated by deterministic specificity shadowing).
+- **Prompt for /speckit.specify**:
+  ```text
+  IMPLEMENT HIERARCHICAL TAXONOMIC AND BROADCAST COMPANION RESOLUTION FOR PLANT RELATIONS
+
+  WHY:
+  Pairwise species-to-species edges (e.g., Tagetes minuta -> Solanum lycopersicum) fail to cover related species (Tagetes erecta, Solanum melongena) and cannot naturally express broadcast soil services (e.g., Trifolium nitrogen fixation or Tagetes nematicidal exudates for any neighboring crop within proximity) or family-wide dynamics (e.g., Solanaceae blight susceptibility, Fabaceae-Allium antagonism). Requiring millions of manual pairwise combinations creates massive knowledge gaps.
+
+  WHAT:
+  Extend the companion relationship model and evaluation engine to support multi-tier hierarchical and broadcast companion resolution:
+  1. Scoped Companion Modeling: Support defining companion relations with explicit scopes for source and target (Plant, Genus, Family) and universal broadcast (`target: all` for neighborhood ecosystem services like nitrogen fixation, soil pest repellent, or pollinator attraction).
+  2. Multi-tier Resolution Engine: In companion evaluation, resolve relationships across 4 tiers:
+     - Tier 1 (Species): Exact plant-to-plant match (highest precedence).
+     - Tier 2 (Genus): Derived from scientificName (e.g., Tagetes spp., Allium spp.).
+     - Tier 3 (Family): Derived from botanical family reference (identity.family).
+     - Tier 4 (Broadcast / All): General neighbor effect within proximity radius (e.g., Trifolium fixing nitrogen for any adjacent crop).
+  3. Specificity Precedence: Narrower rules ALWAYS shadow/override broader rules for the same mechanism (Species > Genus > Family > Broadcast). Specific antagonistic exceptions (e.g., Fennel vs Tomato) strictly override broad family synergies without conflict merging.
+  4. Backward Compatibility: Existing species-to-species relations remain fully valid.
+  ```
+
+## Iteration 88: Expose Filter by ID in Plant Catalog Query
+
+**Spec Module(s)**: [api-layer.md](spec/modules/api-layer.md), [query.md](spec/modules/query.md)
+
+- **Value delivered**: Allows frontend clients and consumer services to batch-resolve specific arbitrary plant IDs (e.g., hydration of Bed layouts, SeedBanks, and bookmarks) in a single request.
+- **Definition of Done**: `listPlantsQuery` exposes `id: identifierField()`, validating `filter[id][eq]` and `filter[id][in]`, backed by existing `PlantQueryMapper` persistence support.
+- **Dependencies**: Iteration 4, Iteration 16.
+- **Risks**: None.
+- **Prompt for /speckit.specify**:
+  ```text
+  EXPOSE FILTER BY ID IN PLANT CATALOG QUERY
+  WHY: Clients holding plant ID references must currently fetch individual records in N+1 requests or load full catalog pages.
+  WHAT: Expose `id: identifierField()` in `listPlantsQuery` schema, allowing batch resolution via `filter[id][in]` and single lookup via `filter[id][eq]`.
+  ```
+
+## Iteration 89: Promote Genus to a First-Class, Filterable Plant Field
+
+**Spec Module(s)**: [plant.md](spec/modules/plant.md), [api-layer.md](spec/modules/api-layer.md), [query.md](spec/modules/query.md), [persistence.md](spec/modules/persistence.md)
+
+- **Status**: Delivered (2026-10-31).
+- **Value delivered**: Lets the catalog be browsed by botanical genus. In the UI, a plant's genus (shown in its detail) becomes a clickable chip that lists every catalog member of that genus (e.g. from garlic's detail, jump to all _Allium_). This makes genus a real, queryable dimension of the catalog, matching the first-class genus concept the relations engine already resolves on (Iteration 87), instead of leaving it only derived for display.
+- **Definition of Done**:
+  - `identity.genus` is persisted on every plant, derived with the shared `deriveGenus` (capitalized first word of `scientificName`; a name with no derivable genus — e.g. a leading hybrid `×` — stores no genus, exactly as the relations read-side already handles), and kept in sync whenever `scientificName` changes (create and `PATCH`), so the stored genus never drifts from the scientific name.
+  - A collated index on `identity.genus` (same `es`/strength-2 collation as the scientific-name index) backs exact, case-insensitive genus lookups without a collection scan (verified with `explain`).
+  - `listPlantsQuery` exposes `genus: exactField(...)`, validating `filter[genus][eq]` and `filter[genus][in]`, translated by `PlantQueryMapper` to an exact match on `identity.genus`. The plant read view keeps exposing `genus` (already derived) so the client has the value to click.
+  - A back-fill migration populates `identity.genus` for existing plants from their `scientificName` (hybrids with no derivable genus get none), without touching `version` or audit metadata, and its `down` removes only what it wrote (`$unset identity.genus`).
+  - OpenAPI (`PlantIdentity`, `PlantListFilter`) matches.
+- **Design note — why persist (B) over a text-prefix filter (A)**: the catalog's `identity` text filter can already approximate this today via `filter[identity][startsWith]=<genus>`, with no backend change — but it matches across `name.primary`, `aliases` and `scientificName`, is a substring/prefix heuristic rather than a taxonomic concept, and cannot be indexed for an exact genus seek. A persisted, indexed `identity.genus` is exact, fast, and coherent with Iteration 87 (where genus is already a first-class scope). The cheaper regex-on-`scientificName` option (`^<genus>\b`) is rejected as a permanent solution for the same indexing/exactness reasons; it remains a valid stop-gap the frontend can use until this iteration ships.
+- **Dependencies**: Iteration 87 (genus as a first-class resolution scope), Iteration 12 (plant identity value object and listing indexes), Iteration 14 (listing query DSL).
+- **Risks**: Derived genus drifting from `scientificName` if a mutation path forgets to recompute it (mitigated by deriving inside the `PlantIdentity` value object, so create/load/update all go through one place); migration miscomputing genus for hybrid or malformed scientific names (mitigated by reusing `deriveGenus` and skipping the genus tier when none is derivable, never failing).
+- **Prompt for /speckit.specify**:
+  ```text
+  PROMOTE GENUS TO A FIRST-CLASS, FILTERABLE PLANT FIELD
+  WHY: Genus is already a first-class resolution scope for plant relations (Iteration 87) but is only derived for display in the catalog, so clients cannot browse "all plants of this genus". A text-prefix search over identity is a fragile, unindexable heuristic.
+  WHAT: Persist a derived, capitalized `identity.genus` on plants (via the shared deriveGenus, kept in sync with scientificName in the PlantIdentity value object), add a collated index, expose `genus: exactField()` in listPlantsQuery (filter[genus][eq]/[in]) translated by PlantQueryMapper, and back-fill existing plants with a migrate-mongo migration. Update plant.md, the OpenAPI schemas and the listing contract together.
+  ```
+
+## Iteration 90: Look Up a Plant by Slug
+
+**Spec Module(s)**: [plant.md](spec/modules/plant.md), [api-layer.md](spec/modules/api-layer.md), [persistence.md](spec/modules/persistence.md)
+
+- **Status**: Delivered (2026-10-31).
+- **Value delivered**: The plant detail route (`GET /plants/{idOrSlug}`) resolves a UUID by id and anything else by a stable, human-readable slug, so clients can link to a plant by name (e.g. `/plants/allium-sativum`) instead of carrying its UUID. This matches how the family, anomaly and garden-input catalogs already expose a slug lookup.
+- **Definition of Done**:
+  - Every plant carries a `slug`, derived by the `PlantIdentity` value object as the slugified `scientificName` (so it is stable and taxonomically meaningful). Like `genus`, the slug is derived output-only: it is recomputed whenever `scientificName` changes and is never read from input or storage, so it cannot drift.
+  - The slug is stored once, at the top level of the plant document (not under `identity`), matching the read, summary and lookup paths; a unique index (`plants_slug_unique`) makes slug lookups indexed and deterministic. Because scientific names are already unique (`plants_scientific_name_unique`) and the slug derives from them, a soft-deleted plant keeps its slug reserved (no partial index), consistent with the scientific-name rule.
+  - `GetPlant` dispatches on `UuidValidator.isValid`: a UUID uses `findById`/`findActiveById`, anything else uses `findBySlug`/`findActiveBySlug` (deleted plants still hidden from non-privileged readers). The `GET` param, OpenAPI and the plant response (top-level `slug`) match.
+  - Covered by unit tests (slug derivation and the id-vs-slug dispatch) and an acceptance scenario (`GET /plants/{slug}`), plus a migration test guarding the unique-index intent.
+- **Design note — why the slug is derived from `scientificName`, not the primary name**: the primary (common) name is localized and not unique, so a slug built from it would collide and drift. The scientific name is already the catalog's unique, stable key, so deriving the slug from it gives a unique, stable URL for free and reuses the existing uniqueness guarantee.
+- **Dependencies**: Iteration 12 (plant identity value object and listing indexes), Iteration 89 (genus derivation, which established the derived output-only pattern the slug reuses).
+- **Risks**: Two distinct scientific names could slugify to the same value in rare edge cases (e.g. differing only by whitespace); the unique index turns that into an explicit `409` on write rather than a silent, non-deterministic lookup.
+
+## Iteration 91: Implement Account Deletion & Right to be Forgotten (GDPR)
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md)
+
+- **Status**: Not started.
+- **Value delivered**: Lets a user permanently erase their account and all personal data, closing the legal gap identified before taking the product to production (GDPR Art. 17 / LOPDGDD, since the app targets users in the EU). Today there is no `DELETE` path for a user account anywhere in the API.
+- **Definition of Done**: matches auth.md §7.1 "Account Deletion & Right to be Forgotten (GDPR) `[TARGET STATE]`" exactly:
+  - `DELETE /api/v1/users/me` (authenticated) sets the caller's `User.status` to `pending_deletion` and immediately deletes all of that user's `RefreshToken` documents, so their session dies within the access token's TTL (no Redis blacklist needed).
+  - A background worker (Kafka consumer or scheduled job) picks up `pending_deletion` users and hard-deletes their owned `Bed`, `PlantInstance`, `Event`, `SeedBatch` and `Reminder` documents in bounded sequential batches (e.g. 100 per transaction), publishing a `Deleted` domain event per aggregate type so other consumers (reminders, analytics) stay synchronized.
+  - Once every dependency is cleared, the worker hard-deletes the `User` document itself.
+  - `canStartSession()` (and login/refresh) reject a `pending_deletion` user with the same uniform `401` used for other blocked states, so a deletion in flight cannot be used to re-authenticate.
+  - Access token TTL is confirmed to be short-lived (≈15 min) so a token issued just before deletion cannot outlive the cascade by much.
+  - Covered by: a unit test per new `User`/worker method, an ATDD scenario for `DELETE /api/v1/users/me` (200, token immediately rejected afterwards), and a worker test asserting the batched cascade and the final hard delete, using a fake collection like the existing migration tests.
+- **Out of scope here**: anonymizing instead of hard-deleting, admin-triggered deletion of another user's account, and the data-export feature (see Iteration 92).
+- **Dependencies**: Iteration 8 (User aggregate/metadata conventions), existing Kafka outbox/consumer infrastructure (Iteration 76/80 cascades are the closest prior art for batched Kafka-driven deletion).
+- **Risks**: a crashed worker mid-cascade leaving a user `pending_deletion` with partially deleted data — needs the batch job to be safely resumable/idempotent per aggregate type; a race between a legitimate in-flight request and the cascade starting.
+- **Prompt for /speckit.specify**:
+  ```text
+  IMPLEMENT ACCOUNT DELETION & RIGHT TO BE FORGOTTEN (GDPR)
+  WHY: The app will have real users in the EU before launch and currently has no way to delete an
+  account or its personal data, which is a GDPR Article 17 obligation, not an optional nicety.
+  WHAT: Add `DELETE /api/v1/users/me` that marks the user `pending_deletion` and immediately revokes
+  all of their refresh tokens. Add a background worker that hard-deletes all of that user's owned
+  data (Beds, PlantInstances, Events, SeedBatches, Reminders) in bounded batches, publishing a
+  `Deleted` Kafka event per aggregate type, and finally hard-deletes the User document. Reject login
+  and token refresh for `pending_deletion` users. Follow auth.md §7.1 exactly for the design.
+  ```
+
+## Iteration 92: Implement Personal Data Export (GDPR Right to Portability)
+
+**Spec Module(s)**: [auth.md](spec/modules/auth.md)
+
+- **Status**: Not started.
+- **Value delivered**: Lets a user download the personal data the app holds about them in a structured, machine-readable format, satisfying GDPR Article 20 (data portability) alongside Iteration 91's deletion flow.
+- **Definition of Done**:
+  - `GET /api/v1/users/me/export` (authenticated) returns a single JSON document with the account's own fields (`email`, `username`, linked SSO providers, `createdAt`) and, inline or as a signed download link, the user's owned `Bed`, `PlantInstance`, `Event`, `SeedBatch` and `Reminder` records.
+  - No other user's data, and no internal-only fields (password hash, refresh tokens, internal status), is ever included in the export.
+  - Large accounts are handled without blocking the request thread for an unbounded time (stream the response or cap/paginate collections consistently with existing list endpoints).
+  - Covered by a unit test per mapper and an ATDD scenario asserting the export's shape and that sensitive fields are absent.
+- **Dependencies**: None beyond the existing per-aggregate repositories; independent of Iteration 91 (can ship before or after it).
+- **Risks**: accidentally leaking another user's data through a missed `userId` filter on one of the five aggregate types; response size growing unbounded for power users.
+- **Prompt for /speckit.specify**:
+  ```text
+  IMPLEMENT PERSONAL DATA EXPORT (GDPR RIGHT TO PORTABILITY)
+  WHY: Users have a legal right to receive a copy of their personal data in a portable format, and
+  the app currently has no such endpoint.
+  WHAT: Add `GET /api/v1/users/me/export` that returns the authenticated user's own account fields
+  plus all of their owned Beds, PlantInstances, Events, SeedBatches and Reminders as structured JSON,
+  explicitly excluding internal-only fields (password hash, refresh tokens, status).
   ```

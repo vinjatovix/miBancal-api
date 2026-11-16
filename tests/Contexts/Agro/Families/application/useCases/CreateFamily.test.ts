@@ -1,17 +1,28 @@
 import { CreateFamily } from '../../../../../../src/Contexts/Agro/Families/application/useCases/CreateFamily.js';
 import { randomFamilyId } from '../../../../../../src/Contexts/Agro/Families/domain/FamilyId.js';
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
 import { DomainConflictException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { FamilyRepositoryMock } from '../../__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../domain/mothers/FamilyScenarios.js';
 
 describe('CreateFamily', () => {
   let repository: FamilyRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: CreateFamily;
   const USER = 'test-user';
 
   beforeEach(() => {
     repository = new FamilyRepositoryMock();
-    useCase = new CreateFamily({ familyRepository: repository });
+    cache = new CacheRepositoryFake();
+    useCase = new CreateFamily({
+      familyRepository: repository,
+      cacheRepository: cache
+    });
   });
 
   afterEach(() => {
@@ -44,5 +55,33 @@ describe('CreateFamily', () => {
       new DomainConflictException(`Family already exists: ${dto.id}`)
     );
     repository.assertSaveNotCalled();
+  });
+
+  it('invalidates the created entry keys and bumps the catalog generation', async () => {
+    const dto = FamilyScenarios.createDtoBase();
+
+    const result = await useCase.execute(dto, USER);
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('families', result.idValue)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('families', result.slug)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('families')
+    );
+  });
+
+  it('does not touch the cache when creation is rejected', async () => {
+    const id = randomFamilyId();
+    repository.addToStorage(FamilyScenarios.domainRandom({ id }));
+
+    await expect(
+      useCase.execute(FamilyScenarios.createDtoBase({ id }), USER)
+    ).rejects.toBeInstanceOf(DomainConflictException);
+
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
+    expect(cache.deleteMock).not.toHaveBeenCalled();
   });
 });

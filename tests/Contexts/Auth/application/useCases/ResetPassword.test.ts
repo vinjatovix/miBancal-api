@@ -163,4 +163,19 @@ describe('ResetPassword', () => {
     expect(repository.updateCount()).toBe(1);
     notifier.assertNothingSent();
   });
+
+  it('validates password with PlainPassword and passes validated value to encrypter', async () => {
+    const user = UserMother.activeWithResetToken(
+      EmailTokenMother.passwordReset({ tokenHash })
+    );
+    repository.setSearchByEmailTokenResult(user);
+
+    await resetPassword.run({
+      token,
+      password: NEW_PASSWORD,
+      repeatPassword: NEW_PASSWORD
+    });
+
+    encrypter.assertHashHasBeenCalledWith(NEW_PASSWORD);
+  });
 });

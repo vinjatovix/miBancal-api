@@ -63,7 +63,7 @@ export class GetPlantByIdController extends HttpController {
 
       const body = checkResponse(plantResponseSchema, plant, context);
 
-      setVersionETag(res, body.version);
+      setVersionETag(res, body.version, body.likesCount);
       res.status(this.status()).json(body);
     } catch (error) {
       next(error);

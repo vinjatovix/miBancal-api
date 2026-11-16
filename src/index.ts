@@ -1,16 +1,17 @@
 import { AgroBackApp } from './apps/agroApi/AgroBackApp.js';
-import { envs } from './apps/agroApi/config/plugins/envs.plugin.js';
+import { getEnvs } from './apps/agroApi/config/plugins/envs.plugin.js';
 import { buildLogger } from './Contexts/shared/plugins/logger.plugin.js';
-
-const logger = buildLogger('agroAPI');
-const config = {
-  host: envs.HOST,
-  port: String(envs.PORT),
-  sourceRoot: import.meta.dirname
-};
 
 async function startServer() {
   try {
+    const envs = getEnvs();
+    const logger = buildLogger('agroAPI');
+    const config = {
+      host: envs.HOST,
+      port: String(envs.PORT),
+      sourceRoot: import.meta.dirname
+    };
+
     await new AgroBackApp(config).start(logger);
   } catch (err) {
     console.error('Error starting the application:', err);

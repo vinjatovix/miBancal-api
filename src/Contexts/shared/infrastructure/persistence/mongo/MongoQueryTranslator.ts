@@ -59,6 +59,7 @@ export class MongoQueryTranslator {
   private static translateCondition(
     condition: FilterOperators<Primitive>
   ): unknown {
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('eq' in condition && condition.eq !== undefined) {
       return this.mapUuidValues(condition.eq);
     }
@@ -83,16 +84,19 @@ export class MongoQueryTranslator {
   private static buildSetOperators(
     condition: FilterOperators<Primitive>
   ): unknown {
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('in' in condition && condition.in !== undefined) {
       return { $in: condition.in };
     }
 
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('has' in condition && condition.has !== undefined) {
       return {
         $elemMatch: { $eq: condition.has }
       };
     }
 
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('hasAny' in condition && condition.hasAny !== undefined) {
       return { $in: condition.hasAny };
     }
@@ -105,18 +109,22 @@ export class MongoQueryTranslator {
   ): MongoValue | undefined {
     const mongo: MongoValue = {};
 
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('gt' in condition && condition.gt !== undefined) {
       mongo.$gt = condition.gt;
     }
 
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('gte' in condition && condition.gte !== undefined) {
       mongo.$gte = condition.gte;
     }
 
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('lt' in condition && condition.lt !== undefined) {
       mongo.$lt = condition.lt;
     }
 
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     if ('lte' in condition && condition.lte !== undefined) {
       mongo.$lte = condition.lte;
     }
@@ -129,6 +137,7 @@ export class MongoQueryTranslator {
   }
 
   private static isEmpty(condition: FilterOperators<Primitive>): boolean {
+    // eslint-disable-next-line sonarjs/different-types-comparison -- optional field at the data boundary: this stays a runtime guard even though the static type narrows undefined out
     return Object.values(condition).every((v) => v === undefined);
   }
 

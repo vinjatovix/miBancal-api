@@ -1,5 +1,14 @@
 import { CreatePlant } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/CreatePlant.js';
+import {
+  catalogIdKey,
+  catalogNamespace,
+  catalogSlugKey
+} from '../../../../../../src/Contexts/shared/application/cache/index.js';
 import { ensureFound } from '../../../../../../src/Contexts/shared/application/utils/ensureFound.js';
+import { InvalidArgumentException } from '../../../../../../src/Contexts/shared/domain/errors/index.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
+import { AnomalyReadRepositoryMock } from '../../../Anomalies/__mocks__/AnomalyReadRepositoryMock.js';
+import { AnomalyReadViewMother } from '../../../Anomalies/application/queries/AnomalyReadViewMother.js';
 import { FamilyRepositoryMock } from '../../../Families/__mocks__/FamilyRepositoryMock.js';
 import { FamilyScenarios } from '../../../Families/domain/mothers/FamilyScenarios.js';
 import { PlantRepositoryMock } from '../../__mocks__/PlantRepositoryMock.js';
@@ -8,15 +17,53 @@ import { CreatePlantDtoMother } from './mothers/CreatePlantDtoMother.js';
 describe('CreatePlant (use case)', () => {
   let repository: PlantRepositoryMock;
   let familyRepository: FamilyRepositoryMock;
+  let anomalyReadRepository: AnomalyReadRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: CreatePlant;
 
   beforeEach(() => {
     repository = new PlantRepositoryMock();
     familyRepository = new FamilyRepositoryMock();
+    anomalyReadRepository = new AnomalyReadRepositoryMock();
+    cache = new CacheRepositoryFake();
     useCase = new CreatePlant({
       plantRepository: repository,
-      familyRepository
+      familyRepository,
+      anomalyReadRepository,
+      cacheRepository: cache
     });
+  });
+
+  it('invalidates the created entry keys and bumps the catalog generation', async () => {
+    const family = FamilyScenarios.domainBase();
+    familyRepository.addToStorage(family);
+    const dto = CreatePlantDtoMother.custom({ 'identity.family': family.id });
+
+    const plant = await useCase.execute(dto);
+
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogIdKey('plants', plant.id)
+    );
+    expect(cache.deleteMock).toHaveBeenCalledWith(
+      catalogSlugKey('plants', plant.identity.slug)
+    );
+    expect(cache.bumpGenerationMock).toHaveBeenCalledWith(
+      catalogNamespace('plants')
+    );
+  });
+
+  it('does not touch the cache when creation is rejected', async () => {
+    const family = FamilyScenarios.domainBase();
+    familyRepository.addToStorage(family);
+    const dto = CreatePlantDtoMother.custom({ 'identity.family': family.id });
+    repository.addToStorage(await useCase.execute(dto));
+    cache.deleteMock.mockClear();
+    cache.bumpGenerationMock.mockClear();
+
+    await expect(useCase.execute(dto)).rejects.toThrow();
+
+    expect(cache.bumpGenerationMock).not.toHaveBeenCalled();
+    expect(cache.deleteMock).not.toHaveBeenCalled();
   });
 
   it('should throw if plant already exists', async () => {
@@ -126,5 +173,33 @@ describe('CreatePlant (use case)', () => {
     await expect(useCase.execute(dto)).rejects.toThrow(
       `Family with id ${dto.identity.family} does not exist`
     );
+  });
+
+  it('should reject an unknown anomaly slug and not save the plant', async () => {
+    const family = FamilyScenarios.domainBase();
+    familyRepository.addToStorage(family);
+    const dto = {
+      ...CreatePlantDtoMother.custom({ 'identity.family': family.id }),
+      anomalies: ['ghost-slug']
+    };
+
+    await expect(useCase.execute(dto)).rejects.toBeInstanceOf(
+      InvalidArgumentException
+    );
+    repository.assertSaveNotCalled();
+  });
+
+  it('should store validated anomaly slugs', async () => {
+    const family = FamilyScenarios.domainBase();
+    familyRepository.addToStorage(family);
+    anomalyReadRepository.addToStorage(AnomalyReadViewMother.base());
+    const dto = {
+      ...CreatePlantDtoMother.custom({ 'identity.family': family.id }),
+      anomalies: ['pulgon']
+    };
+
+    const plant = await useCase.execute(dto);
+
+    expect(plant.anomalies).toEqual(['pulgon']);
   });
 });

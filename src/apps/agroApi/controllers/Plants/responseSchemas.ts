@@ -55,7 +55,9 @@ const identitySchema = z.object({
     aliases: labelListSchema.exactOptional()
   }),
   scientificName: requiredShortTextResponseSchema,
-  family: plantFamilySchema
+  family: plantFamilySchema,
+  // Read-only projection derived from `scientificName`; absent when none.
+  genus: requiredShortTextResponseSchema.exactOptional()
 });
 
 const traitsSchema = z.object({
@@ -72,15 +74,18 @@ const traitsSchema = z.object({
 });
 
 const phenologySchema = z.object({
-  sowing: z.object({
-    months: monthsSchema.min(1),
-    seedsPerHole: rangeSchema,
-    germinationDays: rangeSchema,
-    methods: z.object({
-      direct: sowingMethodSchema,
-      starter: sowingMethodSchema.exactOptional()
+  // Omitted from the response when the plant has no seed cycle (never null).
+  sowing: z
+    .object({
+      months: monthsSchema.min(1),
+      seedsPerHole: rangeSchema,
+      germinationDays: rangeSchema,
+      methods: z.object({
+        direct: sowingMethodSchema,
+        starter: sowingMethodSchema.exactOptional()
+      })
     })
-  }),
+    .exactOptional(),
   flowering: z.object({
     months: monthsSchema,
     pollination: z
@@ -174,11 +179,14 @@ export const plantImageSchema = z.object({
 
 export const plantResponseSchema = z.object({
   id: z.string().min(1).max(REQUEST_LIMITS.shortText),
+  slug: requiredShortTextResponseSchema.exactOptional(),
   version: z.number().int().min(0),
+  likesCount: z.number().int().min(0),
   identity: identitySchema,
   traits: traitsSchema,
   phenology: phenologySchema,
   knowledge: knowledgeSchema,
+  anomalies: labelListSchema.exactOptional(),
   image: plantImageSchema,
   metadata: metadataResponseSchema,
   status: z.enum(['ACTIVE', 'DELETED']),

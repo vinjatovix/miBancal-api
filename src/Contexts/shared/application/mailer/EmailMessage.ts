@@ -49,7 +49,7 @@ export class EmailMessage {
       errors.text = '<text> must not be empty';
     }
 
-    if (primitives.html !== undefined && primitives.html.trim() === '') {
+    if (primitives.html?.trim() === '') {
       errors.html = '<html> must not be empty when present';
     }
 

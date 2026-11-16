@@ -21,16 +21,35 @@ describe('PlantInputMapper', () => {
 
       const plant = plantInputMapper.fromCreateDto(dto, USER);
 
-      expect(plant.phenology.sowing.seedsPerHole.toPrimitives()).toEqual(
-        dto.phenology.sowing.seedsPerHole
+      expect(plant.phenology.sowing?.seedsPerHole.toPrimitives()).toEqual(
+        dto.phenology.sowing?.seedsPerHole
       );
 
-      expect(plant.phenology.sowing.germinationDays.toPrimitives()).toEqual(
-        dto.phenology.sowing.germinationDays
+      expect(plant.phenology.sowing?.germinationDays.toPrimitives()).toEqual(
+        dto.phenology.sowing?.germinationDays
       );
 
       expect(plant.phenology.flowering.months.toArray()).toEqual(
         dto.phenology.flowering?.months
+      );
+    });
+
+    it('should omit sowing when the create dto has no sowing block', () => {
+      const dto = CreatePlantDtoMother.withoutSowing();
+
+      const plant = plantInputMapper.fromCreateDto(dto, USER);
+
+      expect(plant.phenology.sowing).toBeUndefined();
+      expect(plant.phenology.toPrimitives()).not.toHaveProperty('sowing');
+    });
+
+    it('should build a full sowing block when the create dto supplies one', () => {
+      const dto = CreatePlantDtoMother.tomato();
+
+      const plant = plantInputMapper.fromCreateDto(dto, USER);
+
+      expect(plant.phenology.sowing?.months.toArray()).toEqual(
+        dto.phenology.sowing?.months
       );
     });
 
@@ -147,6 +166,31 @@ describe('PlantInputMapper', () => {
       });
 
       expect(changes.phenology?.sowing?.months).toEqual([3, 4]);
+    });
+
+    it('should pass sowing: null through as a clear signal', () => {
+      const changes = plantInputMapper.toChanges({
+        phenology: { sowing: null }
+      });
+
+      expect(changes.phenology?.sowing).toBeNull();
+    });
+
+    it('should omit sowing from changes when the key is absent', () => {
+      const changes = plantInputMapper.toChanges({
+        phenology: { harvest: { months: [8] } }
+      });
+
+      expect(changes.phenology).toBeDefined();
+      expect(changes.phenology).not.toHaveProperty('sowing');
+    });
+
+    it('should map a partial sowing object to sowing changes', () => {
+      const changes = plantInputMapper.toChanges({
+        phenology: { sowing: { seedsPerHole: { max: 9 } } }
+      });
+
+      expect(changes.phenology?.sowing).toEqual({ seedsPerHole: { max: 9 } });
     });
 
     it('should map phenology.flowering months', () => {

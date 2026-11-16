@@ -11,9 +11,7 @@ export class Coordinates {
   }
 
   distanceTo(other: Coordinates): number {
-    return Math.sqrt(
-      Math.pow(this.x - other.x, 2) + Math.pow(this.y - other.y, 2)
-    );
+    return Math.hypot(this.x - other.x, this.y - other.y);
   }
 
   equals(other: Coordinates): boolean {

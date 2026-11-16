@@ -88,7 +88,7 @@ export class PlacePlantInstance {
         },
         proposed: {
           position: input.position,
-          spacingCm: plant.traits.spacingCm.max
+          vitalRadiusCm: plant.traits.spacingCm.min / 2
         },
         existingCrops
       });

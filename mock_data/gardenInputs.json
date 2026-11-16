@@ -1,0 +1,3535 @@
+[
+  {
+    "_id": "01a17846-1203-72df-8490-760794b5b6ca",
+    "slug": "jabon-potasico",
+    "name": "Jabón potásico",
+    "description": "Insecticida de contacto y disolvente de cutículas compuesto por sales potásicas de ácidos grasos (oleato de potasio). Las cadenas lipófilas penetran en las membranas celulares del insecto causando citólisis, disuelven la capa cerosa protectora de la cutícula y ocluyen los espiráculos respiratorios provocando asfixia.",
+    "category": "defense",
+    "actions": ["insecticide"],
+    "activeIngredients": [
+      "Oleato de potasio",
+      "Sales potásicas de ácidos grasos"
+    ],
+    "targets": ["Pulgón", "Mosca blanca", "Araña roja", "Cochinilla", "Trips"],
+    "recipes": [
+      {
+        "name": "Fabricación casera de jabón potásico",
+        "description": "Saponificación en caliente de aceite vegetal con hidróxido de potasio.",
+        "ingredients": [
+          {
+            "item": "Aceite vegetal (girasol o reciclado filtrado)",
+            "quantity": "120 g"
+          },
+          {
+            "item": "Potasa cáustica (KOH)",
+            "quantity": "20 g"
+          },
+          {
+            "item": "Agua blanda o destilada",
+            "quantity": "20 g"
+          }
+        ],
+        "instructions": [
+          "Disolver con extremo cuidado la potasa cáustica en agua en recipiente no metálico resistente al calor (reacción exotérmica).",
+          "Calentar el aceite vegetal al baño maría a 50-60 °C.",
+          "Verter lentamente la lejía de potasio sobre el aceite batiendo en la misma dirección.",
+          "Batir a velocidad baja en ciclos de 3 minutos con pausas hasta alcanzar la traza espesa.",
+          "Dejar reposar tapado 12 a 24 horas hasta completar la saponificación."
+        ],
+        "brewTime": "24 horas de reposo",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "15-20 g/L (1.5-2%)",
+          "frequency": "Preventivo semanal, sintomático cada 3 días al atardecer"
+        },
+        "storage": {
+          "duration": "Hasta 2 años",
+          "conditions": "Recipiente hermético opaco en lugar fresco",
+          "spoilageSigns": "Separación de fases o moho por contaminación externa"
+        },
+        "safetyNotes": [
+          "Actúa estrictamente por contacto directo; carece de persistencia residual una vez seco.",
+          "No utilizar lavavajillas domésticos que contienen detergentes sintéticos sódicos agresivos que queman las hojas."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.colostate.edu/topic-areas/insects/insect-control-soaps-and-detergents-5-547/",
+        "title": "Insect Control: Soaps and Detergents in Integrated Pest Management",
+        "source": "Colorado State University Extension",
+        "tags": ["jabon-potasico", "sales-potasicas", "csu-extension"]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "01a17846-1206-72b0-909c-3a804459650b",
+    "slug": "aceite-neem",
+    "name": "Aceite de neem",
+    "description": "Insecticida biológico y regulador del crecimiento vegetal extraído de Azadirachta indica. El tetranortriterpenoide azadiractina actúa como disruptor hormonal bloqueando la síntesis de ecdisona, impidiendo la muda y metamorfosis de insectos jóvenes y actuando como antialimentario sistémico local.",
+    "category": "defense",
+    "actions": ["insecticide", "repellent"],
+    "activeIngredients": ["Azadiractina", "Nimbina", "Salamina"],
+    "targets": [
+      "Pulgón",
+      "Mosca blanca",
+      "Trips",
+      "Minador de hojas",
+      "Orugas"
+    ],
+    "recipes": [
+      {
+        "name": "Emulsión foliar de neem",
+        "description": "Emulsión homogénea en agua tibia empleando jabón potásico como surfactante.",
+        "ingredients": [
+          {
+            "item": "Aceite puro de neem prensado en frío",
+            "quantity": "3-5 ml"
+          },
+          {
+            "item": "Jabón potásico diluido",
+            "quantity": "3-5 ml"
+          },
+          {
+            "item": "Agua templada desclorada",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Emulsionar enérgicamente el aceite de neem con el jabón potásico en un vaso con agua tibia.",
+          "Verter la emulsión en el pulverizador y completar con el resto del agua.",
+          "Pulverizar haz y envés de las hojas a última hora de la tarde."
+        ],
+        "dosage": {
+          "method": "foliar",
+          "dilution": "3-5 ml/L (0.3-0.5%)",
+          "frequency": "Preventivo cada 10-14 días, sintomático cada 4-5 días"
+        },
+        "storage": {
+          "duration": "Hasta 2 años",
+          "conditions": "A oscuras a 15-25 °C (solidifica si baja de 15 °C)"
+        },
+        "safetyNotes": [
+          "No aplicar bajo insolación directa para evitar quemaduras foliares causadas por el aceite.",
+          "Requiere emulsionarse previamente con jabón potásico en agua tibia para una dispersión homogénea."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://npic.orst.edu/factsheets/neemgen.html",
+        "title": "Neem Oil General Fact Sheet (NPIC)",
+        "source": "National Pesticide Information Center (Oregon State University / EPA)",
+        "tags": ["neem", "azadiractina", "npic", "ecdisona"]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0
+  },
+  {
+    "_id": "01a17846-1206-72b0-909c-3d0f97f4ef16",
+    "slug": "cola-caballo",
+    "name": "Extracto de cola de caballo",
+    "description": "Fungicida preventivo biológico y reforzador de paredes celulares vegetales. Aprobado como Sustancia Básica en la UE (SANCO/12386/2013). Su elevado contenido en ácido monosilíceo (H4SiO4) polimeriza en la cutícula vegetal impidiendo la penetración de apresorios, mientras que la fracción de saponinas (complejo de equisetonina) lisa el ergosterol de las membranas fúngicas.",
+    "category": "defense",
+    "actions": ["fungicide", "insecticide"],
+    "activeIngredients": ["Ácido ortosilícico", "Equisetonina"],
+    "nutrients": ["Si", "K", "Ca"],
+    "targets": ["Oídio", "Mildiu", "Roya", "Botrytis", "Alternaria"],
+    "recipes": [
+      {
+        "name": "Decocción mejorada de cola de caballo",
+        "description": "Maceración previa en frío y decocción suave para máxima extracción de sílice biodisponible.",
+        "ingredients": [
+          {
+            "item": "Cola de caballo seca (Equisetum arvense)",
+            "quantity": "25-30 g"
+          },
+          {
+            "item": "Agua de lluvia o desclorada",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Macerar la planta en agua fría durante 12-24 horas.",
+          "Hervir a fuego lento tapado durante 20-30 minutos.",
+          "Dejar reposar toda la noche y colar con paño fino."
+        ],
+        "brewTime": "24 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "20% (200 ml de decocción por 800 ml de agua)",
+          "frequency": "Preventivo semanal o tras lluvia prolongada; curativo cada 3 días"
+        },
+        "storage": {
+          "duration": "Hasta 15 días",
+          "conditions": "Frasco oscuro en frigorífico",
+          "spoilageSigns": "Olor ácido o fermentación"
+        },
+        "safetyNotes": [
+          "Acción fundamentalmente preventiva; aplicar antes de la implantación del hongo o en fases muy tempranas.",
+          "Respetar la decocción lenta (45-60 min) para asegurar la extracción del ácido silícico bioasimilable."
+        ]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://ec.europa.eu/food/plant/pesticides/eu-pesticides-database/active-substances/?event=as.details&as_id=1054",
+        "title": "Review report for the basic substance Equisetum arvense L. (SANCO/12386/2013)",
+        "source": "European Commission Directorate-General for Health and Food Safety",
+        "tags": ["sustancia-basica-ue", "cola-caballo", "silice", "fungicida"]
+      },
+      {
+        "type": "article",
+        "url": "https://www.mdpi.com/2073-4395/11/5/976",
+        "title": "Assessment of Conjugate Complexes of Equisetum arvense Extracts for Plant Pathogen Control",
+        "source": "Agronomy / Universidad de Valladolid",
+        "tags": ["equisetum", "saponinas", "ergosterol"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17846-1206-72b0-909c-40a320ec16a0",
+    "slug": "purin-ortiga",
+    "name": "Purín de ortigas",
+    "description": "Biofertilizante nitrogenado de absorción rápida e inductor de resistencia sistémica (ISR). Aprobado como Sustancia Básica en la UE (SANTE/11809/2016). Tras 10-14 días de fermentación microbiana mineraliza amonio (NH4+) y aminoácidos, aportando hierro complejado orgánicamente con ácidos carboxílicos y estimulando enzimas de defensa vegetal (PAL y peroxidasas).",
+    "category": "fertilizer",
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": ["Ácidos húmicos", "Bacterias fijadoras"],
+    "nutrients": ["N", "Fe", "Si", "Mg", "Ca", "K"],
+    "targets": [
+      "Crecimiento vegetativo",
+      "Clorosis férrica",
+      "Activación microbiana"
+    ],
+    "recipes": [
+      {
+        "name": "Purín aeróbico de ortiga",
+        "description": "Fermentación aeróbica en bidón con oxigenación diaria.",
+        "ingredients": [
+          {
+            "item": "Ortiga fresca sin raíz",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Agua sin cloro",
+            "quantity": "10 L"
+          }
+        ],
+        "instructions": [
+          "Colocar las ortigas troceadas en bidón no metálico.",
+          "Remover enérgicamente 5 a 10 minutos al día para oxigenar.",
+          "Macerar 10-15 días hasta el cese de burbujas en la superficie.",
+          "Colar finamente y almacenar en garrafas opacas."
+        ],
+        "brewTime": "10-15 días",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "10% en riego radicular (1 L en 9 L de agua); 5% en pulverización foliar",
+          "frequency": "Cada 15 días en primavera y verano"
+        },
+        "storage": {
+          "duration": "Hasta 1 año",
+          "conditions": "Lugar fresco y oscuro en bidón cerrado",
+          "spoilageSigns": "Olor pútrido nauseabundo (indica mala fermentación)"
+        },
+        "safetyNotes": [
+          "Para fertilización radicular fermentar de 10 a 14 días hasta que cese el burbujeo; para repelencia foliar usar maceraciones cortas de 24-48 horas.",
+          "Diluir siempre al 1:10 (10%) para evitar toxicidad por sales o quemaduras en hojas tiernas."
+        ]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://ec.europa.eu/food/plant/pesticides/eu-pesticides-database/active-substances/?event=as.details&as_id=1255",
+        "title": "Review report for the basic substance Urtica spp. (SANTE/11809/2016)",
+        "source": "European Commission Directorate-General for Health and Food Safety",
+        "tags": ["sustancia-basica-ue", "ortiga", "purin", "nitrogeno"]
+      },
+      {
+        "type": "article",
+        "url": "https://www.tandfonline.com/doi/abs/10.1080/01448765.1985.9754448",
+        "title": "Effects of nettle water on growth and mineral nutrition of plants (Biol. Agric. Hortic.)",
+        "source": "University of Lund (Peterson & Jensen 1985)",
+        "tags": ["urtica", "mineralizacion", "nutricion"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17846-1206-72b0-909c-46daa6b67789",
+    "slug": "purin-consuelda",
+    "name": "Purín de consuelda rusa",
+    "description": "Fertilizante orgánico líquido de floración y engorde rico en potasio y alantoína de Symphytum x uplandicum 'Bocking 14'. Sus hojas contienen 5-7% de K en materia seca (relación N-P-K aprox. 3-1-6). La alantoína es un ureido de reserva nitrogenada que promueve la división celular y la tolerancia a estrés abiótico.",
+    "category": "fertilizer",
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": ["Alantoína", "Mucílagos"],
+    "nutrients": ["K", "P", "Ca", "Fe", "N"],
+    "targets": [
+      "Floración",
+      "Fructificación",
+      "Engorde de frutos",
+      "Enraizamiento"
+    ],
+    "recipes": [
+      {
+        "name": "Purín fermentado de consuelda",
+        "description": "Fermentación en agua de hojas frescas de Symphytum officinale.",
+        "ingredients": [
+          {
+            "item": "Hojas frescas de consuelda rusa",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Agua de lluvia",
+            "quantity": "10 L"
+          }
+        ],
+        "instructions": [
+          "Trocear las hojas y macerar en bidón no metálico.",
+          "Remover a diario durante 10 a 14 días.",
+          "Filtrar y envasar protegido de la luz."
+        ],
+        "brewTime": "10-14 días",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "10% en riego radicular (1:10); 5% en pulverización foliar",
+          "frequency": "Cada 10-14 días desde floración hasta cosecha"
+        },
+        "storage": {
+          "duration": "Hasta 1 año",
+          "conditions": "Recipiente opaco hermético a oscuras"
+        },
+        "safetyNotes": [
+          "Contiene alcaloides pirrolizidínicos (PA); las bacterias del suelo los descomponen con rapidez, pero está reservado exclusivamente para uso agrícola en suelo, nunca para consumo humano o animal."
+        ]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.gardenorganic.org.uk/expert-advice/garden-management/soil-and-compost/comfrey",
+        "title": "Comfrey: The dynamic accumulator and organic potassium fertilizer",
+        "source": "Garden Organic (Henry Doubleday Research Association - UK)",
+        "tags": ["consuelda", "potasio", "alantoina", "garden-organic"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17846-1206-72b0-909c-4b84312f2ec7",
+    "slug": "bicarbonato-potasico",
+    "name": "Bicarbonato potásico",
+    "description": "Fungicida mineral de contacto registrado por la EPA y en la UE contra oídio, botritis y sarna. Los iones bicarbonato provocan un shock osmótico y alcalinización superficial sobre las hifas, destruyendo conidios en minutos. El bicarbonato potásico (KHCO3) es preferido agronómicamente sobre el sódico al nutrir con potasio y no acumular sodio tóxico en el suelo.",
+    "category": "defense",
+    "actions": ["fungicide"],
+    "activeIngredients": ["Bicarbonato potásico (KHCO3)"],
+    "nutrients": ["K"],
+    "targets": ["Oídio", "Fumagina"],
+    "recipes": [
+      {
+        "name": "Pulverización foliar antifúngica",
+        "description": "Solución alcalinizante suave con humectante.",
+        "ingredients": [
+          {
+            "item": "Bicarbonato potásico grado técnico o alimentario",
+            "quantity": "3-5 g"
+          },
+          {
+            "item": "Jabón potásico (humectante)",
+            "quantity": "2 ml"
+          },
+          {
+            "item": "Agua",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Disolver el bicarbonato potásico en agua tibia.",
+          "Añadir el jabón potásico y mezclar suavemente.",
+          "Pulverizar al atardecer cubriendo toda la superficie foliar."
+        ],
+        "dosage": {
+          "method": "foliar",
+          "dilution": "3-5 g/L (0.3-0.5%)",
+          "frequency": "Preventivo semanal, sintomático cada 4-5 días"
+        },
+        "safetyNotes": [
+          "No superar concentraciones del 0.8% a 1.0% para evitar fitotoxicidad (quemaduras foliares).",
+          "Advertencia UC Davis IPM: No aplicar en hojas con infección fúngica severa/avanzada, pues el colapso del micelio insertado necrosa el tejido de la hoja.",
+          "No aplicar bajo temperaturas superiores a 30 °C o en plantas con estrés hídrico."
+        ]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://ipm.ucanr.edu/PMG/PESTNOTES/pn7406.html",
+        "title": "Powdery Mildew on Ornamentals and Vegetables (Pest Notes 7406)",
+        "source": "University of California Statewide Integrated Pest Management (UC IPM)",
+        "tags": ["bicarbonato-potasico", "uc-davis", "oidio", "fitotoxicidad"]
+      },
+      {
+        "type": "article",
+        "url": "https://www.extension.purdue.edu/extmedia/bp/bp-69-w.pdf",
+        "title": "Using Bicarbonate Fungicides in Plant Disease Management",
+        "source": "Purdue University Extension",
+        "tags": ["bicarbonatos", "purdue", "fungicida-contacto"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17846-1206-72b0-909c-4ec9166e1a3a",
+    "slug": "enraizante-sauce",
+    "name": "Agua de sauce",
+    "description": "Extracto acuoso de ramas jóvenes de Salix spp. La investigación hortícola (WSU Extension) demuestra que no contiene hormona IBA sintética, sino salicina/ácido salicílico (que induce resistencia sistémica SAR y previene la pudrición basal del corte) y cofactores polifenólicos que inhiben la IAA-oxidasa, protegiendo las auxinas endógenas del propio esqueje.",
+    "category": "biostimulant",
+    "actions": ["rooting", "biostimulant"],
+    "activeIngredients": [
+      "Ácido salicílico",
+      "Salicina",
+      "Ácido indol-3-butírico"
+    ],
+    "targets": [
+      "Emisión de raíces adventicias",
+      "Esquejes",
+      "Protección de cortes"
+    ],
+    "recipes": [
+      {
+        "name": "Decocción de brotes tiernos de sauce",
+        "description": "Extracción en caliente de brotes de Salix spp.",
+        "ingredients": [
+          {
+            "item": "Ramas jóvenes de sauce troceadas (10-15 cm)",
+            "quantity": "200 g"
+          },
+          {
+            "item": "Agua",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Macerar las ramas troceadas en agua 24 horas.",
+          "Hervir suavemente 15 minutos.",
+          "Dejar reposar toda la noche y colar el líquido ámbar."
+        ],
+        "brewTime": "24 horas",
+        "dosage": {
+          "method": "soaking",
+          "dilution": "Puro sin diluir",
+          "frequency": "Inmersión de base de esquejes durante 12-24 h antes de plantar"
+        },
+        "storage": {
+          "duration": "Hasta 2 meses",
+          "conditions": "Frigorífico en frasco de vidrio"
+        },
+        "safetyNotes": [
+          "Utilizar ramas jóvenes y flexibles de 1-2 años con yemas vivas.",
+          "Ideal como baño de inmersión para esquejes tiernos y semileñosos susceptibles a pudrición del tallo."
+        ]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://s3.wp.wsu.edu/uploads/sites/403/2015/03/willow-water.pdf",
+        "title": "The Myth of Willow Juice: Salicylic acid, rooting cofactors and cutting propagation",
+        "source": "Washington State University Extension (Dr. Linda Chalker-Scott)",
+        "tags": ["sauce", "salicina", "acido-salicilico", "wsu"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17846-1207-7582-aaba-a4445416a577",
+    "slug": "jms-microorganismos-jadam",
+    "name": "JMS (JADAM Microbial Solution)",
+    "description": "Solución microbiana JADAM (JMS) de Youngsang Cho. Cultivo líquido ambiental a partir de mantillo de bosque virgen, patata cocida (fuente de almidón que mantiene el pH neutro) y sal marina (minerales). Multiplica millones de microorganismos heterótrofos autóctonos que compiten y excluyen patógenos en la rizosfera.",
+    "category": "soil_amendment",
+    "actions": ["biostimulant", "compost_activator"],
+    "activeIngredients": ["Microorganismos autóctonos de bosque virgen"],
+    "targets": [
+      "Inoculación biológica masiva del suelo",
+      "Activación del compost"
+    ],
+    "recipes": [
+      {
+        "name": "Cultivo aeróbico de JMS",
+        "description": "Multiplicación de microbios de mantillo de bosque en 24-72 horas.",
+        "ingredients": [
+          {
+            "item": "Mantillo fértil de bosque con micelio en bolsa de tela",
+            "quantity": "1 puñado (~100 g)"
+          },
+          {
+            "item": "Patata mediana hervida y aplastada",
+            "quantity": "1 unidad"
+          },
+          {
+            "item": "Sal marina natural sin refinar",
+            "quantity": "1 cucharada (~20 g)"
+          },
+          {
+            "item": "Agua sin cloro",
+            "quantity": "20 L"
+          }
+        ],
+        "instructions": [
+          "Introducir la patata y el mantillo en bolsas de tela dentro del agua.",
+          "Amasar las bolsas bajo el agua para liberar nutrientes y esporas.",
+          "Dejar reposar tapado a 20-25 °C durante 24-72 horas hasta formación de corona de espuma."
+        ],
+        "brewTime": "24-72 horas",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "1:10 a 1:20 en agua de riego",
+          "frequency": "Aplicar de inmediato en el pico máximo de espuma"
+        },
+        "storage": {
+          "duration": "Uso inmediato",
+          "conditions": "No almacenar tras pico de espuma"
+        },
+        "safetyNotes": [
+          "Punto crítico: Aplicar exactamente en el pico máximo de espuma (entre 24 y 72 horas según temperatura). Si se deja pasar el pico, los microbios agotan el almidón y la población decae.",
+          "No requiere bombas de aire eléctricas; se elabora en estático a temperatura ambiente."
+        ]
+      }
+    ],
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.jadam.kr/news/articleView.html?idxno=6282",
+        "title": "JADAM Microbial Solution (JMS) Principles, Potato Starch and Peak Foam Timing",
+        "source": "JADAM Organic Farming (Youngsang Cho)",
+        "tags": ["jadam", "jms", "microorganismos-indigenas"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0751-727f-be9a-525a7b63bffe",
+    "slug": "extracto-ajo",
+    "name": "Macerado y extracto de ajo",
+    "description": "Biofungicida, insecticida y repelente natural derivado de Allium sativum. El machacado activa la enzima alinasa sobre la aliína produciendo alicina, la cual reacciona con grupos sulfhidrilo de enzimas esenciales fúngicas (trampa de tiol). Se degrada en disulfuros volátiles (DADS y DATS) con potente acción disuasoria de insectos.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fungicide", "repellent", "insecticide"],
+    "activeIngredients": [
+      "Alicina",
+      "Disulfuro de dialilo",
+      "Cicloide de alitina"
+    ],
+    "nutrients": ["S", "K"],
+    "targets": [
+      "Pulgón",
+      "Cochinilla",
+      "Mosca blanca",
+      "Orugas",
+      "Trips",
+      "Fusarium",
+      "Roya",
+      "Oídio",
+      "Botrytis"
+    ],
+    "recipes": [
+      {
+        "name": "Maceración acuosa en frío de ajo",
+        "description": "Maceración simple para pulverización foliar repelente e insecticida.",
+        "ingredients": [
+          {
+            "item": "Dientes de ajo pelados y machacados",
+            "quantity": "50-100 g"
+          },
+          {
+            "item": "Agua reposada sin cloro",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Machacar los dientes de ajo en un mortero para activar la alicina.",
+          "Dejar en remojo en agua tapado durante 12 a 24 horas a temperatura ambiente.",
+          "Filtrar con colador de paño fino.",
+          "Pulverizar abundantemente sobre haz y envés de las hojas."
+        ],
+        "brewTime": "24 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:5 (20%) en agua o sin diluir según presión de plaga",
+          "frequency": "Preventivo semanal, curativo cada 3 días"
+        },
+        "storage": {
+          "duration": "Hasta 3 días en frigorífico",
+          "conditions": "Frasco de vidrio oscuro cerrado",
+          "spoilageSigns": "Olor fermentado o cambio a color turbio"
+        },
+        "safetyNotes": [
+          "La alicina es muy inestable; el macerado debe elaborarse en frío y aplicarse antes de 48-72 horas.",
+          "Aplicar al atardecer para maximizar la permanencia de los compuestos azufrados volátiles."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6963745/",
+        "title": "Allicin and Diallyl Polysulfides: Biochemical Mechanisms in Plant Pathogen Suppression",
+        "source": "National Center for Biotechnology Information / MDPI Molecules",
+        "tags": ["alicina", "ajo", "dads", "biofungicida"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0755-76c8-bdf9-66cc9beff52c",
+    "slug": "extracto-cebolla",
+    "name": "Extracto de cebolla",
+    "description": "Insecticida y repelente natural con propiedades fungicidas preventivas obtenido de Allium cepa. La quercetina y los disulfuros orgánicos generan una atmósfera olfativa disuasoria y debilitan la cubierta de plagas.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "repellent", "fungicide"],
+    "activeIngredients": ["Quercetina", "Compuestos azufrados", "Alicina"],
+    "nutrients": ["S", "K", "P"],
+    "targets": ["Pulgón", "Mosca blanca", "Trips", "Oídio", "Mildiu", "Roya"],
+    "recipes": [
+      {
+        "name": "Infusión de cáscara y pulpa de cebolla",
+        "description": "Extracción acuosa caliente de pieles y pulpa de cebolla.",
+        "ingredients": [
+          {
+            "item": "Cebollas enteras con piel troceadas",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua caliente desclorada",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Trocear las cebollas manteniendo la piel exterior.",
+          "Añadir agua caliente a punto de hervir y tapar de inmediato.",
+          "Dejar enfriar y reposar de 12 a 24 horas.",
+          "Filtrar y pulverizar sobre el follaje."
+        ],
+        "brewTime": "24 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir (100%)",
+          "frequency": "Cada 5-7 días al atardecer"
+        },
+        "storage": {
+          "duration": "Hasta 4 días",
+          "conditions": "Lugar fresco o refrigerador"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8706317/",
+        "title": "Antifungal and Insecticidal Properties of Allium cepa L. Extracts",
+        "source": "NIH / Molecules Journal",
+        "tags": ["cebolla", "quercetina", "antifungico"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0766-7c5f-8a3b-8d0ebf575ea0",
+    "slug": "infusion-tomillo",
+    "name": "Infusión y decocción de tomillo",
+    "description": "Fungicida e insecticida biológico de amplio espectro de Thymus vulgaris. Los monoterpenos fenólicos timol y carvacrol se intercalan en la bicapa lipídica de las hifas, inhibiendo la síntesis de ergosterol (enzimas CYP51 y LSS) y provocando fuga letal de iones K+ y Ca2+ y colapso de la respiración mitocondrial.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fungicide", "insecticide"],
+    "activeIngredients": ["Timol", "Carvacrol", "Cineol", "Linalol"],
+    "nutrients": ["Ca", "Fe"],
+    "targets": [
+      "Oídio",
+      "Mildiu",
+      "Botrytis",
+      "Fusarium",
+      "Phytophthora",
+      "Ácaros",
+      "Pulgones",
+      "Mosca blanca"
+    ],
+    "recipes": [
+      {
+        "name": "Decocción de tomillo",
+        "description": "Infusión concentrada de sumidades floridas de Thymus vulgaris.",
+        "ingredients": [
+          {
+            "item": "Tomillo fresco (o 20-30 g seco)",
+            "quantity": "30-50 g"
+          },
+          {
+            "item": "Agua de lluvia o reposada",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Poner el agua a hervir y retirar del fuego.",
+          "Añadir el tomillo y tapar inmediatamente.",
+          "Dejar reposar entre 12 y 24 horas.",
+          "Filtrar con colador de tela fina antes de verter en el pulverizador."
+        ],
+        "brewTime": "12-24 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir (100%)",
+          "frequency": "Semanal en periodos de humedad y riesgo fúngico"
+        },
+        "storage": {
+          "duration": "Hasta 3 días",
+          "conditions": "Frigorífico protegido de la luz solar"
+        },
+        "safetyNotes": [
+          "Respetar las concentraciones indicadas para evitar leve fototoxicidad en brotes extremadamente tiernos."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8398436/",
+        "title": "Antifungal Mechanisms of Thymol and Carvacrol: Plasma Membrane Permeabilization and Ergosterol Biosynthesis Inhibition",
+        "source": "Frontiers in Microbiology / NIH",
+        "tags": ["timol", "carvacrol", "ergosterol", "botrytis"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0770-7386-b74f-8901ad149449",
+    "slug": "extracto-laurel",
+    "name": "Macerado e infusión de laurel",
+    "description": "Insecticida y repelente botánico de Laurus nobilis. El eucaliptol y eugenol actúan como repelente persistente contra insectos perforadores y chupadores tanto en campo como en almacén de semillas.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "repellent", "fungicide"],
+    "activeIngredients": [
+      "1,8-Cineol (Eucaliptol)",
+      "Eugenol",
+      "Ácido láurico"
+    ],
+    "targets": ["Gorgojos", "Polillas", "Cochinilla", "Pulgón", "Hormigas"],
+    "recipes": [
+      {
+        "name": "Infusión concentrada de hojas de laurel",
+        "description": "Infusión acuosa para pulverización foliar repelente.",
+        "ingredients": [
+          {
+            "item": "Hojas de laurel frescas desmenuzadas",
+            "quantity": "50 g"
+          },
+          {
+            "item": "Agua hirviendo",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Picar las hojas de laurel para exponer las glándulas oleíferas.",
+          "Verter agua hirviendo y mantener tapado durante 24 horas.",
+          "Filtrar y aplicar en spray sobre el follaje y base de las plantas."
+        ],
+        "brewTime": "24 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir",
+          "frequency": "Cada 7 a 10 días"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7345338/",
+        "title": "Insecticidal and Repellent Activities of Laurus nobilis L. Essential Oil against Stored Product Pests",
+        "source": "NIH / MDPI Insects",
+        "tags": ["laurel", "eucaliptol", "repelente"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0776-7c66-a141-ce9805c48346",
+    "slug": "macerado-pinocha",
+    "name": "Macerado de acículas de pino (pinocha)",
+    "description": "Barrera olfativa y repelente de suelo formulada con acículas de Pinus. Las resinas naturales y terpenos volátiles disuaden el avance de babosas y orugas en bancales hortícolas.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "repellent"],
+    "activeIngredients": ["Alfa y beta pineno", "Ácidos resínicos", "Taninos"],
+    "targets": ["Babosas", "Caracoles", "Pulgón", "Orugas de suelo"],
+    "recipes": [
+      {
+        "name": "Macerado en frío de pinocha verde",
+        "description": "Extracción acuosa de acículas de pino recién caídas.",
+        "ingredients": [
+          {
+            "item": "Pinocha verde o fresca troceada",
+            "quantity": "200 g"
+          },
+          {
+            "item": "Agua",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Picar las acículas verdes de pino.",
+          "Dejar en remojo en agua tapado durante 48 horas.",
+          "Filtrar y pulverizar en el suelo y bordes de bancal."
+        ],
+        "brewTime": "48 horas",
+        "dosage": {
+          "method": "soil",
+          "dilution": "Sin diluir",
+          "frequency": "Semanal o tras lluvias intensas"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.oregonstate.edu/gardening/techniques/pine-needles-mulch-effective-control",
+        "title": "Using Pine Needles as Insect Deterrent and Acidifying Mulch",
+        "source": "Oregon State University Extension",
+        "tags": ["pinocha", "terpenos", "babosas"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-077b-717d-a755-7aeadbac4444",
+    "slug": "infusion-manzanilla",
+    "name": "Infusión de manzanilla",
+    "description": "Fungicida preventivo biológico y bioestimulante de defensas de Matricaria chamomilla. Imprescindible en bandejas de semillero para prevenir la caída de plántulas por Pythium y Rhizoctonia.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fungicide", "insecticide", "nematicide"],
+    "activeIngredients": [
+      "Bisabolol",
+      "Camazuleno",
+      "Cumarinas",
+      "Flavonoides"
+    ],
+    "nutrients": ["Ca", "K"],
+    "targets": [
+      "Damping-off (caída de plántulas)",
+      "Oídio",
+      "Pulgón",
+      "Nemátodos"
+    ],
+    "recipes": [
+      {
+        "name": "Infusión de manzanilla para semilleros y trasplantes",
+        "description": "Infusión suave calmante y fungicida.",
+        "ingredients": [
+          {
+            "item": "Flores secas de manzanilla (o 60 g frescas)",
+            "quantity": "25 g"
+          },
+          {
+            "item": "Agua caliente sin cloro",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Añadir las flores secas al agua hirviendo y retirar del fuego.",
+          "Dejar enfriar tapado entre 6 y 12 horas.",
+          "Filtrar y usar en el agua de riego de semilleros y plántulas."
+        ],
+        "brewTime": "12 horas",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "Sin diluir o diluido 1:1 en agua",
+          "frequency": "En cada riego de semillero o trasplante"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2995283/",
+        "title": "Chamomile (Matricaria chamomilla L.): An overview of antimicrobial and bio-protective activity",
+        "source": "Molecular Medicine Reports / NIH",
+        "tags": ["manzanilla", "bisabolol", "damping-off"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-077f-73f8-bb10-167cbd58ec3d",
+    "slug": "extracto-lavanda",
+    "name": "Macerado de lavanda",
+    "description": "Repelente aromático e insecticida ecológico de Lavandula angustifolia. El linalol desorienta insectos chupadores y rompe los rastros de feromonas de las hormigas en el huerto.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "repellent", "fungicide"],
+    "activeIngredients": [
+      "Linalol",
+      "Acetato de linalilo",
+      "Alcanfor",
+      "Cineol"
+    ],
+    "targets": ["Pulgón", "Hormigas", "Polillas", "Mosca blanca"],
+    "recipes": [
+      {
+        "name": "Infusión de sumidades de lavanda",
+        "description": "Preparación acuosa aromática disuasoria de plagas.",
+        "ingredients": [
+          {
+            "item": "Flores y hojas de lavanda picadas",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua caliente",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Infundir las flores y hojas en agua caliente tapado durante 24 horas.",
+          "Colar y añadir unas gotas de jabón potásico como mojante adherente.",
+          "Pulverizar sobre cultivos sensibles y bordes de huerta."
+        ],
+        "brewTime": "24 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir",
+          "frequency": "Cada 10 días"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7142317/",
+        "title": "Lavandula angustifolia Essential Oil as a Biopesticide: Repellent and Insecticidal Efficacy",
+        "source": "Industrial Crops and Products / Elsevier",
+        "tags": ["lavanda", "linalol", "repelente"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0784-709a-afe2-b7a039bda315",
+    "slug": "leche-desnatada",
+    "name": "Tratamiento foliar de leche desnatada",
+    "description": "Fungicida ecológico de contacto y preventivo contra oídio (Erysiphaceae). La lactoferrina del suero lácteo y sales generan radicales libres de oxígeno (ROS) mediante fotocatálisis solar que lisan el micelio fúngico superficial. Se utiliza leche desnatada para prevenir enranciamiento de grasas y mohos secundarios.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fungicide"],
+    "activeIngredients": [
+      "Lactoferrina",
+      "Ácido láctico",
+      "Sales de fosfato y potasio"
+    ],
+    "nutrients": ["Ca", "P", "K"],
+    "targets": ["Oídio", "Cenicilla", "Podredumbre apical"],
+    "recipes": [
+      {
+        "name": "Solución fotocatalítica de leche desnatada",
+        "description": "Pulverización foliar a pleno sol para activar la acción fungicida.",
+        "ingredients": [
+          {
+            "item": "Leche de vaca desnatada (evita enranciamiento)",
+            "quantity": "150 ml"
+          },
+          {
+            "item": "Agua blanda o de lluvia",
+            "quantity": "850 ml"
+          }
+        ],
+        "instructions": [
+          "Mezclar la leche desnatada con el agua en el pulverizador.",
+          "Agitar bien para homogeneizar.",
+          "Pulverizar al mediodía en días soleados para activar la fotólisis antimicrobiana.",
+          "Repetir tras lluvias abundantes."
+        ],
+        "brewTime": "Inmediato",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:5 a 1:10 (10% a 20%)",
+          "frequency": "Cada 7-10 días preventivo o cada 4 días curativo"
+        },
+        "safetyNotes": [
+          "Aplicar obligatoriamente en horas de sol directo/mediodía para activar la fotocatálisis biocida.",
+          "Usar siempre leche desnatada para evitar olor rancio y proliferación de hongos saprófitos sobre restos grasos."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.publish.csiro.au/ap/AP06050",
+        "title": "Mode of action of milk and whey in the control of grapevine powdery mildew (Australasian Plant Pathology)",
+        "source": "University of Adelaide / SARDI (Crisp et al. 2006)",
+        "tags": ["leche", "lactoferrina", "oidio", "fotocatalisis"]
+      },
+      {
+        "type": "article",
+        "url": "https://www.sciencedirect.com/science/article/abs/pii/S026121949900046X",
+        "title": "Effectiveness of cow milk against zucchini squash powdery mildew (Crop Protection)",
+        "source": "Embrapa Meio Ambiente (Wagner Bettiol 1999)",
+        "tags": ["leche", "embrapa", "oidio", "bettiol"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0786-720c-ad77-e29dc8da0285",
+    "slug": "lejia-ceniza",
+    "name": "Lejía ecológica casera de ceniza",
+    "description": "Fungicida alcalino mineral de contacto derivado del lixiviado de ceniza de madera dura tamizada. Su riqueza en carbonato potásico (K2CO3) e hidróxido de potasio genera un pH alcalino elevado (pH 10-12) que destruye esporas fúngicas de oídio y líquenes. Requiere dilución rigurosa para evitar fitotoxicidad.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fungicide"],
+    "activeIngredients": [
+      "Carbonato potásico (K2CO3)",
+      "Hidróxido de potasio (KOH)",
+      "Silicatos solubles"
+    ],
+    "nutrients": ["K", "Ca", "Si"],
+    "targets": ["Oídio", "Mildiu", "Roya", "Líquenes y musgo en corteza"],
+    "recipes": [
+      {
+        "name": "Lejía tradicional de ceniza filtrada",
+        "description": "Decantación de ceniza de madera en agua caliente.",
+        "ingredients": [
+          {
+            "item": "Ceniza limpia de madera dura tamizada",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Agua caliente",
+            "quantity": "5 L"
+          }
+        ],
+        "instructions": [
+          "Mezclar la ceniza con agua caliente en un cubo no metálico.",
+          "Remover bien y dejar decantar durante 48 horas.",
+          "Filtrar el líquido transparente superior (lejía) con un paño o filtro de café.",
+          "Comprobar que el líquido tenga tacto resbaladizo pero sin restos sólidos."
+        ],
+        "brewTime": "48 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:20 a 1:10 en agua antes de pulverizar",
+          "frequency": "Cada 15 días en reposo o cada 10 días ante ataques fúngicos"
+        },
+        "safetyNotes": [
+          "Usar exclusivamente ceniza de madera natural no tratada (evitar maderas barnizadas o contrachapados con metales pesados).",
+          "Medir pH o respetar una dilución mínima de 1:20 (máximo pH 8.5 en caldo de aplicación) para no saponificar las ceras de la cutícula foliar."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.plantwiseplusknowledgebank.org/doi/full/10.1079/pwkb.20137804470",
+        "title": "Wood Ash Leachate for Powdery Mildew and Fungal Disease Management",
+        "source": "CABI Plantwise Knowledge Bank",
+        "tags": ["ceniza", "carbonato-potasico", "lejia", "cabi"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-078b-700a-ab63-27f6fe28b4dd",
+    "slug": "bacillus-thuringiensis",
+    "name": "Bacillus thuringiensis (Bt kurstaki)",
+    "description": "Bioinsecticida microbiológico específico contra larvas de lepidópteros (orugas, tuta, procesionaria). Las endotoxinas proteicas cristalinas Cry se solubilizan en el intestino medio alcalino de la oruga, perforando la membrana peritrófica y provocando sepsis y muerte por inanición en 48 horas sin afectar a insectos beneficiosos.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide"],
+    "activeIngredients": [
+      "Endotoxinas Cry de Bacillus thuringiensis",
+      "Esporas viables"
+    ],
+    "targets": [
+      "Orugas defoliadoras",
+      "Tuta absoluta",
+      "Procesionaria",
+      "Polilla del tomate",
+      "Mariposa de la col"
+    ],
+    "recipes": [
+      {
+        "name": "Suspensión pulverizable de Bt",
+        "description": "Preparación de caldo biológico para pulverización foliar al atardecer.",
+        "ingredients": [
+          {
+            "item": "Polvo mojable de Bacillus thuringiensis kurstaki",
+            "quantity": "1-2 g"
+          },
+          {
+            "item": "Agua sin cloro con pH neutro",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Disolver el polvo en un poco de agua tibia hasta formar una pasta homogénea.",
+          "Completar el volumen de agua agitando enérgicamente.",
+          "Aplicar al atardecer para proteger las esporas de la radiación ultravioleta del sol.",
+          "Mojar bien el envés de las hojas y cogollos tiernos donde se alimentan las larvas."
+        ],
+        "brewTime": "Inmediato",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1 a 2 g por litro de agua",
+          "frequency": "Cada 7 a 10 días mientras haya presencia de larvas jóvenes"
+        },
+        "safetyNotes": [
+          "Aplicar al atardecer, ya que los rayos ultravioleta del sol inactivan las esporas y cristales Cry en pocas horas.",
+          "Eficaz únicamente sobre orugas jóvenes en fases larvarias tempranas (L1 a L3)."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.entm.purdue.edu/publications/E-86/E-86.html",
+        "title": "Bacillus thuringiensis (Bt) in the Home Garden",
+        "source": "Purdue University Extension Entomology",
+        "tags": ["bacillus-thuringiensis", "endotoxinas-cry", "purdue"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0791-73a2-8a8b-d0548f4d9c42",
+    "slug": "limoneno-citricos",
+    "name": "Extracto de limoneno de cáscaras de cítricos",
+    "description": "Insecticida de contacto obtenido de pieles de naranja o limón. El d-limoneno disuelve la capa lipídica y cutícula cerosa protectora de insectos de cuerpo blando, provocando asfixia rápida y desecación sin residuos tóxicos.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide"],
+    "activeIngredients": ["D-Limoneno", "Terpenos cítricos", "Ácido cítrico"],
+    "targets": [
+      "Mosca blanca",
+      "Cochinilla algodonosa",
+      "Pulgón",
+      "Trips",
+      "Hormigas"
+    ],
+    "recipes": [
+      {
+        "name": "Infusión concentrada de pieles de cítricos",
+        "description": "Extracción en caliente de aceites esenciales de piel de naranja.",
+        "ingredients": [
+          {
+            "item": "Cáscaras frescas de naranja o limón ralladas",
+            "quantity": "200 g"
+          },
+          {
+            "item": "Agua hirviendo",
+            "quantity": "1 L"
+          },
+          {
+            "item": "Jabón potásico como emulsionante",
+            "quantity": "5 g"
+          }
+        ],
+        "instructions": [
+          "Rallar o triturar las cáscaras evitando la parte blanca amarga.",
+          "Verter agua hirviendo y tapar al instante para no evaporar los aceites.",
+          "Dejar reposar 24 horas y colar con filtro fino.",
+          "Añadir el jabón potásico para emulsionar el aceite y pulverizar."
+        ],
+        "brewTime": "24 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:2 (50%) en agua blanda",
+          "frequency": "Cada 5 días en focos activos de plaga"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://npic.orst.edu/factsheets/limonene.html",
+        "title": "d-Limonene General Fact Sheet",
+        "source": "National Pesticide Information Center (Oregon State University / EPA)",
+        "tags": ["limoneno", "citricos", "insecticida-contacto"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0795-7038-b48e-af50af1c5f3a",
+    "slug": "tierra-diatomeas",
+    "name": "Tierra de diatomeas micronizada",
+    "description": "Insecticida físico-mecánico y enmienda silícea de algas fósiles. Compuesto por dióxido de silicio amorfo (>80%). Las partículas microscópicas mesoporosas absorben y adsorben los lípidos y ceras epicuticulares del exoesqueleto del artrópodo mediante capilaridad, provocando muerte por deshidratación irreversible sin generar resistencia genética.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "fertilizer"],
+    "activeIngredients": [
+      "Dióxido de silicio amorfo (SiO2 > 80%)",
+      "Oligoelementos traza (Ca, Mg, Fe)"
+    ],
+    "nutrients": ["Si", "Ca", "Mg"],
+    "targets": [
+      "Pulgón",
+      "Ácaros",
+      "Mosca blanca",
+      "Hormigas",
+      "Trips",
+      "Orugas",
+      "Cochinilla",
+      "Caracoles"
+    ],
+    "recipes": [
+      {
+        "name": "Suspensión foliar de tierra de diatomeas",
+        "description": "Aplicación líquida que al secar crea una película protectora de sílice.",
+        "ingredients": [
+          {
+            "item": "Tierra de diatomeas micronizada no calcinada (grado alimentario)",
+            "quantity": "20-30 g"
+          },
+          {
+            "item": "Agua de lluvia o reposada",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Disolver la tierra de diatomeas en el agua agitando enérgicamente.",
+          "Pulverizar uniformemente sobre haz y envés en días secos.",
+          "Al evaporar el agua queda una fina película blanca protectora sobre las hojas."
+        ],
+        "brewTime": "Inmediato",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "20 a 30 g por litro de agua (o espolvoreo en seco de 50 g/m2)",
+          "frequency": "Cada 15 días preventivo o semanal curativo; repetir tras lluvia"
+        },
+        "safetyNotes": [
+          "Usar exclusivamente tierra de diatomeas natural NO calcinada (grado alimentario); la calcinada contiene sílice cristalino peligroso para las vías respiratorias.",
+          "Utilizar mascarilla durante la manipulación y aplicación en seco.",
+          "Requiere follaje completamente seco para actuar; la humedad ambiental >80% anula transitoriamente la absorción lipídica hasta que se evapora."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://npic.orst.edu/factsheets/degen.html",
+        "title": "Diatomaceous Earth General Fact Sheet",
+        "source": "National Pesticide Information Center (Oregon State University / EPA)",
+        "tags": ["diatomeas", "silice-amorfo", "desecacion", "npic"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0799-7a78-bd42-704d52411984",
+    "slug": "extracto-aguacate",
+    "name": "Extracto de hueso de aguacate",
+    "description": "Repelente e insecticida botánico derivado de semillas trituradas de Persea americana. La persina y los taninos generan sabor amargo astringente y toxicidad estomacal para insectos fitófagos.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "repellent"],
+    "activeIngredients": ["Taninos condensados", "Flavonoides", "Persina"],
+    "targets": ["Pulgón", "Mosca blanca", "Orugas pequeñas", "Caracoles"],
+    "recipes": [
+      {
+        "name": "Decocción de hueso de aguacate rallado",
+        "description": "Cocción de semillas frescas para liberar principios astringentes.",
+        "ingredients": [
+          {
+            "item": "Semillas de aguacate frescas ralladas (2 huesos)",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Rallar las semillas recién sacadas del fruto.",
+          "Hervir en agua a fuego lento durante 20 minutos.",
+          "Dejar enfriar y reposar 12 horas hasta que adquiera tono rojizo.",
+          "Filtrar y diluir en agua antes de aplicar."
+        ],
+        "brewTime": "20 min cocción + 12h reposo",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:2 en agua",
+          "frequency": "Cada 7 días"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.sciencedirect.com/science/article/pii/S092666901830635X",
+        "title": "Bioactive properties of avocado seed extract (Persea americana) against agricultural pests",
+        "source": "Industrial Crops and Products / ScienceDirect",
+        "tags": ["aguacate", "persina", "taninos"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-079b-7d99-9e45-b67d84fd4c94",
+    "slug": "extracto-jengibre",
+    "name": "Macerado repelente de jengibre",
+    "description": "Repelente preventivo picante de Zingiber officinale. Los gingeroles y compuestos aromáticos producen irritación olfativa y disuaden la puesta de huevos en cultivos hortícolas sensibles.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["repellent"],
+    "activeIngredients": ["Gingerol", "Zingibereno", "Shogaol", "Zingerona"],
+    "targets": [
+      "Mosca blanca",
+      "Pulgón",
+      "Minadores de hojas",
+      "Polilla del tomate"
+    ],
+    "recipes": [
+      {
+        "name": "Macerado picante de jengibre fresco",
+        "description": "Triturado y macerado en frío de rizoma de jengibre.",
+        "ingredients": [
+          {
+            "item": "Rizoma de jengibre fresco picado",
+            "quantity": "50 g"
+          },
+          {
+            "item": "Agua tibia",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Triturar el jengibre con 200 ml de agua en batidora.",
+          "Completar hasta 1 L y dejar macerar tapado durante 24-48 horas.",
+          "Filtrar con malla fina para no atascar difusores y pulverizar."
+        ],
+        "brewTime": "24-48 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir o al 50% en agua",
+          "frequency": "Semanalmente al detectar primeros vuelos de plagas"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7074363/",
+        "title": "Insecticidal and Repellent Activities of Zingiber officinale against Whiteflies and Aphids",
+        "source": "NIH / MDPI Plants",
+        "tags": ["jengibre", "gingerol", "repelente"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-079e-7606-951c-7fac4b10f34c",
+    "slug": "infusion-oregano",
+    "name": "Infusión de orégano",
+    "description": "Repelente aromático y bacteriostático de Origanum vulgare. El carvacrol desactiva membranas de patógenos y genera una barrera olorosa disuasoria para hormigas y pulgones.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["repellent", "fungicide"],
+    "activeIngredients": ["Carvacrol", "Timol", "D-Limoneno", "Terpinenos"],
+    "targets": ["Hormigas", "Pulgones", "Ácaros", "Oídio"],
+    "recipes": [
+      {
+        "name": "Infusión concentrada de orégano",
+        "description": "Infusión acuosa aromática para control biológico.",
+        "ingredients": [
+          {
+            "item": "Orégano seco (o 60 g fresco)",
+            "quantity": "25 g"
+          },
+          {
+            "item": "Agua hirviendo",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Verter agua hirviendo sobre el orégano.",
+          "Tapar de inmediato y dejar reposar 12 horas.",
+          "Colar y pulverizar sobre follaje y caminos de hormigas."
+        ],
+        "brewTime": "12 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir",
+          "frequency": "Cada 5-7 días"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6152729/",
+        "title": "Carvacrol from Origanum vulgare: Mechanism of Action as an Agricultural Antifungal",
+        "source": "Frontiers in Microbiology / NIH",
+        "tags": ["oregano", "carvacrol", "antifungico"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07a1-7669-9552-217a7dd18012",
+    "slug": "extracto-tagete",
+    "name": "Extracto nematicida y repelente de tagete",
+    "description": "Nematicida botánico y repelente de Tagetes patula / erecta. Los tiofenos fotoactivables (alfa-tertienil) generan especies reactivas de oxígeno letales para nemátodos fitoparásitos (Meloidogyne). La investigación universitaria demuestra que su mayor eficacia se logra cuando se cultiva como abono verde denso durante 60-90 días donde las raíces vivas actúan como trampa/antagonista.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["nematicide", "repellent"],
+    "activeIngredients": [
+      "Tiofenos (alfa-tertienil)",
+      "Piretrinas naturales",
+      "Carotenoides"
+    ],
+    "targets": [
+      "Nemátodos de nudo (Meloidogyne)",
+      "Mosca blanca",
+      "Pulgones",
+      "Trips"
+    ],
+    "recipes": [
+      {
+        "name": "Purín de flores y hojas de tagete",
+        "description": "Fermentación aeróbica de planta entera de clavel moro.",
+        "ingredients": [
+          {
+            "item": "Tagete en flor troceado",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua de lluvia",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Trocear flores, tallos y hojas de tagete.",
+          "Colocar en agua y dejar fermentar 7-10 días removiendo a diario.",
+          "Filtrar cuando cese la fermentación.",
+          "Regar en la base de solanáceas o cucurbitáceas afectadas por nemátodos."
+        ],
+        "brewTime": "7-10 días",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "1:5 (20%) para riego de suelo; 1:10 para pulverización foliar",
+          "frequency": "Cada 15 días en suelo con historial de nemátodos"
+        },
+        "safetyNotes": [
+          "El extracto líquido de riego aporta un control parcial de choque; para erradicar poblaciones altas de Meloidogyne se recomienda la rotación previa con cultivo vivo de Tagetes patula."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://edis.ifas.ufl.edu/publication/NG045",
+        "title": "Marigold (Tagetes spp.) for Nematode Management",
+        "source": "University of Florida IFAS Extension (Wang & McSorley)",
+        "tags": ["tagete", "meloidogyne", "nematodos", "uf-ifas"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07a4-711c-ab92-13eb7e49dc65",
+    "slug": "infusion-tanaceto",
+    "name": "Infusión repelente de tanaceto",
+    "description": "Insecticida de contacto y repelente amargo de Tanacetum vulgare. La tujona y piretrinas naturales interfieren en la alimentación de coleópteros y dípteros de la huerta.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "repellent"],
+    "activeIngredients": ["Tujona", "Piretrinas naturales", "Taninos"],
+    "targets": [
+      "Hormigas",
+      "Mosca de la col (Delia radicum)",
+      "Polilla de la fruta",
+      "Pulgones"
+    ],
+    "recipes": [
+      {
+        "name": "Infusión de flores y hojas de tanaceto",
+        "description": "Infusión amarga para protección de crucíferas y frutales.",
+        "ingredients": [
+          {
+            "item": "Tanaceto seco (o 100 g fresco)",
+            "quantity": "30 g"
+          },
+          {
+            "item": "Agua hirviendo",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Infundir la planta en agua hirviendo durante 30 minutos.",
+          "Dejar enfriar tapado durante 12 horas.",
+          "Colar y aplicar sobre brásicas y frutales."
+        ],
+        "brewTime": "12 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir",
+          "frequency": "Cada 7 días en época de vuelo de mosca de la col"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7914440/",
+        "title": "Insecticidal and deterrent activities of Tanacetum vulgare L. extracts against agricultural pests",
+        "source": "NIH / MDPI Agronomy",
+        "tags": ["tanaceto", "tujona", "repelente-col"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07a9-7b06-a57b-e1f938a9191e",
+    "slug": "extracto-calendula",
+    "name": "Macerado protector de caléndula",
+    "description": "Biofungicida preventivo y disuasorio de plagas de Calendula officinalis. Estimula la producción de fitoalexinas y exudados protectores en raíces de plantas compañeras.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["repellent", "nematicide"],
+    "activeIngredients": [
+      "Carotenoides",
+      "Flavonoides",
+      "Saponósidos",
+      "Ácido salicílico"
+    ],
+    "targets": ["Nemátodos", "Pulgón", "Gusano del tomate", "Hongos de raíz"],
+    "recipes": [
+      {
+        "name": "Maceración acuosa de caléndula",
+        "description": "Macerado en frío de flores y hojas de caléndula.",
+        "ingredients": [
+          {
+            "item": "Flores y hojas frescas de caléndula",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua fría",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Macerar flores y hojas en agua fría tapado durante 4 días.",
+          "Filtrar por colador de tela.",
+          "Aplicar en pulverización o riego radicular."
+        ],
+        "brewTime": "4 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:5 en agua",
+          "frequency": "Cada 10 días"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://edis.ifas.ufl.edu/publication/EP116",
+        "title": "Calendula officinalis: Companion Planting, Pollinator Attraction, and Pest Suppression",
+        "source": "University of Florida IFAS Extension",
+        "tags": ["calendula", "fitoalexinas", "nematodos"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07ab-7441-ae67-65618551e943",
+    "slug": "hongo-citricos",
+    "name": "Cultivo antagónico de Penicillium de cítricos",
+    "description": "Biofungicida antagónico elaborado a partir de cítricos enmohecidos naturalmente con micelio verde de Penicillium. Compite por nutrientes y espacio con hongos fitopatógenos necrotróficos en podas y heridas.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fungicide"],
+    "activeIngredients": [
+      "Penicillium digitatum / italicum",
+      "Penicilina natural"
+    ],
+    "targets": [
+      "Monilia",
+      "Botrytis",
+      "Podredumbre de frutos",
+      "Hongos de suelo"
+    ],
+    "recipes": [
+      {
+        "name": "Suspensión de esporas de Penicillium cítrico",
+        "description": "Suspensión acuosa de esporas para heridas de poda y frutos.",
+        "ingredients": [
+          {
+            "item": "Cáscara de naranja o limón cubierta de moho verde/azul",
+            "quantity": "2 unidades"
+          },
+          {
+            "item": "Agua desclorada con 1 cucharada de azúcar",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Raspar el moho verde en un frasco con agua azucarada.",
+          "Agitar vigorosamente para dispersar millones de esporas fúngicas.",
+          "Filtrar trozos gruesos y pulverizar de inmediato sobre heridas de poda y frutos en formación."
+        ],
+        "brewTime": "Inmediato",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "Sin diluir",
+          "frequency": "Tras podas o preventivo antes de maduración"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.sciencedirect.com/science/article/pii/S104996440700078X",
+        "title": "Biocontrol and fungal competition of Penicillium digitatum on citrus and wound colonisation",
+        "source": "Biological Control / Elsevier",
+        "tags": ["penicillium", "antagonismo-biologico", "biocontrol"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07ae-7031-84cb-49b43466b0ce",
+    "slug": "insecticida-jabon-neem",
+    "name": "Emulsión combinada de jabón potásico y aceite de neem",
+    "description": "Emulsión dual sinérgica de jabón potásico y aceite puro de neem. El jabón potásico actúa como tensoactivo reduciendo la tensión superficial y disolviendo la cera protectora de la plaga, facilitando la penetración cuticular de la azadiractina para inhibir la ecdisona y provocar la muerte por asfixia y muda incompleta.",
+    "category": "defense",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["insecticide", "repellent"],
+    "activeIngredients": [
+      "Oleato de potasio",
+      "Azadiractina",
+      "Nimbina",
+      "Meliantriol"
+    ],
+    "nutrients": ["K"],
+    "targets": [
+      "Pulgón",
+      "Mosca blanca",
+      "Araña roja",
+      "Trips",
+      "Cochinilla",
+      "Orugas jóvenes"
+    ],
+    "recipes": [
+      {
+        "name": "Emulsión dual en spray foliar",
+        "description": "Mezcla emulsionada lista para pulverizar sobre plagas activas.",
+        "ingredients": [
+          {
+            "item": "Jabón potásico líquido o blando",
+            "quantity": "10-15 ml"
+          },
+          {
+            "item": "Aceite puro de neem prensado en frío",
+            "quantity": "3-5 ml"
+          },
+          {
+            "item": "Agua tibia sin cloro",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Disolver primero el jabón potásico en 200 ml de agua tibia hasta disolución total.",
+          "Añadir el aceite de neem al agua jabonosa y agitar enérgicamente hasta lograr una emulsión lechosa homogénea sin gotas flotando.",
+          "Completar con el resto del agua y rellenar el pulverizador.",
+          "Aplicar al atardecer sobre toda la vegetación, insistiendo en el envés foliar.",
+          "Agitar periódicamente el pulverizador durante la aplicación."
+        ],
+        "brewTime": "Inmediato",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "10-15 ml jabón + 3-5 ml neem por litro de agua",
+          "frequency": "Cada 5 días en infestación activa; cada 15 días preventivo"
+        },
+        "storage": {
+          "duration": "Usar antes de 24 horas tras preparar la mezcla",
+          "conditions": "No guardar diluido"
+        },
+        "safetyNotes": [
+          "Agitar con frecuencia durante la aplicación para mantener la emulsión estable.",
+          "Aplicar al atardecer."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.colostate.edu/topic-areas/insects/insect-control-soaps-and-detergents-5-547/",
+        "title": "Insect Control: Soaps and Horticultural Oils Combination",
+        "source": "Colorado State University Extension",
+        "tags": ["jabon-potasico", "neem", "emulsion-dual"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07b1-76d6-8dab-268b6acbd840",
+    "slug": "te-compost",
+    "name": "Té de compost aireado (ACT)",
+    "description": "Té de compost aireado (ACT) elaborado con aireación forzada continua para multiplicación de consorcios bacterianos y fúngicos aeróbicos y liberación de ácidos fúlvicos. Investigaciones de USDA-ARS y Cornell University demuestran que es un excelente revitalizador biológico del suelo, aunque su persistencia como protector foliar es variable bajo radiación solar intensa.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": [
+      "Consorcio microbiano aeróbico",
+      "Ácidos fúlvicos y húmicos",
+      "N-P-K soluble"
+    ],
+    "nutrients": ["N", "P", "K", "Ca", "Fe", "Mg", "Zn"],
+    "targets": [
+      "Revitalización del suelo",
+      "Nutrición foliar equilibrada",
+      "Defensa biológica frente a hongos foliares"
+    ],
+    "recipes": [
+      {
+        "name": "Té de compost aireado con bomba de aire",
+        "description": "Multiplicación aeróbica continua de microorganismos benéficos.",
+        "ingredients": [
+          {
+            "item": "Compost maduro o vermicompost de calidad",
+            "quantity": "500 g"
+          },
+          {
+            "item": "Agua desclorada (sin cloro)",
+            "quantity": "10 L"
+          },
+          {
+            "item": "Melaza de caña o azúcar moreno",
+            "quantity": "30 ml"
+          }
+        ],
+        "instructions": [
+          "Colocar el compost en una bolsa de tela o calcetín fino.",
+          "Sumergir en el agua y añadir la melaza disuelta.",
+          "Introducir un difusor con bomba de aire de acuario y burbujear continuamente durante 24-36 horas.",
+          "El té estará listo cuando tenga espuma espesa y olor agradable a tierra húmeda.",
+          "Aplicar en las siguientes 4 horas para mantener la microbiología viva."
+        ],
+        "brewTime": "24-36 horas",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1 en agua para foliar; sin diluir para riego radicular",
+          "frequency": "Cada 15 días en crecimiento y floración"
+        },
+        "safetyNotes": [
+          "Aplicar en las 4 horas posteriores a la finalización del burbujeo para mantener la microbiota viva.",
+          "Directrices NOP: Evitar añadir azúcares/melaza en té destinado a pulverización de hortalizas de hoja próximas a la cosecha para evitar riesgos de multiplicación bacteriana entérica."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://vric.ucdavis.edu/pdf/composttea.pdf",
+        "title": "Compost Teas: Principles of Production, Quality Control, and Disease Suppression",
+        "source": "UC Davis / USDA-ARS (Steve Scheuerell & Walter Mahaffee)",
+        "tags": ["te-compost", "scheuerell", "usda-ars", "uc-davis"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07b5-7c35-90fb-fb99b2b34dbf",
+    "slug": "te-platano",
+    "name": "Té y decocción de cáscara de plátano",
+    "description": "Aporte complementario de potasio y oligominerales. La investigación universitaria (Maryland y Clemson Extension) aclara que la infusión acuosa de cáscaras lecha dosis minerales bajas (<0.05% K) pero ricas en azúcares que pueden atraer mosquitas del mantillo. Se aconseja complementar con ceniza de madera o compostaje para un aporte mineral equilibrado.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer"],
+    "activeIngredients": [
+      "Potasio soluble (K)",
+      "Fósforo (P)",
+      "Calcio (Ca)",
+      "Magnesio (Mg)"
+    ],
+    "nutrients": ["K", "P", "Ca", "Mg"],
+    "targets": [
+      "Floración abundante",
+      "Cuajado y engorde de frutos",
+      "Corrección de carencias de potasio"
+    ],
+    "recipes": [
+      {
+        "name": "Decocción concentrada de cáscaras de plátano",
+        "description": "Cocción de cáscaras para liberar sales minerales solubles.",
+        "ingredients": [
+          {
+            "item": "Cáscaras de plátano maduras cortadas en trozos",
+            "quantity": "5 unidades"
+          },
+          {
+            "item": "Agua",
+            "quantity": "1 L"
+          },
+          {
+            "item": "Melaza o miel (opcional)",
+            "quantity": "1 cucharadita"
+          }
+        ],
+        "instructions": [
+          "Cortar las cáscaras de plátano en trozos pequeños.",
+          "Hervir en 1 L de agua durante 15 minutos a fuego lento.",
+          "Dejar enfriar, reposar tapado 24 horas y colar.",
+          "Diluir al 30% en agua de riego antes de regar las plantas."
+        ],
+        "brewTime": "15 min cocción + 24h reposo",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "1:3 (30%) en agua de riego",
+          "frequency": "Cada 15 días durante floración y engorde"
+        },
+        "storage": {
+          "duration": "Hasta 1 semana en nevera",
+          "conditions": "Botella cerrada en frío"
+        },
+        "safetyNotes": [
+          "No abusar en macetas de interior para evitar proliferación de larvas de mosca del mantillo (Sciaridae) alimentadas por los azúcares disueltos.",
+          "Para un aporte concentrado de potasio mineral, es superior incorporar ceniza de cáscaras secas o compostar las pieles."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.umd.edu/resource/fertilizing-indoor-plants-and-gardens",
+        "title": "Evaluating Home Remedies: Banana Peel Fertilizers vs. Balanced Plant Nutrition",
+        "source": "University of Maryland Extension",
+        "tags": ["platano", "potasio", "umd-extension"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07b9-7d30-9c01-ab0290db1d09",
+    "slug": "abono-aloe-vera",
+    "name": "Abono líquido de Aloe Vera para solanáceas",
+    "description": "Biofertilizante foliar y radicular de alto rendimiento para solanáceas y cítricos. Combina el mucílago de Aloe barbadensis rico en polisacáridos inmunomoduladores con sales minerales biodisponibles.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": [
+      "Acemanano",
+      "Enzimas vegetales",
+      "Fitohormonas",
+      "Polisacáridos"
+    ],
+    "nutrients": ["P", "K", "Ca", "Fe", "Mg", "Zn", "Na", "Mn", "Cu"],
+    "targets": [
+      "Nutrición intensiva de tomates y pimientos",
+      "Resistencia a estrés térmico",
+      "Vigor vegetativo"
+    ],
+    "recipes": [
+      {
+        "name": "Fermentado de gel de aloe y cáscaras",
+        "description": "Maceración bioactiva de penca de aloe vera entera.",
+        "ingredients": [
+          {
+            "item": "Penca grande de aloe vera troceada",
+            "quantity": "1 unidad (aprox. 300 g)"
+          },
+          {
+            "item": "Cáscaras de plátano",
+            "quantity": "2 unidades"
+          },
+          {
+            "item": "Agua de lluvia",
+            "quantity": "3 L"
+          }
+        ],
+        "instructions": [
+          "Triturar la penca de aloe entera con cáscaras de plátano en batidora.",
+          "Añadir al agua en garrafa y dejar fermentar 5-7 días tapado con tela.",
+          "Colar fino para eliminar pulpa y regar en pie de tomates y pimientos."
+        ],
+        "brewTime": "5-7 días",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "1:5 (20%) en agua",
+          "frequency": "Cada 10 días tras el trasplante"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.mdpi.com/2077-0472/11/7/655",
+        "title": "Aloe vera Gel as a Biostimulant for Plant Growth and Stress Mitigation in Solanaceous Crops",
+        "source": "MDPI Agriculture / University Research",
+        "tags": ["aloe-vera", "acemanano", "solanaceas"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07bd-7ff0-80f7-78a76ec88671",
+    "slug": "ceniza-huesos",
+    "name": "Ceniza y harina de huesos calcinados",
+    "description": "Enmienda mineral rica en fósforo y calcio de liberación sostenida. Los huesos tostados y pulverizados proporcionan fosfato monocálcico asimilable sin grasas ni patógenos.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer"],
+    "activeIngredients": ["Fosfato monocálcico", "Hidroxiapatita mineral"],
+    "nutrients": ["P", "Ca"],
+    "targets": [
+      "Enraizamiento profundo",
+      "Floración explosiva",
+      "Maduración de semillas"
+    ],
+    "recipes": [
+      {
+        "name": "Calcinación y molienda de huesos",
+        "description": "Quema controlada y pulverizado de huesos secos.",
+        "ingredients": [
+          {
+            "item": "Huesos limpios de animales (vacuno, pollo)",
+            "quantity": "1 kg"
+          }
+        ],
+        "instructions": [
+          "Tostar los huesos en brasas hasta que queden blancos y quebradizos.",
+          "Machacar en mortero o molino hasta obtener polvo fino.",
+          "Incorporar al hoyo de plantación o sustrato superficial."
+        ],
+        "brewTime": "Calcinación hasta ceniza blanca",
+        "dosage": {
+          "method": "soil",
+          "dilution": "Polvo puro: 30-50 g por hoyo de plantación o metro cuadrado",
+          "frequency": "Una vez por ciclo de cultivo"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.oregonstate.edu/gardening/soil-compost/bone-meal-and-calcined-bone-phosphorus",
+        "title": "Phosphorus and Calcium Availability from Bone Meal and Ash",
+        "source": "Oregon State University Extension Service",
+        "tags": ["ceniza-huesos", "fosforo", "calcio", "enraizamiento"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07c1-7452-a09c-9cd865f5fc9a",
+    "slug": "abono-bocashi",
+    "name": "Abono fermentado Bocashi",
+    "description": "Abono orgánico fermentado de origen japonés elaborado en 10-14 días mediante fermentación termófila inicial y posterior estabilización láctica con salvado, carbón biochar y melaza. Conserva significativamente más nitrógeno y carbono que el compostaje tradicional al evitar la volatilización de amoníaco y solubiliza fósforo mediante ácidos orgánicos.",
+    "category": "soil_amendment",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "compost_activator"],
+    "activeIngredients": [
+      "Materia orgánica humificada",
+      "Carbón vegetal biochar",
+      "Microorganismos termófilos"
+    ],
+    "nutrients": ["N", "P", "K", "Ca", "Mg", "Fe"],
+    "targets": [
+      "Abonado de fondo del huerto",
+      "Mejora de la estructura edáfica",
+      "Inoculación microbiana de bancales"
+    ],
+    "recipes": [
+      {
+        "name": "Pila de bocashi aeróbico de 10 días",
+        "description": "Fermentación rápida volteada con control de temperatura.",
+        "ingredients": [
+          {
+            "item": "Salvado de trigo o arroz (o cascarilla)",
+            "quantity": "20 kg"
+          },
+          {
+            "item": "Estiércol curado o gallinaza",
+            "quantity": "20 kg"
+          },
+          {
+            "item": "Tierra de bosque o compost maduro",
+            "quantity": "20 kg"
+          },
+          {
+            "item": "Carbón vegetal molido",
+            "quantity": "10 kg"
+          },
+          {
+            "item": "Melaza y levadura disueltas en agua",
+            "quantity": "1 L melaza + 100 g levadura en 15 L agua"
+          }
+        ],
+        "instructions": [
+          "Mezclar homogéneamente todos los ingredientes secos en capas.",
+          "Regar con el agua de melaza hasta alcanzar el 50% de humedad.",
+          "Formar un montón de 1 metro de altura.",
+          "Voltear 2 veces al día durante los primeros 4 días para regular temperatura bajo 60 °C.",
+          "Voltear 1 vez al día del día 5 al 10 hasta estabilización en color grisáceo."
+        ],
+        "brewTime": "10-14 días",
+        "dosage": {
+          "method": "soil",
+          "dilution": "Sólido: 200 a 500 g por m2 incorporado superficialmente",
+          "frequency": "Al preparar bancales o cada 3 meses"
+        },
+        "safetyNotes": [
+          "Requisito agronómico: Debido a su acidez transitoria y sales iniciales, requiere un periodo de reposo en suelo de 10 a 14 días antes de sembrar o trasplantar para no dañar raíces sensibles."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.sare.org/publications/manage-insects-on-your-farm/soil-health-and-crop-diversity/bokashi-fermentation/",
+        "title": "Bokashi Fermentation and Soil Microbial Communities",
+        "source": "USDA Sustainable Agriculture Research and Education (SARE)",
+        "tags": ["bocashi", "fermentacion-lactica", "usda-sare"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07c3-7e34-950a-66b7d1c7fea8",
+    "slug": "te-patata",
+    "name": "Té y decocción de piel de patata",
+    "description": "Aporte suave de potasio y carbohidratos solubles obtenido al cocer o macerar mondas de Solanum tuberosum. Alimenta la microflora benéfica del suelo y estimula la turgencia celular.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer"],
+    "activeIngredients": ["Potasio (K)", "Almidón digestible", "Fósforo"],
+    "nutrients": ["K", "P", "Mg"],
+    "targets": [
+      "Engorde de tubérculos y raíces",
+      "Fructificación en solanáceas"
+    ],
+    "recipes": [
+      {
+        "name": "Decocción de mondas de patata",
+        "description": "Cocción suave de pieles limpias de patata.",
+        "ingredients": [
+          {
+            "item": "Pieles de patata limpias sin brotes verdes",
+            "quantity": "200 g"
+          },
+          {
+            "item": "Agua",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Hervir las mondas de patata durante 15 minutos en agua sin sal.",
+          "Dejar enfriar tapado y colar.",
+          "Regar directamente la tierra de las plantas en fase de engorde."
+        ],
+        "brewTime": "15 min cocción + 6h enfriado",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "1:1 en agua",
+          "frequency": "Cada 15 días"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.colostate.edu/topic-areas/yard-garden/understanding-fertilizers-7-703/",
+        "title": "Organic Sources of Potassium in Garden Soils",
+        "source": "Colorado State University Extension",
+        "tags": ["patata", "potasio", "fertilizante-organico"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07cf-7af6-a79d-2d139a541a09",
+    "slug": "extracto-maiz",
+    "name": "Infusión y fermentado de estigmas de maíz",
+    "description": "Preparado casero a partir de barbas o estigmas de mazorcas de Zea mays. Destaca por su contenido en fitoesteroles, potasio y mucílagos que nutren plantas en periodos cálidos.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": ["Potasio (K)", "Auxinas naturales", "Flavonoides"],
+    "nutrients": ["K", "N", "P"],
+    "targets": ["Bioestimulación de floración", "Regulación hídrica celular"],
+    "recipes": [
+      {
+        "name": "Infusión de barbas de maíz",
+        "description": "Infusión suave para pulverización foliar nutritiva.",
+        "ingredients": [
+          {
+            "item": "Estigmas de maíz frescos o secos",
+            "quantity": "50 g"
+          },
+          {
+            "item": "Agua hirviendo",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Verter agua hirviendo sobre las barbas de maíz.",
+          "Dejar en infusión tapado hasta enfriar (12h).",
+          "Filtrar y regar o pulverizar."
+        ],
+        "brewTime": "12 horas",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "Sin diluir",
+          "frequency": "Cada 10 días en época cálida"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8073896/",
+        "title": "Corn Silk (Stigma maydis): Bioactive Components, Potassium and Plant Biostimulation",
+        "source": "Frontiers in Plant Science / NIH",
+        "tags": ["maiz", "estigmas", "potasio"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07d2-7c71-9cc8-2f4135cca3aa",
+    "slug": "abono-casero-completo",
+    "name": "Abono líquido casero multielemento",
+    "description": "Combinación de fuentes caseras (posos de café para nitrógeno, ceniza de madera para potasio, cáscara de huevo para calcio) para aportar los tres macronutrientes primarios y secundarios de forma integral.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer"],
+    "activeIngredients": [
+      "Nitrógeno orgánico (N)",
+      "Fósforo (P)",
+      "Potasio (K)",
+      "Calcio (Ca)"
+    ],
+    "nutrients": ["N", "P", "K", "Ca", "Mg"],
+    "targets": [
+      "Nutrición equilibrada multielemento",
+      "Crecimiento vegetativo continuo"
+    ],
+    "recipes": [
+      {
+        "name": "Macerado nutritivo integral",
+        "description": "Maceración mixta de residuos orgánicos domésticos ricos en N-P-K.",
+        "ingredients": [
+          {
+            "item": "Posos de café usados secos",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Cáscaras de huevo trituradas",
+            "quantity": "50 g"
+          },
+          {
+            "item": "Ceniza de leña tamizada",
+            "quantity": "20 g"
+          },
+          {
+            "item": "Agua",
+            "quantity": "5 L"
+          }
+        ],
+        "instructions": [
+          "Mezclar los posos, cáscaras y ceniza en el agua.",
+          "Dejar reposar 72 horas agitando una vez al día.",
+          "Filtrar y aplicar en el agua de riego."
+        ],
+        "brewTime": "3 días",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "Sin diluir",
+          "frequency": "Cada 15 días"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.oregonstate.edu/gardening/soil-compost/coffee-grounds-eggshells-wood-ash-garden",
+        "title": "Using Coffee Grounds, Eggshells, and Wood Ash in Home Gardening",
+        "source": "Oregon State University Extension",
+        "tags": ["abono-casero", "npk", "posos-cafe", "ceniza"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07d5-7ade-8933-8dd2f24d7b0e",
+    "slug": "enraizante-lentejas",
+    "name": "Enraizante natural de lentejas germinadas",
+    "description": "Estimulante radicular natural rico en auxinas vegetales. Durante la imbibición y rotura de la dormición en Lens culinaris, la degradación de reservas proteicas moviliza triptófano y dispara la síntesis de ácido indol-3-acético (AIA) endógeno, promoviendo la división del cambium y la emisión de raíces adventicias en esquejes.",
+    "category": "biostimulant",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["rooting", "biostimulant"],
+    "activeIngredients": [
+      "Ácido indolacético (AIA)",
+      "Auxinas de germinación",
+      "Enzimas hidrolíticas"
+    ],
+    "nutrients": ["N", "P", "Fe"],
+    "targets": [
+      "Enraizamiento de esquejes leñosos y tiernos",
+      "Establecimiento rápido de plántulas trasplantadas"
+    ],
+    "recipes": [
+      {
+        "name": "Concentrado de auxinas de lentejas",
+        "description": "Extracción acuosa de brotes germinados ricos en auxinas.",
+        "ingredients": [
+          {
+            "item": "Lentejas secas de cultivo",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Poner las lentejas en remojo durante 8 horas y colar reservando el agua.",
+          "Mantener las lentejas húmedas y oscuras durante 3-4 días hasta que desarrollen raíz de 1-2 cm.",
+          "Triturar las lentejas germinadas con el agua reservada en batidora.",
+          "Colar con filtro fino para obtener el extracto lechoso concentrado."
+        ],
+        "brewTime": "4 días de germinado",
+        "dosage": {
+          "method": "soaking",
+          "dilution": "1:10 en agua para inmersión de esquejes durante 2-4 horas o riego de semillero",
+          "frequency": "En el momento del esquejado o trasplante; repetir a los 7 días"
+        },
+        "safetyNotes": [
+          "Cosechar y triturar cuando la radícula blanca mida entre 1 y 2 cm; si se deja crecer hasta hojas verdes, aumentan las citoquininas que inhiben el enraizamiento.",
+          "Filtrar muy bien con paño fino y usar sustrato aireado estéril, ya que los restos de almidón no filtrados pueden alimentar bacterias y hongos patógenos de raíz."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.mdpi.com/2311-7524/7/8/235",
+        "title": "Effect of Botanical Extracts as Natural Rooting Promoters in Stem Cuttings",
+        "source": "MDPI Horticulturae / Applied Horticultural Research",
+        "tags": ["lentejas", "auxinas", "enraizamiento", "aia"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07d8-79ab-a0b7-c189bdc69237",
+    "slug": "enraizante-aloe-vera",
+    "name": "Gel enraizante y cicatrizante de Aloe Vera",
+    "description": "Agente enraizante y antiséptico natural obtenido del gel de Aloe vera. El ácido salicílico previene infecciones fúngicas bacterianas en la base del esqueje mientras las auxinas aceleran la emisión del callo radicular.",
+    "category": "biostimulant",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["rooting", "biostimulant", "fungicide"],
+    "activeIngredients": [
+      "Auxinas y giberelinas",
+      "Ácido salicílico",
+      "Antraquinonas"
+    ],
+    "nutrients": ["Ca", "Mg", "K"],
+    "targets": [
+      "Protección de cortes de esquejes",
+      "Cicatrización radicular",
+      "Emisión de raíces"
+    ],
+    "recipes": [
+      {
+        "name": "Gel directo o diluido para esquejes",
+        "description": "Aplicación de gel puro sobre cortes frescos de tallo.",
+        "ingredients": [
+          {
+            "item": "Penca fresca madura de aloe vera",
+            "quantity": "1 unidad"
+          },
+          {
+            "item": "Agua (para dilución)",
+            "quantity": "500 ml"
+          }
+        ],
+        "instructions": [
+          "Pelar la corteza verde y extraer el gel cristalino.",
+          "Triturar con la mitad de su volumen en agua.",
+          "Untar directamente la base del esqueje en el gel antes de plantar en sustrato.",
+          "Regar con el sobrante diluido."
+        ],
+        "brewTime": "Inmediato",
+        "dosage": {
+          "method": "soaking",
+          "dilution": "Puro para embadurnar la base del esqueje, o 1:5 en agua para riego",
+          "frequency": "En el momento del corte y en el primer riego"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.sciencedirect.com/science/article/pii/S1658077X1630044X",
+        "title": "Aloe vera gel as a natural rooting agent in cuttings of ornamental and fruit species",
+        "source": "Journal of the Saudi Society of Agricultural Sciences / ScienceDirect",
+        "tags": ["aloe-vera", "enraizamiento", "cicatrizante"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07da-7780-972f-64f31d7728f0",
+    "slug": "enraizante-canela",
+    "name": "Infusión enraizante y fungicida de canela",
+    "description": "Protector antiséptico y biofungicida para esquejes recién cortados registrado como ingrediente activo 25(b) por la EPA. El cinamaldehído lisa membranas de hongos patógenos (Fusarium, Botrytis, Pythium). Nota científica: la canela no contiene auxinas ni estimula directamente las raíces; su beneficio radica en evitar la pudrición basal para que el esqueje enraíce con sus propias hormonas.",
+    "category": "biostimulant",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["rooting", "fungicide"],
+    "activeIngredients": ["Cinamaldehído", "Eugenol", "Taninos"],
+    "targets": [
+      "Prevención de podredumbre de esquejes",
+      "Cicatrización de heridas de poda",
+      "Estímulo de callo"
+    ],
+    "recipes": [
+      {
+        "name": "Infusión de canela para esquejes",
+        "description": "Maceración tibia de canela en polvo.",
+        "ingredients": [
+          {
+            "item": "Canela en polvo",
+            "quantity": "25 g"
+          },
+          {
+            "item": "Agua tibia",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Mezclar la canela en agua tibia y dejar reposar 12 horas.",
+          "Colar con filtro fino.",
+          "Sumergir la base de los esquejes durante 30 minutos antes de plantar."
+        ],
+        "brewTime": "12 horas",
+        "dosage": {
+          "method": "soaking",
+          "dilution": "Sin diluir",
+          "frequency": "En el momento del esquejado"
+        },
+        "safetyNotes": [
+          "No abusar en la dosis ni aplicar capas gruesas de polvo puro, pues concentraciones elevadas de cinamaldehído ejercen efecto alelopático inhibidor de la elongación radicular."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.epa.gov/minimum-risk-pesticides/active-ingredients-eligible-minimum-risk-pesticide-products",
+        "title": "Cinnamon and Cinnamaldehyde: Minimum Risk Pesticide Active Ingredient Factsheet",
+        "source": "US Environmental Protection Agency (EPA 25b)",
+        "tags": ["canela", "cinamaldehido", "epa", "fungicida-heridas"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07dd-70c1-a8c4-1f37e2407aaa",
+    "slug": "knf-fpj",
+    "name": "FPJ (Fermented Plant Juice) - Zumo vegetal fermentado",
+    "description": "Zumo vegetal fermentado (Fermented Plant Juice) de KNF estandarizado por la Universidad de Hawaii (CTAHR Bulletin SA-7). Extrae mediante presión osmótica con azúcar moreno (1:1) la savia de brotes verdes cosechados antes del amanecer, concentrando auxinas, citoquininas y bacterias lácticas epífitas para estimular el crecimiento vegetativo.",
+    "category": "biostimulant",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["biostimulant", "fertilizer"],
+    "activeIngredients": [
+      "Auxinas y citoquininas naturales",
+      "Clorofila hidrosoluble",
+      "Bacterias ácido lácticas epífitas"
+    ],
+    "nutrients": ["N", "K", "Mg", "Fe"],
+    "targets": [
+      "Impulso del crecimiento vegetativo",
+      "Vigor en plántulas recién nacidas",
+      "Activación fotosintética"
+    ],
+    "recipes": [
+      {
+        "name": "Elaboración tradicional de FPJ de brotes tiernos",
+        "description": "Fermentación osmótica de brotes verdes cosechados al amanecer.",
+        "ingredients": [
+          {
+            "item": "Puntas de brotes tiernos cosechados antes del amanecer (ortiga, bambú)",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Azúcar moreno o panela",
+            "quantity": "1 kg"
+          }
+        ],
+        "instructions": [
+          "No lavar los brotes para preservar los microorganismos epífitos.",
+          "Cortar los brotes en trozos de 3 a 5 cm.",
+          "Mezclar con 700 g de azúcar moreno masajeando suavemente.",
+          "Envasar en tarro de vidrio y cubrir con los 300 g de azúcar restantes arriba.",
+          "Tapar con tela transpirable y fermentar 7 días a 20-25 °C.",
+          "Filtrar y embotellar el jarabe concentrado."
+        ],
+        "brewTime": "7 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1000 a 1:500 (1 a 2 ml por litro de agua)",
+          "frequency": "Semanalmente en fase vegetativa"
+        },
+        "storage": {
+          "duration": "Hasta 1 año",
+          "conditions": "Lugar fresco y oscuro sin refrigerar"
+        },
+        "safetyNotes": [
+          "Cosechar brotes antes de que dé el sol directo para aprovechar el flujo máximo de fitohormonas y microbios matutinos.",
+          "No lavar el material vegetal para no eliminar la microbiota epífita natural."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-7.pdf",
+        "title": "Natural Farming: Fermented Plant Juice (FPJ)",
+        "source": "University of Hawaii CTAHR (Bulletin SA-7, 2013)",
+        "tags": ["knf", "fpj", "brotes-tiernos", "ctahr"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07df-7f01-85cd-ca270ad23060",
+    "slug": "knf-ffj",
+    "name": "FFJ (Fermented Fruit Juice) - Zumo de frutas fermentado",
+    "description": "Extracto fermentado KNF a base de frutas muy dulces maduras (plátano, papaya, higos, uvas). Aporta nutrición energética y potasio en las etapas reproductivas de la planta sin provocar excesos de nitrógeno.",
+    "category": "biostimulant",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["biostimulant", "fertilizer"],
+    "activeIngredients": [
+      "Fructosa y glucosa naturales",
+      "Potasio orgánico",
+      "Enzimas de maduración"
+    ],
+    "nutrients": ["K", "P", "Mg"],
+    "targets": [
+      "Inducción y sostenimiento de floración",
+      "Mejora del cuajado de frutos",
+      "Incremento de grados Brix y sabor"
+    ],
+    "recipes": [
+      {
+        "name": "Elaboración de FFJ de frutas maduras",
+        "description": "Fermentación osmótica de frutas ricas en potasio.",
+        "ingredients": [
+          {
+            "item": "Frutas maduras dulces sin moho (plátano, higo, uva)",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Azúcar moreno",
+            "quantity": "1 kg"
+          }
+        ],
+        "instructions": [
+          "Trocear las frutas maduras con piel sin lavar.",
+          "Mezclar en partes iguales en peso con azúcar moreno.",
+          "Envasar en tarro cubriendo con una capa de azúcar arriba.",
+          "Tapar con tela transpirable y fermentar 7-10 días.",
+          "Filtrar el jarabe aromático y embotellar."
+        ],
+        "brewTime": "7-10 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1000 (1 ml/L) foliar o riego",
+          "frequency": "Cada 7-10 días desde floración hasta cosecha"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-7.pdf",
+        "title": "Natural Farming: Fermented Fruit Juice (FFJ) Principles and Applications",
+        "source": "University of Hawaii CTAHR",
+        "tags": ["knf", "ffj", "floracion", "potasio"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07e2-78dd-9d80-8ff20bd17f9d",
+    "slug": "knf-faa",
+    "name": "FAA (Fish Amino Acid) - Aminoácidos de pescado",
+    "description": "Aminoácidos de pescado (Fish Amino Acid) de KNF estandarizado por la Universidad de Hawaii (CTAHR Bulletin SA-12). Hidrólisis y fermentación osmótica de restos de pescado fresco con azúcar durante 2-6 meses, descomponiendo proteínas en nitrógeno orgánico líquido y aminoácidos libres de absorción directa.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": [
+      "Aminoácidos libres (péptidos, peptonas)",
+      "Nitrógeno orgánico soluble"
+    ],
+    "nutrients": ["N", "P", "Ca"],
+    "targets": [
+      "Aporte intensivo de nitrógeno y proteínas",
+      "Crecimiento estructural",
+      "Multiplicación microbiana en suelo"
+    ],
+    "recipes": [
+      {
+        "name": "Fermentación osmótica de pescado KNF",
+        "description": "Hidrólisis enzimática de restos de pescado.",
+        "ingredients": [
+          {
+            "item": "Restos frescos de pescado azul (cabezas, vísceras)",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Azúcar moreno o melaza",
+            "quantity": "1 kg"
+          }
+        ],
+        "instructions": [
+          "Cortar los restos de pescado.",
+          "Mezclar en relación 1:1 con azúcar moreno.",
+          "Envasar en tarro de boca ancha y cubrir con capa de azúcar.",
+          "Cubrir con tela y dejar fermentar de 3 a 6 meses hasta licuefacción total.",
+          "Filtrar el extracto oscuro resultante."
+        ],
+        "brewTime": "3 a 6 meses",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "1:1000 a 1:500 (1 a 2 ml por litro)",
+          "frequency": "Cada 15 días en crecimiento vegetativo"
+        },
+        "safetyNotes": [
+          "Mantener bien sellado con tela porosa y capa superior de azúcar para evitar olores indeseados y moscas.",
+          "Suspender o reducir dosis durante la floración tardía para no provocar exceso vegetativo."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-12.pdf",
+        "title": "Natural Farming: Fish Amino Acid (FAA)",
+        "source": "University of Hawaii CTAHR (Bulletin SA-12, 2014)",
+        "tags": ["knf", "faa", "aminoacidos-pescado", "ctahr"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07e4-758c-943b-7133c787fb09",
+    "slug": "knf-ohn",
+    "name": "OHN (Oriental Herbal Nutrients) - Nutrientes herbales orientales",
+    "description": "Nutrientes herbales orientales (Oriental Herbal Nutrients) de KNF estandarizado por la Universidad de Hawaii (CTAHR Bulletin SA-11). Tintura fermentada madre de ajo, jengibre, canela, regaliz y angélica en alcohol y azúcar que fortalece las defensas endógenas y la resiliencia frente a heladas y estrés térmico.",
+    "category": "biostimulant",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["biostimulant", "repellent", "fungicide"],
+    "activeIngredients": [
+      "Polifenoles",
+      "Aceites esenciales (gingerol, alicina, cinamaldehído)",
+      "Glicirricina"
+    ],
+    "targets": [
+      "Estimulación del sistema inmunológico vegetal",
+      "Tolerancia a heladas y estrés por calor",
+      "Repelencia de insectos y prevención fúngica"
+    ],
+    "recipes": [
+      {
+        "name": "Fórmula maestra KNF de OHN",
+        "description": "Maceración e infusión hidroalcohólica de 5 plantas maestras.",
+        "ingredients": [
+          {
+            "item": "Ajo, jengibre, canela, regaliz y angélica desecados",
+            "quantity": "1:1:1:1:2 en proporción"
+          },
+          {
+            "item": "Cerveza o vino de arroz para rehidratación",
+            "quantity": "1 L"
+          },
+          {
+            "item": "Aguardiente destilado (30-40 grados)",
+            "quantity": "2 L"
+          }
+        ],
+        "instructions": [
+          "Rehidratar cada hierba por separado en frascos con cerveza durante 2-3 días.",
+          "Añadir azúcar moreno equivalente al peso seco y reposar 5 días.",
+          "Llenar con aguardiente y macerar 14 días agitando a diario.",
+          "Prensarse y mezclar los 5 extractos en la proporción maestra.",
+          "Diluir en agua antes de pulverizar."
+        ],
+        "brewTime": "20-30 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1000 (1 ml por litro de agua)",
+          "frequency": "Cada 7-14 días o preventivo ante heladas o estrés térmico"
+        },
+        "safetyNotes": [
+          "Rehidratar las hierbas secas por separado antes de la extracción alcohólica.",
+          "Conservar en frasco oscuro en lugar fresco."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-11.pdf",
+        "title": "Natural Farming: Oriental Herbal Nutrient (OHN)",
+        "source": "University of Hawaii CTAHR (Bulletin SA-11, 2014)",
+        "tags": ["knf", "ohn", "tintura-inmunitaria", "ctahr"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07e7-7c83-9816-be94fa3931bb",
+    "slug": "knf-wca",
+    "name": "WCa (Water-Soluble Calcium) - Calcio soluble en agua",
+    "description": "Calcio soluble en agua (Water-Soluble Calcium) estandarizado por la Universidad de Hawaii (CTAHR Bulletin SA-10). La reacción de cáscaras de huevo tostadas con vinagre de arroz integral (BRV) transforma el carbonato cálcico insoluble en acetato de calcio Ca(C2H3O2)2 de absorción foliar inmediata, previniendo eficazmente la necrosis apical en tomate y pimiento.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": [
+      "Acetato de calcio soluble",
+      "Calcio quelado (Ca > 10%)"
+    ],
+    "nutrients": ["Ca"],
+    "targets": [
+      "Prevención de podredumbre apical en tomate y pimiento",
+      "Firmeza de la pared celular",
+      "Resistencia a estrés abiótico"
+    ],
+    "recipes": [
+      {
+        "name": "Reacción de cáscaras tostadas y vinagre",
+        "description": "Digestión ácida suave de cáscaras de huevo.",
+        "ingredients": [
+          {
+            "item": "Cáscaras de huevo limpias y bien tostadas en sartén",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Vinagre de arroz integral (BRV) o vinagre de sidra",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Tostar las cáscaras de huevo hasta que adquieran tono dorado sin quemarse.",
+          "Triturar las cáscaras en trozos medianos.",
+          "Colocar en tarro de vidrio grande y añadir el vinagre despacio con burbujeo.",
+          "Tapar con tela transpirable y remover a diario.",
+          "Cuando cese el burbujeo (7-10 días), filtrar el líquido transparente.",
+          "Almacenar en botella cerrada."
+        ],
+        "brewTime": "7-10 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1000 (1 ml/L) foliar; 1:500 en riego",
+          "frequency": "Cada 7-10 días desde el cuajado de frutos hasta la cosecha"
+        },
+        "safetyNotes": [
+          "Tostar bien las cáscaras de huevo previamente para desnaturalizar proteínas y activar la reactividad química.",
+          "Dejar que cese por completo el desprendimiento de burbujas de CO2 antes de filtrar y embotellar."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-10.pdf",
+        "title": "Natural Farming: Water-Soluble Calcium (WCa) Production and Application",
+        "source": "University of Hawaii CTAHR (Bulletin SA-10, 2014)",
+        "tags": ["knf", "calcio-soluble", "wca", "ctahr"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07eb-7867-bdba-7c3df52a4969",
+    "slug": "knf-wcap",
+    "name": "WCaP (Water-Soluble Calcium Phosphate) - Fosfato cálcico soluble",
+    "description": "Fosfato de calcio hidrosoluble KNF preparado a partir de huesos tostados y vinagre de arroz. Proporciona fósforo y calcio móviles en el momento exacto en que la planta cambia de fase vegetativa a floración.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": [
+      "Fosfato monocálcico soluble",
+      "Fósforo quelado (P)",
+      "Calcio (Ca)"
+    ],
+    "nutrients": ["P", "Ca"],
+    "targets": [
+      "Transición de crecimiento vegetativo a floración",
+      "Engorde radicular de zanahorias y cebollas",
+      "Estimulación floral"
+    ],
+    "recipes": [
+      {
+        "name": "Digestión ácida de huesos calcinados con vinagre",
+        "description": "Extracción ácida de fosfato de calcio mineral.",
+        "ingredients": [
+          {
+            "item": "Huesos tostados en brasas hasta quedar negros/grises",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Vinagre de arroz integral (BRV) o vinagre de sidra",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Tostar huesos hasta carbonizar grasa y dejar expuesto el fósforo mineral.",
+          "Triturar y verter el vinagre en proporción 1:10.",
+          "Dejar reaccionar en tarro abierto con tela durante 7 a 10 días hasta fin de burbujas.",
+          "Filtrar y embotellar el líquido resultante."
+        ],
+        "brewTime": "7-10 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1000 (1 ml/L)",
+          "frequency": "Aplicar durante el cambio de ciclo vegetativo a reproductivo"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-10.pdf",
+        "title": "Natural Farming: Water-Soluble Calcium Phosphate (WCaP) for Flowering Induction",
+        "source": "University of Hawaii CTAHR",
+        "tags": ["knf", "wcap", "fosfato-calcio", "floracion"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07ee-79e8-aeb5-5c883cbb6dcd",
+    "slug": "knf-wsk",
+    "name": "WSK (Water-Soluble Potassium) - Potasio soluble en agua",
+    "description": "Potasio hidrosoluble KNF extraído de tallos de tabaco natural, ceniza de madera limpia o cáscaras de frutos. Acelera la traslocación de azúcares y proteínas hacia frutos y órganos de reserva.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer"],
+    "activeIngredients": ["Potasio soluble (K)", "Carbonato de potasio"],
+    "nutrients": ["K"],
+    "targets": [
+      "Engorde y maduración de frutos",
+      "Aumento de azúcar y consistencia",
+      "Resistencia a sequía"
+    ],
+    "recipes": [
+      {
+        "name": "Extracción acuosa de potasio KNF",
+        "description": "Maceración acuosa de fuentes naturales de potasio.",
+        "ingredients": [
+          {
+            "item": "Tallos secos de tabaco picados (o ceniza limpia de roble)",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua de lluvia o reposada",
+            "quantity": "1 L"
+          }
+        ],
+        "instructions": [
+          "Sumergir los tallos o ceniza en agua.",
+          "Dejar macerar 7 días en lugar fresco agitando ocasionalmente.",
+          "Colar con filtro fino.",
+          "Conservar cerrado."
+        ],
+        "brewTime": "7 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1000 a 1:500",
+          "frequency": "Semanalmente en fase final de maduración de frutos"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-10.pdf",
+        "title": "Natural Farming: Water-Soluble Potassium (WSK) for Fruit Ripening",
+        "source": "University of Hawaii CTAHR",
+        "tags": ["knf", "wsk", "potasio-soluble", "maduracion"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07f3-7fd6-a933-aaafc0db3afa",
+    "slug": "knf-kohol",
+    "name": "Kohol / KAA (Aminoácidos de caracol)",
+    "description": "Preparado KNF de alto valor proteico obtenido al fermentar caracoles de tierra enteros recolectados en la huerta con azúcar moreno. Transforma una plaga en un biofertilizante foliar de absorción inmediata.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "biostimulant"],
+    "activeIngredients": [
+      "Aminoácidos esenciales de molusco",
+      "Calcio orgánico",
+      "Mucina"
+    ],
+    "nutrients": ["N", "Ca"],
+    "targets": [
+      "Fortalecimiento foliar",
+      "Recuperación de plantas dañadas por granizo",
+      "Biofertilización nitrogenada"
+    ],
+    "recipes": [
+      {
+        "name": "Fermentación osmótica de caracoles enteros",
+        "description": "Lisis osmótica de caracoles con azúcar moreno.",
+        "ingredients": [
+          {
+            "item": "Caracoles de huerta vivos limpios",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Azúcar moreno",
+            "quantity": "1 kg"
+          }
+        ],
+        "instructions": [
+          "Colocar los caracoles limpios en un recipiente y mezclar inmediatamente con azúcar moreno en relación 1:1 en peso.",
+          "El azúcar extrae rápidamente el agua y disuelve los tejidos del caracol.",
+          "Tapar con tela transpirable y fermentar durante 15 a 30 días.",
+          "Filtrar el extracto líquido y conservar en botella opaca."
+        ],
+        "brewTime": "15-30 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:1000 en agua",
+          "frequency": "Cada 15 días en desarrollo vegetativo"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-12.pdf",
+        "title": "Natural Farming: Snail Amino Acids (KAA / Kohol) in Crop Production",
+        "source": "University of Hawaii CTAHR",
+        "tags": ["knf", "kohol", "aminoacidos-caracol"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07fa-74e0-b398-a8e149fdfff2",
+    "slug": "knf-brv",
+    "name": "BRV (Brown Rice Vinegar) - Vinagre de arroz integral",
+    "description": "Vinagre de arroz integral fermentado tradicional KNF. Actúa como agente quelante biológico en caldos nutritivos, disuelve carbonatos insolubles y previene la proliferación de bacterias patógenas.",
+    "category": "biostimulant",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["biostimulant", "fungicide"],
+    "activeIngredients": [
+      "Ácido acético natural",
+      "Aminoácidos de fermentación",
+      "Ácidos orgánicos"
+    ],
+    "targets": [
+      "Solubilización de nutrientes minerales",
+      "Facilitador de absorción foliar",
+      "Acidificación suave"
+    ],
+    "recipes": [
+      {
+        "name": "Fermentación acética de arroz integral cocido",
+        "description": "Doble fermentación alcohólica y acética de arroz integral.",
+        "ingredients": [
+          {
+            "item": "Arroz integral cocido",
+            "quantity": "1 kg"
+          },
+          {
+            "item": "Madre de vinagre o vinagre vivo no pasteurizado",
+            "quantity": "200 ml"
+          },
+          {
+            "item": "Agua de lluvia",
+            "quantity": "3 L"
+          }
+        ],
+        "instructions": [
+          "Fermentar el arroz con agua y levadura para obtener alcohol.",
+          "Inocular con la madre de vinagre para activar la fermentación acética aeróbica.",
+          "Dejar en lugar cálido durante 3 a 6 meses con acceso a aire.",
+          "Colar cuando el olor sea claramente a vinagre fuerte."
+        ],
+        "brewTime": "3-6 meses",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:500 a 1:1000 como coadyuvante en pulverizaciones foliares KNF",
+          "frequency": "En cada pulverización combinada"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-10.pdf",
+        "title": "Natural Farming: Brown Rice Vinegar (BRV) as Biological Chelating Agent",
+        "source": "University of Hawaii CTAHR",
+        "tags": ["knf", "brv", "vinagre-arroz", "quelante"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-07fe-7907-9294-27c3d8726780",
+    "slug": "knf-wspa",
+    "name": "WSPA - Agua de mar fermentada mineralizante",
+    "description": "Agua marina fermentada con bacterias acidolácticas o microorganismos indígenas (KNF/JADAM). Reduce el estrés salino aportando el espectro mineral completo del océano en formas biocompatibles para las plantas terrestres.",
+    "category": "soil_amendment",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["biostimulant", "fertilizer"],
+    "activeIngredients": [
+      "92 minerales marinos en proporción coloidal",
+      "Magnesio",
+      "Yodo",
+      "Sulfatos"
+    ],
+    "nutrients": ["Mg", "Na", "K", "Ca", "S"],
+    "targets": [
+      "Aporte de microelementos raros",
+      "Equilibrio osmótico vegetal",
+      "Dulzura y conservación poscosecha de frutas"
+    ],
+    "recipes": [
+      {
+        "name": "Fermentación de agua de mar con melaza e IMO",
+        "description": "Acondicionamiento biológico de agua de mar pura.",
+        "ingredients": [
+          {
+            "item": "Agua de mar limpia (costa no contaminada)",
+            "quantity": "1 L"
+          },
+          {
+            "item": "Melaza o azúcar moreno",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Inóculo de IMO3 o suero láctico LAB",
+            "quantity": "50 ml"
+          }
+        ],
+        "instructions": [
+          "Disolver la melaza en el agua de mar.",
+          "Añadir el inóculo de bacterias benéficas.",
+          "Dejar fermentar 7 días en recipiente cerrado con válvula o tela.",
+          "El líquido cambia a tono ambarino y olor a fermento marino dulce."
+        ],
+        "brewTime": "7 días",
+        "dosage": {
+          "method": "foliar",
+          "dilution": "1:30 a 1:50 en agua dulce (20 a 30 ml por litro de agua)",
+          "frequency": "Una vez al mes durante el ciclo de cultivo"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/SA-9.pdf",
+        "title": "Natural Farming: Diluted Seawater (WSPA) for Micro-mineral Supplementation",
+        "source": "University of Hawaii CTAHR (Bulletin SA-9)",
+        "tags": ["knf", "wspa", "agua-mar", "minerales"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0801-74e0-b5f7-51163358b715",
+    "slug": "knf-imo",
+    "name": "IMO (Indigenous Microorganisms) - Microorganismos indígenas de bosque",
+    "description": "Microorganismos indígenas de bosque (IMO 1 a 4) estandarizados por la Universidad de Hawaii (CTAHR Bulletin BIO-9 y SA-19). Protocolo de captura en arroz al vapor bajo hojarasca de bosque nativo y su multiplicación en salvado de cereal y tierra local para regenerar la biología edáfica y suprimir patógenos de raíz.",
+    "category": "soil_amendment",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["biostimulant", "compost_activator"],
+    "activeIngredients": [
+      "Consorcio fúngico y bacteriano de bosque virgen",
+      "Levaduras",
+      "Actinomicetos"
+    ],
+    "targets": [
+      "Regeneración biológica de suelos degradados",
+      "Supresión de hongos fitopatógenos radiculares",
+      "Creación de estructura de suelo agregada"
+    ],
+    "recipes": [
+      {
+        "name": "Proceso completo de captura e inoculación IMO",
+        "description": "Cultivo en 4 fases de la microbiota de bosque caducifolio.",
+        "ingredients": [
+          {
+            "item": "Arroz al vapor al dente en caja de madera (IMO 1)",
+            "quantity": "500 g"
+          },
+          {
+            "item": "Azúcar moreno (IMO 2)",
+            "quantity": "500 g"
+          },
+          {
+            "item": "Salvado de trigo o arroz (IMO 3)",
+            "quantity": "10 kg"
+          },
+          {
+            "item": "Tierra virgen de cultivo local (IMO 4)",
+            "quantity": "10 kg"
+          }
+        ],
+        "instructions": [
+          "Colocar la caja con arroz bajo la hojarasca de un bosque durante 3-5 días hasta que se cubra de micelio blanco (IMO 1).",
+          "Mezclar el arroz colonizado con azúcar moreno 1:1 en peso y guardar 7 días en frasco (IMO 2).",
+          "Diluir IMO 2 en agua y amasar con salvado de trigo hasta humedad del 60% fermentando en montón bajo paja durante 5-7 días (IMO 3).",
+          "Mezclar IMO 3 con tierra de la propia finca 1:1 y fermentar otros 7 días para aclimatar los microbios al suelo local (IMO 4).",
+          "Esparcir el IMO 4 sobre los bancales al atardecer."
+        ],
+        "brewTime": "3 a 4 semanas para las 4 fases",
+        "dosage": {
+          "method": "soil",
+          "dilution": "Sólido: 50 a 100 g por m2; o extracto líquido 1:1000 en riego",
+          "frequency": "En preparación de terreno y acolchado de primavera y otoño"
+        },
+        "safetyNotes": [
+          "Recolectar en bosques caducifolios sanos libres de contaminación.",
+          "Controlar la temperatura durante la fermentación con salvado para que no supere los 50 °C."
+        ]
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.ctahr.hawaii.edu/oc/freepubs/pdf/BIO-9.pdf",
+        "title": "How to Cultivate Indigenous Microorganisms (IMO)",
+        "source": "University of Hawaii CTAHR (Bulletin BIO-9 / SA-19)",
+        "tags": ["knf", "imo", "microorganismos-bosque", "ctahr"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0804-7c4c-beb1-a9bca5d2ddc2",
+    "slug": "jadam-jfe",
+    "name": "JFE (JADAM Fish Emulsion) - Emulsión de pescado JADAM",
+    "description": "Fertilizante líquido concentrado ultraeconómico de la metodología JADAM. A diferencia del FAA de KNF que usa azúcar, el JFE utiliza agua, restos de pescado y una pizca de mantillo de bosque virgen, fermentando en bidón sin coste de azúcar y generando un fertilizante líquido limpio y soluble.",
+    "category": "fertilizer",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer"],
+    "activeIngredients": [
+      "Nitrógeno orgánico líquido",
+      "Fósforo",
+      "Aminoácidos solubles"
+    ],
+    "nutrients": ["N", "P", "K"],
+    "targets": [
+      "Crecimiento vegetativo vigoroso",
+      "Fertilización líquida en fertirriego sin atascos"
+    ],
+    "recipes": [
+      {
+        "name": "Bidón de JFE de pescado y agua",
+        "description": "Fermentación acuosa anaeróbica prolongada.",
+        "ingredients": [
+          {
+            "item": "Pescado fresco o vísceras picadas",
+            "quantity": "10 kg"
+          },
+          {
+            "item": "Agua sin cloro",
+            "quantity": "15 L"
+          },
+          {
+            "item": "Mantillo de bosque virgen (inóculo)",
+            "quantity": "100 g"
+          }
+        ],
+        "instructions": [
+          "Colocar el pescado en un bidón de plástico con tapa.",
+          "Añadir el agua y un puñado de mantillo de bosque como inóculo microbiano.",
+          "Cerrar la tapa y dejar fermentar al sol durante 3 a 6 meses.",
+          "El pescado se disolverá completamente dejando un caldo oscuro sin grumos.",
+          "Filtrar para fertirriego."
+        ],
+        "brewTime": "3 a 6 meses",
+        "dosage": {
+          "method": "irrigation",
+          "dilution": "1:500 a 1:200 en agua de riego",
+          "frequency": "Cada 15 días en periodo de crecimiento activo"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.jadam.kr/news/articleView.html?idxno=6282",
+        "title": "JADAM Fish Emulsion (JFE): Nitrogen Fertilizer Without Sugar",
+        "source": "JADAM Organic Farming (Youngsang Cho)",
+        "tags": ["jadam", "jfe", "pescado", "nitrogeno"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-0808-74db-a799-cf58b60769fa",
+    "slug": "jadam-fmc",
+    "name": "FMC (Fermented Microbial Compost) - Compost microbiano fermentado JADAM",
+    "description": "Compost rápido JADAM enriquecido con JMS y harina de rocas. Produce materia orgánica madura colonizada por microbios autóctonos en solo 2 a 3 semanas.",
+    "category": "soil_amendment",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["fertilizer", "compost_activator"],
+    "activeIngredients": [
+      "Materia orgánica fermentada",
+      "Bacterias y actinomicetos termófilos",
+      "Minerales quelados"
+    ],
+    "nutrients": ["N", "P", "K", "Ca", "Mg"],
+    "targets": [
+      "Enmienda biológica de alta velocidad",
+      "Activación de vida del suelo en huertos intensivos"
+    ],
+    "recipes": [
+      {
+        "name": "Elaboración de compost fermentado FMC",
+        "description": "Pila de compostaje acelerado con solución microbiana JMS.",
+        "ingredients": [
+          {
+            "item": "Restos secos y verdes de cosecha",
+            "quantity": "50 kg"
+          },
+          {
+            "item": "Solución microbiana JMS diluida",
+            "quantity": "10 L"
+          },
+          {
+            "item": "Harina de rocas o ceniza",
+            "quantity": "2 kg"
+          }
+        ],
+        "instructions": [
+          "Hacer una pila mezclando la materia orgánica con la harina de rocas.",
+          "Regar uniformemente con la solución de microorganismos JMS.",
+          "Cubrir con plástico o lona para retener humedad y calor.",
+          "Voltear cada 3 días durante 15 días.",
+          "Incorporar al huerto una vez que la temperatura se normalice."
+        ],
+        "brewTime": "15-20 días",
+        "dosage": {
+          "method": "soil",
+          "dilution": "1 a 2 kg por metro cuadrado de bancal",
+          "frequency": "Al inicio de cada temporada de cultivo"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://www.jadam.kr/news/articleView.html?idxno=6282",
+        "title": "JADAM Fermented Microbial Compost (FMC) Rapid Process",
+        "source": "JADAM Organic Farming (Youngsang Cho)",
+        "tags": ["jadam", "fmc", "compost-microbiano"]
+      }
+    ]
+  },
+  {
+    "_id": "01a17878-080b-7df2-89e1-46311e9b2a4e",
+    "slug": "activador-compost",
+    "name": "Activador biológico de compostaje",
+    "description": "Inóculo enzimático y microbiano energizante. El azúcar fermentable y las levaduras desencadenan una rápida subida térmica en la compostera, acelerando la degradación de celulosa y lignina.",
+    "category": "soil_amendment",
+    "status": "active",
+    "metadata": {
+      "createdAt": "2026-10-26T10:00:00.000Z",
+      "createdBy": "system",
+      "updatedAt": "2026-10-26T10:00:00.000Z",
+      "updatedBy": "system"
+    },
+    "version": 0,
+    "actions": ["compost_activator"],
+    "activeIngredients": [
+      "Saccharomyces cerevisiae (levadura activa)",
+      "Melaza de caña",
+      "Micelio de bosque caducifolio"
+    ],
+    "nutrients": ["N", "K"],
+    "targets": [
+      "Aceleración de pilas de compost frías",
+      "Descomposición rápida de restos leñosos y paja"
+    ],
+    "recipes": [
+      {
+        "name": "Caldo activador de levadura y melaza para composteras",
+        "description": "Activación en caliente de levadura de panadero con melaza.",
+        "ingredients": [
+          {
+            "item": "Levadura fresca de panadería (o 25 g seca)",
+            "quantity": "50 g"
+          },
+          {
+            "item": "Melaza o azúcar moreno",
+            "quantity": "100 g"
+          },
+          {
+            "item": "Agua tibia desclorada",
+            "quantity": "5 L"
+          }
+        ],
+        "instructions": [
+          "Disolver la melaza en el agua tibia.",
+          "Añadir la levadura y batir suavemente.",
+          "Dejar reposar 2-4 horas en lugar cálido hasta que forme espuma densa.",
+          "Regar directamente sobre las capas marrones y secas del montón de compost y voltear."
+        ],
+        "brewTime": "2-4 horas",
+        "dosage": {
+          "method": "soil",
+          "dilution": "Sin diluir, repartido por toda la pila de compost",
+          "frequency": "Al armar la pila o si la temperatura no sube"
+        }
+      }
+    ],
+    "resources": [
+      {
+        "type": "article",
+        "url": "https://extension.oregonstate.edu/gardening/soil-compost/compost-activators-do-they-really-work",
+        "title": "Compost Activators and Biological Inoculants: Research and Practical Guidelines",
+        "source": "Oregon State University Extension Service",
+        "tags": ["compost", "activador", "levadura", "osu-extension"]
+      }
+    ]
+  }
+]

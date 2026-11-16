@@ -24,7 +24,7 @@ export type PlantPrimitives = {
   };
 
   phenology: {
-    sowing: PlantSowingPrimitives;
+    sowing?: PlantSowingPrimitives;
     flowering: {
       months: number[];
       pollination?: {
@@ -39,6 +39,9 @@ export type PlantPrimitives = {
   };
 
   knowledge?: PlantKnowledgePrimitives;
+
+  /** Slugs of catalog anomalies this plant is susceptible to (deduplicated). */
+  anomalies?: string[];
 
   metadata: MetadataPrimitives;
   status: PlantStatus;

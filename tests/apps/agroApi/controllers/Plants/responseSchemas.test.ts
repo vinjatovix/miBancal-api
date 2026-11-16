@@ -21,12 +21,34 @@ describe('plantResponseSchema', () => {
     expect(plantResponseSchema.parse(view)).toEqual(view);
   });
 
+  it('accepts metadata dates as ISO strings and normalizes them to Date instances', () => {
+    const view = fullPlantView();
+    const withIsoDates = {
+      ...view,
+      metadata: {
+        ...view.metadata,
+        createdAt: view.metadata.createdAt.toISOString(),
+        updatedAt: view.metadata.updatedAt.toISOString()
+      }
+    };
+
+    const parsed = plantResponseSchema.parse(withIsoDates);
+
+    expect(parsed.metadata.createdAt).toBeInstanceOf(Date);
+    expect(parsed.metadata.createdAt.toISOString()).toBe(
+      view.metadata.createdAt.toISOString()
+    );
+    expect(parsed.metadata.updatedAt).toBeInstanceOf(Date);
+    expect(parsed.metadata.updatedAt.toISOString()).toBe(
+      view.metadata.updatedAt.toISOString()
+    );
+  });
+
   it('keeps absent optional fields absent', () => {
     const view = minimalPlantView();
 
     const parsed = plantResponseSchema.parse(view);
 
-    // Strict: an absent field that came back as an `undefined` key would fail.
     expect(parsed).toStrictEqual(view);
   });
 
@@ -48,7 +70,7 @@ describe('plantResponseSchema', () => {
     ).toEqual(view);
   });
 
-  it.each(['identity', 'traits.lifecycle', 'phenology.sowing', 'metadata'])(
+  it.each(['identity', 'traits.lifecycle', 'metadata'])(
     'rejects a view missing the required field %s',
     (path) => {
       expect(
@@ -57,6 +79,14 @@ describe('plantResponseSchema', () => {
       ).toBe(false);
     }
   );
+
+  it('accepts a view that omits the optional phenology.sowing', () => {
+    expect(
+      plantResponseSchema.safeParse(
+        withoutKeyAt(fullPlantView(), 'phenology.sowing')
+      ).success
+    ).toBe(true);
+  });
 
   it.each([
     ['version', '1'],

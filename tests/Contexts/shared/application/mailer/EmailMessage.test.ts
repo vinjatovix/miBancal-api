@@ -87,6 +87,8 @@ describe('EmailMessage', () => {
       text: EmailMessageMother.blankText().text
     });
 
-    expect(Object.keys(error.errors ?? {}).sort()).toEqual(['subject', 'text']);
+    expect(
+      Object.keys(error.errors ?? {}).sort((a, b) => a.localeCompare(b))
+    ).toEqual(['subject', 'text']);
   });
 });

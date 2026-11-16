@@ -8,4 +8,6 @@ export type PlantChanges = {
   traits?: PlantTraitsChanges;
   phenology?: PlantPhenologyChanges;
   knowledge?: PlantKnowledgeChanges;
+  /** Replace the anomaly slug list; `null` clears it, an absent key keeps it. */
+  anomalies?: string[] | null;
 };

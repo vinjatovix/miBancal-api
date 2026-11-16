@@ -41,7 +41,8 @@ export class UserMother {
     authMethods,
     emailTokens,
     roles,
-    metadata
+    metadata,
+    version
   }: {
     id?: UserId;
     email?: Email;
@@ -52,6 +53,7 @@ export class UserMother {
     emailTokens?: EmailToken[];
     roles?: UserRoles;
     metadata?: Metadata;
+    version?: number;
   } = {}): User {
     const user = username ?? UserMother.randomUsername();
     return new User({
@@ -62,7 +64,8 @@ export class UserMother {
       ...UserMother.optionalLists({ authMethods, emailTokens }),
       emailValidated: emailValidated ?? random.boolean(),
       roles: roles ?? UserRolesMother.random(),
-      metadata: metadata ?? Metadata.create(user.value)
+      metadata: metadata ?? Metadata.create(user.value),
+      version
     });
   }
 

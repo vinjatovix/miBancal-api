@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import {
   aliasTo,
   asClass,
+  asFunction,
   asValue,
   createContainer,
   InjectionMode,
@@ -10,26 +11,49 @@ import {
 } from 'awilix';
 import type { Db, MongoClient } from 'mongodb';
 
+import { anomalyPersistenceMapper } from '../../Contexts/Agro/Anomalies/mappers/anomalyPersistenceMapper.js';
+import { BedDeleted } from '../../Contexts/Agro/Beds/domain/events/index.js';
 import { bedPersistenceMapper } from '../../Contexts/Agro/Beds/mappers/bedPersistenceMapper.js';
+import { userBookmarksPersistenceMapper } from '../../Contexts/Agro/Bookmarks/mappers/userBookmarksPersistenceMapper.js';
 import { familyPersistenceMapper } from '../../Contexts/Agro/Families/mappers/familyPersistenceMapper.js';
+import { gardenInputPersistenceMapper } from '../../Contexts/Agro/GardenInputs/mappers/gardenInputPersistenceMapperImpl.js';
+import { locationPersistenceMapper } from '../../Contexts/Agro/Locations/mappers/locationPersistenceMapper.js';
+import { RemoveCropsOnBedDeleted } from '../../Contexts/Agro/PlantInstances/application/eventHandlers/RemoveCropsOnBedDeleted.js';
 import { CropSpatialService } from '../../Contexts/Agro/PlantInstances/domain/services/CropSpatialService.js';
 import { plantInstancePersistenceMapper } from '../../Contexts/Agro/PlantInstances/mappers/plantInstancePersistenceMapper.js';
+import { plantLikePersistenceMapper } from '../../Contexts/Agro/PlantLikes/mappers/plantLikePersistenceMapper.js';
+import { CompanionEvaluationService } from '../../Contexts/Agro/PlantRelations/domain/services/CompanionEvaluationService.js';
+import { plantRelationPersistenceMapper } from '../../Contexts/Agro/PlantRelations/mappers/plantRelationPersistenceMapper.js';
 import { plantPersistenceMapper } from '../../Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
 import { MailerAccountNotifier } from '../../Contexts/Auth/application/notifications/index.js';
+import {
+  ProviderUserResolver,
+  SessionTokenIssuer
+} from '../../Contexts/Auth/application/services/index.js';
+import type { CacheRepository } from '../../Contexts/shared/application/cache/index.js';
+import type { EventHandler } from '../../Contexts/shared/application/eventBus/index.js';
 import type { Mailer } from '../../Contexts/shared/application/mailer/index.js';
+import type { DomainEvent } from '../../Contexts/shared/domain/events/index.js';
 import { InProcessBackgroundTasks } from '../../Contexts/shared/infrastructure/background/index.js';
+import { createCache } from '../../Contexts/shared/infrastructure/cache/index.js';
+import {
+  InMemoryEventBusAdapter,
+  OutboxEventBusAdapter
+} from '../../Contexts/shared/infrastructure/eventBus/index.js';
 import { createMailer } from '../../Contexts/shared/infrastructure/mailer/index.js';
+import { MongoOutboxRepository } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoOutboxRepository.js';
 import { MongoUnitOfWork } from '../../Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import {
   buildLogger,
   type AppLogger
 } from '../../Contexts/shared/plugins/index.js';
-import { envs } from './config/plugins/envs.plugin.js';
+import { getEnvs } from './config/plugins/envs.plugin.js';
 import { COMPONENT_ROLES } from './wiring/componentRoles.js';
 import type {
   AppContainer,
   ContainerCradle
 } from './wiring/ContainerCradle.js';
+import { registerEventSubscribers } from './wiring/eventSubscriptions.js';
 import { scanComponents } from './wiring/scanComponents.js';
 
 export type { AppContainer, ContainerCradle };
@@ -44,7 +68,6 @@ const pkg = JSON.parse(
   readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')
 ) as { version: string };
 
-/** Components registered by hand rather than discovered by `scanComponents`. */
 export function buildExplicitRegistrations({
   db,
   client
@@ -53,19 +76,28 @@ export function buildExplicitRegistrations({
   'db' | 'client'
 >): NameAndRegistrationPair<ContainerCradle> {
   const logger = buildLogger('agroApi');
+  const envs = getEnvs();
 
   return {
-    db: asValue(db), // Runtime Mongo database instance connected at start-up
-    DBClient: asValue(client), // Runtime Mongo client connection handle
-    appVersion: asValue(pkg.version), // Service release version read from package.json
-    logger: asValue<AppLogger>(logger), // Contextual root logger instance
-    bedPersistenceMapper: asValue(bedPersistenceMapper), // Plain persistence mapper without class state
-    familyPersistenceMapper: asValue(familyPersistenceMapper), // Plain persistence mapper without class state
-    plantPersistenceMapper: asValue(plantPersistenceMapper), // Plain persistence mapper without class state
-    plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper), // Plain persistence mapper without class state
-    cropSpatialService: asClass(CropSpatialService).singleton(), // Spatial collision and boundary validator
-    unitOfWork: asClass(MongoUnitOfWork).singleton(), // Groups cross-aggregate writes in one Mongo transaction
-    familySummaryReader: aliasTo('familyReadRepository'), // Plants' port, served by the family read side
+    db: asValue(db),
+    DBClient: asValue(client),
+    appVersion: asValue(pkg.version),
+    logger: asValue<AppLogger>(logger),
+    bedPersistenceMapper: asValue(bedPersistenceMapper),
+    familyPersistenceMapper: asValue(familyPersistenceMapper),
+    anomalyPersistenceMapper: asValue(anomalyPersistenceMapper),
+    gardenInputPersistenceMapper: asValue(gardenInputPersistenceMapper),
+    locationPersistenceMapper: asValue(locationPersistenceMapper),
+    plantPersistenceMapper: asValue(plantPersistenceMapper),
+    plantInstancePersistenceMapper: asValue(plantInstancePersistenceMapper),
+    userBookmarksPersistenceMapper: asValue(userBookmarksPersistenceMapper),
+    plantLikePersistenceMapper: asValue(plantLikePersistenceMapper),
+    plantRelationPersistenceMapper: asValue(plantRelationPersistenceMapper),
+    cropSpatialService: asClass(CropSpatialService).singleton(),
+    companionEvaluationService: asClass(CompanionEvaluationService).singleton(),
+    unitOfWork: asClass(MongoUnitOfWork).singleton(),
+    familySummaryReader: aliasTo('familyReadRepository'),
+    plantSummaryReader: aliasTo('plantReadRepository'),
     mailer: asValue<Mailer>(
       createMailer({
         nodeEnv: envs.NODE_ENV,
@@ -78,16 +110,56 @@ export function buildExplicitRegistrations({
         logger,
         appVersion: pkg.version
       })
-    ), // One channel picked from NODE_ENV and RESEND_API_KEY; fails start-up on bad settings
-    backgroundTasks: asClass(InProcessBackgroundTasks).singleton(), // Work started after the answer (emails); drained on shutdown
-    accountNotifier: asClass(MailerAccountNotifier).singleton(), // Spanish account emails, sent in the background
-    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL) // Frontend the account emails link to (activation, password reset)
+    ),
+    cacheRepository: asValue<CacheRepository>(
+      createCache({
+        settings: {
+          enabled: envs.CACHE_ENABLED,
+          redisUrl: envs.REDIS_URL,
+          backendTimeoutMs: envs.CACHE_BACKEND_TIMEOUT_MS,
+          fallbackTtlSeconds: envs.CACHE_FALLBACK_TTL_SECONDS,
+          fallbackMaxEntries: envs.CACHE_FALLBACK_MAX_ENTRIES
+        },
+        logger
+      })
+    ),
+    cacheCatalogTtlSeconds: asValue(envs.CACHE_CATALOG_TTL_SECONDS),
+    backgroundTasks: asClass(InProcessBackgroundTasks).singleton(),
+    inProcessEventBus: asClass(InMemoryEventBusAdapter).singleton(),
+    outboxRepository: asClass(MongoOutboxRepository).singleton(),
+    eventBus: asClass(OutboxEventBusAdapter).singleton(),
+    accountNotifier: asClass(MailerAccountNotifier).singleton(),
+    providerUserResolver: asClass(ProviderUserResolver).singleton(),
+    sessionTokenIssuer: asClass(SessionTokenIssuer).singleton(),
+    frontendBaseUrl: asValue(envs.FRONTEND_BASE_URL),
+    googleClientId: asValue(envs.GOOGLE_CLIENT_ID),
+    githubClientId: asValue(envs.GITHUB_CLIENT_ID),
+    githubClientSecret: asValue(envs.GITHUB_CLIENT_SECRET),
+    githubRedirectUri: asValue(envs.GITHUB_REDIRECT_URI),
+    removeCropsOnBedDeleted: asFunction(
+      ({ plantInstanceRepository }: ContainerCradle): EventHandler => {
+        const reactor = new RemoveCropsOnBedDeleted({
+          plantInstanceRepository
+        });
+
+        return async (event: DomainEvent): Promise<void> => {
+          if (event instanceof BedDeleted) {
+            await reactor.handle(event);
+          }
+        };
+      }
+    ).singleton()
   };
 }
 
-export async function createAppContainer(
-  deps: ContainerDeps
-): Promise<AppContainer> {
+export type CreateAppContainerDeps = ContainerDeps & {
+  overrides?: NameAndRegistrationPair<ContainerCradle>;
+};
+
+export async function createAppContainer({
+  overrides,
+  ...deps
+}: CreateAppContainerDeps): Promise<AppContainer> {
   const container = createContainer<ContainerCradle>({
     injectionMode: InjectionMode.PROXY,
     strict: true
@@ -104,6 +176,12 @@ export async function createAppContainer(
       )
     });
   }
+
+  if (overrides) {
+    container.register(overrides);
+  }
+
+  registerEventSubscribers(container);
 
   return container;
 }

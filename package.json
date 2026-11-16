@@ -5,10 +5,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "docker:mongo": "docker compose -f ./docker/docker-compose.yml up --build -d --wait",
+    "docker:infra": "docker compose -f ./docker/docker-compose.yml up --build -d --wait",
+    "docker:infra:down": "docker compose -f ./docker/docker-compose.yml down",
     "restoreDB": "./docker/mongo/scripts/restoreDB.sh",
     "restoreDump": "./docker/mongo/scripts/restoreDump.sh",
     "dev": "tsx watch --clear-screen=false src/index.ts",
+    "worker:dev": "tsx watch --clear-screen=false src/apps/outboxWorker/index.ts",
+    "consumer:dev": "tsx watch --clear-screen=false src/apps/consumerWorker/index.ts",
     "check-circular": "skott --displayMode=raw --showCircularDependencies --tsconfig ./tsconfig.json",
     "lint": "eslint \"{src,tests}/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"{src,tests}/**/*.{ts,tsx}\" --fix --fix-type problem,layout,suggestion",
@@ -23,6 +26,8 @@
     "build:copy-assets": "tsx ./scripts/run-copy-assets.ts",
     "build:tsc": "tsc -p tsconfig.prod.json --sourceMap false",
     "start": "node ./dist/src/index.js",
+    "start:worker": "node ./dist/src/apps/outboxWorker/index.js",
+    "start:consumer": "node ./dist/src/apps/consumerWorker/index.js",
     "start:local": "npm run build && node ./dist/src/index.js",
     "docker:local": "npm run build && docker compose up --build",
     "test": "npm run test:coverage",
@@ -47,6 +52,10 @@
     "*.{json,yml,yaml,md}": [
       "prettier --write"
     ]
+  },
+  "engines": {
+    "node": ">=24.22.1",
+    "npm": ">=10.0.0"
   },
   "repository": {
     "type": "git",
@@ -82,6 +91,7 @@
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-sonarjs": "^4.2.2",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
     "jest": "^30.3.0",
@@ -109,8 +119,10 @@
     "google-auth-library": "^11.1.0",
     "helmet": "^8.1.0",
     "http-status": "^2.1.0",
+    "ioredis": "^6.0.0",
     "js-yaml": "^5.4.2",
     "jsonwebtoken": "^9.0.3",
+    "kafkajs": "2.2.4",
     "migrate-mongo": "^14.0.7",
     "mongodb": "~7.5.0",
     "qs": "^6.16.1",

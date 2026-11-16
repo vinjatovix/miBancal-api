@@ -23,7 +23,7 @@ export default async function dbGlobalSetup(): Promise<void> {
     await client.db('admin').command({ ping: 1 });
   } catch {
     throw new TypeError(
-      'The test database is not reachable. Start it with `npm run docker:mongo`.'
+      'The test database is not reachable. Start it with `npm run docker:infra`.'
     );
   } finally {
     await client.close();

@@ -33,7 +33,7 @@ export class EmailToken implements Serializable<EmailTokenPrimitives> {
     EmailToken.ensureTokenHash(tokenHash);
     EmailToken.ensureExpiresAt(expiresAt);
 
-    return new EmailToken(purpose, tokenHash, new Date(expiresAt.getTime()));
+    return new EmailToken(purpose, tokenHash, new Date(expiresAt));
   }
 
   static fromPrimitives(primitives: EmailTokenPrimitives): EmailToken {
@@ -73,7 +73,7 @@ export class EmailToken implements Serializable<EmailTokenPrimitives> {
     return {
       purpose: this.purpose,
       tokenHash: this.tokenHash,
-      expiresAt: new Date(this.expiresAt.getTime())
+      expiresAt: new Date(this.expiresAt)
     };
   }
 

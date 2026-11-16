@@ -17,13 +17,14 @@
 - Awilix DI container per request scope
 - OpenAPI-driven contract validation
 - MongoDB persistence layer
+- Resilient cache (Redis with in-memory fallback; optional, degrades gracefully)
 - Jest + Cucumber testing pyramid (unit / feature / contract)
 
 ## Installation
 
 ### Prerequisites
 
-- Node.js version = 22.x
+- Node.js version = 24.x (>= 24.22.1)
 - npm version >= 10.1.0
 
 A `.tool-versions` file is provided to easily work with [asdf](https://asdf-vm.com/)
@@ -67,12 +68,42 @@ Or just with:
 npm run docker:local
 ```
 
-### Setup Local Persistence
+#### Run the outbox worker (event bus)
 
-- Starts the mongo db
+The HTTP API and the **outbox worker** are two separate processes that share the
+same codebase and the same MongoDB. The API, inside each write transaction,
+stages domain events into the `outbox` collection; the worker tails that
+collection and forwards every staged event downstream. See
+[`docs/spec/modules/event-bus.md`](docs/spec/modules/event-bus.md) for the full
+design.
+
+Run them in two terminals (Mongo must be up — see _Setup Local Persistence_):
 
 ```bash
-npm run docker:mongo
+npm run dev          # terminal A — HTTP API
+npm run worker:dev   # terminal B — outbox worker (watch mode, no build needed)
+```
+
+The worker reads a **MongoDB change stream**, which only works against a replica
+set. The local Mongo from `npm run docker:infra` already runs as replica set
+`rs0`, so no extra setup is needed. The worker needs only the `MONGO_*` variables
+(it has no HTTP port and does not use Redis); the shared `.env` already covers it.
+
+Trigger an event (e.g. delete a bed) and the worker logs the forwarded event and
+persists its progress in the `outbox_progress` collection.
+
+### Setup Local Infrastructure
+
+- Starts local development infrastructure (MongoDB, Kafka broker, Redis, and Kafbat Web UI):
+
+```bash
+npm run docker:infra
+```
+
+- Stop and tear down infrastructure:
+
+```bash
+npm run docker:infra:down
 ```
 
 - Provisioning the db
@@ -89,6 +120,54 @@ npm run restoreDump $ENV
 ```
 
 > Note this will only work if previous data for such `$ENV` was dumped and restored before
+
+### Local Kafka & Kafbat Web UI
+
+`npm run docker:infra` launches a single-node Apache Kafka (KRaft) broker (`agro-api-kafka`, port `9092` on host, internal port `29092`) along with a Kafbat Web UI (`agro-api-kafka-ui`) accessible at:
+
+```text
+http://localhost:8080
+```
+
+Use the dashboard to inspect:
+
+- **Topics**: View topic configurations and messages on `agro.domain.events`.
+- **Partitions & Keys**: Inspect dynamic partition keys (e.g. `plantInstanceId`, `bedId`, `aggregateId`) and message offsets.
+- **Message Envelopes**: Inspect JSON payloads (`eventId`, `eventName`, `aggregateId`, `occurredAt`, `payload`).
+- **Consumer Groups & Lag**: Monitor active consumer groups, partition assignments, and committed offset lag.
+
+#### Port Override (`KAFKA_UI_PORT`)
+
+To run Kafbat UI on a custom host port (e.g. `8085` if port `8080` is in use), set `KAFKA_UI_PORT`:
+
+```bash
+KAFKA_UI_PORT=8085 npm run docker:infra
+```
+
+### Cache (Redis, optional)
+
+The read-only reference catalogs (plants, families, anomalies, garden inputs) are
+served through a resilient cache. **Redis is optional**: with an empty `REDIS_URL`
+the app caches in process memory, so dev and tests need no Redis and never fail
+when it is absent.
+
+`npm run docker:infra` also starts a local Redis (`agro-api-redis`, port `6379`).
+To make the app use it, set in your `.env`:
+
+```bash
+REDIS_URL=redis://localhost:6379
+```
+
+Then `npm run dev`. Leave `REDIS_URL` empty (or unset) to stay in memory-only mode.
+Keep it empty in `.env.test` — the test suite must run without Redis.
+
+Inspect and exercise it:
+
+```bash
+docker exec agro-api-redis redis-cli KEYS 'agro:v1:*'   # cached catalog keys
+docker stop agro-api-redis                              # degrade: API keeps serving (memory/DB), one warn logged
+docker start agro-api-redis                             # recovers automatically, one info logged
+```
 
 ---
 

@@ -117,8 +117,13 @@ Then(
 
 Then('the list should be empty', async function (this: AgroWorld) {
   const response = (await currentResponse(this)) as {
-    body: { data: unknown[] };
+    body: unknown[] | { data: unknown[] };
   };
+
+  if (Array.isArray(response.body)) {
+    assert.lengthOf(response.body, 0);
+    return;
+  }
 
   assert.isArray(response.body.data);
   assert.lengthOf(response.body.data, 0);
@@ -195,10 +200,28 @@ const assertExactFields = (item: unknown, expected: string[]): void => {
   assert.sameMembers(Object.keys(item as object), expected);
 };
 
+const assertNotFields = (item: unknown, forbidden: string[]): void => {
+  assert.isObject(item, 'Response body is not an object');
+  for (const field of forbidden) {
+    assert.notProperty(
+      item as object,
+      field,
+      `Expected response body NOT to have field "${field}"`
+    );
+  }
+};
+
 Then(
   'the response body should hold exactly the fields {string}',
   async function (this: AgroWorld, fields: string) {
     assertExactFields((await currentResponse(this)).body, csvValues(fields));
+  }
+);
+
+Then(
+  'the response body should not have the fields {string}',
+  async function (this: AgroWorld, fields: string) {
+    assertNotFields((await currentResponse(this)).body, csvValues(fields));
   }
 );
 

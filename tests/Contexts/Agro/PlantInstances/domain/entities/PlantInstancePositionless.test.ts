@@ -47,12 +47,12 @@ describe('PlantInstance (Positionless Crop)', () => {
   it('is ignored by CropSpatialService during neighbor collision checks', () => {
     const spatialService = new CropSpatialService();
     const bed = { width: 100, height: 100 };
-    const proposed = { position: { x: 20, y: 20 }, spacingCm: 30 };
+    const proposed = { position: { x: 20, y: 20 }, vitalRadiusCm: 15 };
     const existingCrops = [
       {
         id: 'positionless-crop',
         position: undefined,
-        spacingCm: 50
+        vitalRadiusCm: 25
       }
     ];
 

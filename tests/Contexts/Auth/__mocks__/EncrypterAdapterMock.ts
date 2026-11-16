@@ -13,6 +13,7 @@ interface Options {
 
 /** What `hash` returns for any value. */
 export const MOCK_PASSWORD_HASH =
+  // eslint-disable-next-line sonarjs/no-hardcoded-passwords -- test fixture credential, not a real secret
   '$2a$12$mZgfH4D7z4dZcZHDKyogqOOnEWS6XHLdczPJktzD88djpvlr3Bq1C';
 
 const DEFAULT_OPTIONS: Options = {

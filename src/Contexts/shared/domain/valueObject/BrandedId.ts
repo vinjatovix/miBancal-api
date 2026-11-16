@@ -12,13 +12,13 @@ export function createIdGenerator<T extends string>(
 ): IdGenerator<T> {
   return {
     create(value: string): T {
-      const trimmedValue = value.trim();
-      if (!UuidValidator.isValid(trimmedValue)) {
+      const normalizedValue = value.trim().toLowerCase();
+      if (!UuidValidator.isValid(normalizedValue)) {
         throw new InvalidArgumentException(
           `${entityName} <${value}> is not a valid UUID`
         );
       }
-      return trimmedValue as T;
+      return normalizedValue as T;
     },
     random(): T {
       return uuidv7() as T;

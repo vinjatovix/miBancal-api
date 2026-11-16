@@ -8,13 +8,13 @@ describe('CropSpatialService', () => {
   it('allows placement within bed boundaries and away from existing crops', () => {
     const proposed = {
       position: { x: 50, y: 50 },
-      spacingCm: 20
+      vitalRadiusCm: 10
     };
     const existingCrops = [
       {
         id: 'crop-1',
         position: { x: 10, y: 10 },
-        spacingCm: 20
+        vitalRadiusCm: 10
       }
     ];
 
@@ -24,16 +24,16 @@ describe('CropSpatialService', () => {
   });
 
   it.each([
-    [-1, 50, 'Crop position x cannot be less than 0'],
-    [101, 50, 'Crop position x cannot exceed bed width'],
-    [50, -1, 'Crop position y cannot be less than 0'],
-    [50, 201, 'Crop position y cannot exceed bed height']
+    [-1, 50],
+    [101, 50],
+    [50, -1],
+    [50, 201]
   ])(
     'throws DomainConflictException when coordinates (%i, %i) are out of bounds',
     (x, y) => {
       const proposed = {
         position: { x, y },
-        spacingCm: 20
+        vitalRadiusCm: 10
       };
 
       expect(() =>
@@ -45,7 +45,7 @@ describe('CropSpatialService', () => {
   it('allows placement exactly on bed edges', () => {
     const proposed = {
       position: { x: 0, y: 200 },
-      spacingCm: 10
+      vitalRadiusCm: 5
     };
 
     expect(() =>
@@ -53,16 +53,34 @@ describe('CropSpatialService', () => {
     ).not.toThrow();
   });
 
-  it('throws DomainConflictException when proposed crop collides with an existing crop', () => {
+  it('does not collide when centers are exactly the sum of vital radii apart', () => {
     const proposed = {
-      position: { x: 30, y: 30 },
-      spacingCm: 30
+      position: { x: 50, y: 50 },
+      vitalRadiusCm: 15
     };
     const existingCrops = [
       {
         id: 'crop-1',
-        position: { x: 40, y: 40 },
-        spacingCm: 20
+        position: { x: 90, y: 50 },
+        vitalRadiusCm: 25
+      }
+    ];
+
+    expect(() =>
+      service.validatePlacement({ bed, proposed, existingCrops })
+    ).not.toThrow();
+  });
+
+  it('collides when vital circles strictly overlap', () => {
+    const proposed = {
+      position: { x: 50, y: 50 },
+      vitalRadiusCm: 15
+    };
+    const existingCrops = [
+      {
+        id: 'crop-1',
+        position: { x: 89, y: 50 },
+        vitalRadiusCm: 25
       }
     ];
 
@@ -71,34 +89,52 @@ describe('CropSpatialService', () => {
     ).toThrow(DomainConflictException);
   });
 
-  it('uses the maximum spacing between the two crops as the required collision distance', () => {
+  it('accepts the reported real case (radii 25 and 15, centers 40.32cm apart)', () => {
     const proposed = {
-      position: { x: 10, y: 10 },
-      spacingCm: 15
+      position: { x: 50, y: 50 },
+      vitalRadiusCm: 15
     };
     const existingCrops = [
       {
-        id: 'crop-large-spacing',
-        position: { x: 10, y: 40 },
-        spacingCm: 40
+        id: 'tomato',
+        position: { x: 90.32, y: 50 },
+        vitalRadiusCm: 25
       }
     ];
 
     expect(() =>
       service.validatePlacement({ bed, proposed, existingCrops })
-    ).toThrow(DomainConflictException);
+    ).not.toThrow();
   });
 
   it('ignores existing crops without coordinates', () => {
     const proposed = {
       position: { x: 20, y: 20 },
-      spacingCm: 25
+      vitalRadiusCm: 25
     };
     const existingCrops = [
       {
         id: 'crop-no-pos',
         position: undefined,
-        spacingCm: 50
+        vitalRadiusCm: 25
+      }
+    ];
+
+    expect(() =>
+      service.validatePlacement({ bed, proposed, existingCrops })
+    ).not.toThrow();
+  });
+
+  it('does not collide with a neighbor whose vital radius is 0', () => {
+    const proposed = {
+      position: { x: 20, y: 20 },
+      vitalRadiusCm: 5
+    };
+    const existingCrops = [
+      {
+        id: 'missing-plant',
+        position: { x: 22, y: 20 },
+        vitalRadiusCm: 0
       }
     ];
 
@@ -110,13 +146,13 @@ describe('CropSpatialService', () => {
   it('ignores the crop itself when an excludedCropId is supplied during movement', () => {
     const proposed = {
       position: { x: 20, y: 20 },
-      spacingCm: 25
+      vitalRadiusCm: 12.5
     };
     const existingCrops = [
       {
         id: 'self-crop',
         position: { x: 20, y: 20 },
-        spacingCm: 25
+        vitalRadiusCm: 12.5
       }
     ];
 

@@ -31,7 +31,8 @@ export type SeededUserState =
   | 'pendingExpired'
   | 'pendingWithoutToken'
   | 'googleLinked'
-  | 'googleOnly';
+  | 'googleOnly'
+  | 'githubLinked';
 
 /**
  * When the seeded reset token was issued: `recent` is inside the throttle
@@ -45,8 +46,23 @@ const RESET_TOKEN_ISSUED_AGO_MS: Record<SeededResetToken, number> = {
   expired: PASSWORD_RESET_TOKEN_TTL_MS + HOUR_MS
 };
 
+export type SeededUser = {
+  id: string;
+  username: string;
+  email: string;
+  password: string;
+  /** Plain activation token, for pending states that hold one. */
+  activationToken?: string;
+  /** Plain password reset token, when one was seeded. */
+  resetToken?: string;
+};
+
+export type RequiredSeededUserCredentials = Required<
+  Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>
+>;
+
 const buildGoogleOnlyUser = (
-  seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
+  seed: RequiredSeededUserCredentials,
   googleSub: string | undefined,
   now: Date
 ): User =>
@@ -66,23 +82,14 @@ const buildGoogleOnlyUser = (
     metadata: Metadata.create(seed.username, now)
   });
 
-export type SeededUser = {
-  id: string;
-  username: string;
-  email: string;
-  password: string;
-  /** Plain activation token, for pending states that hold one. */
-  activationToken?: string;
-  /** Plain password reset token, when one was seeded. */
-  resetToken?: string;
-};
-
 export type UserSeedOptions = Partial<
   Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>
 > & {
   state?: SeededUserState;
   /** Google identity of `googleLinked` and `googleOnly`. */
   googleSub?: string;
+  /** GitHub numeric identity of `githubLinked`. */
+  githubUserId?: string;
   /** Adds a password reset token to the account, whatever its state. */
   resetToken?: SeededResetToken;
 };
@@ -103,7 +110,7 @@ export const UserSeeder = ({
   oneTimeToken
 }: UserSeederDependencies) => {
   const register = async (
-    seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
+    seed: RequiredSeededUserCredentials,
     tokenHash: string,
     { issuedAt, expiresAt }: { issuedAt: Date; expiresAt: Date }
   ): Promise<User> =>
@@ -121,8 +128,8 @@ export const UserSeeder = ({
     });
 
   const build = async (
-    seed: Required<Pick<SeededUser, 'id' | 'username' | 'email' | 'password'>>,
-    { state = 'active', googleSub }: UserSeedOptions
+    seed: RequiredSeededUserCredentials,
+    { state = 'active', googleSub, githubUserId }: UserSeedOptions
   ): Promise<{ user: User; activationToken?: string }> => {
     const now = new Date();
     const { token, tokenHash } = oneTimeToken.generate();
@@ -163,8 +170,28 @@ export const UserSeeder = ({
       );
     }
 
+    if (state === 'githubLinked') {
+      user.linkProvider(
+        new UserAuthMethod({
+          provider: 'github',
+          providerUserId: githubUserId ?? `github-${random.uuid()}`,
+          linkedAt: now
+        }),
+        now
+      );
+    }
+
     return { user };
   };
+
+  const buildSeedDefaults = (
+    options: UserSeedOptions
+  ): RequiredSeededUserCredentials => ({
+    id: options.id ?? random.uuid(),
+    username: options.username ?? random.word({ min: 8, max: 20 }),
+    email: options.email ?? `${random.word({ min: 8, max: 20 })}@seeded.com`,
+    password: options.password ?? SEEDED_PASSWORD
+  });
 
   /** Issues a reset token as the given time ago and returns it in plain. */
   const issueResetToken = (user: User, issued: SeededResetToken): string => {
@@ -181,13 +208,7 @@ export const UserSeeder = ({
 
   return {
     async create(options: UserSeedOptions = {}): Promise<SeededUser> {
-      const seed = {
-        id: options.id ?? random.uuid(),
-        username: options.username ?? random.word({ min: 8, max: 20 }),
-        email:
-          options.email ?? `${random.word({ min: 8, max: 20 })}@seeded.com`,
-        password: options.password ?? SEEDED_PASSWORD
-      };
+      const seed = buildSeedDefaults(options);
       const { user, activationToken } = await build(seed, options);
       const resetToken =
         options.resetToken === undefined

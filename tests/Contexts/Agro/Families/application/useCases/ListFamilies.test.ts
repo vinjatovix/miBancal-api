@@ -1,15 +1,24 @@
 import type { ListFamiliesDto } from '../../../../../../src/Contexts/Agro/Families/application/useCases/interfaces/ListFamiliesDto.js';
 import { ListFamilies } from '../../../../../../src/Contexts/Agro/Families/application/useCases/ListFamilies.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { FamilyReadRepositoryMock } from '../../__mocks__/FamilyReadRepositoryMock.js';
 import { FamilyReadViewMother } from '../queries/FamilyReadViewMother.js';
 
+const CATALOG_TTL = 86400;
+
 describe('ListFamilies', () => {
   let repository: FamilyReadRepositoryMock;
+  let cache: CacheRepositoryFake;
   let useCase: ListFamilies;
 
   beforeEach(() => {
     repository = new FamilyReadRepositoryMock();
-    useCase = new ListFamilies({ familyReadRepository: repository });
+    cache = new CacheRepositoryFake();
+    useCase = new ListFamilies({
+      familyReadRepository: repository,
+      cacheRepository: cache,
+      cacheCatalogTtlSeconds: CATALOG_TTL
+    });
   });
 
   it('should return families from repository', async () => {
@@ -52,5 +61,38 @@ describe('ListFamilies', () => {
     const { data } = await useCase.execute();
 
     expect(data[0]).toBe(family);
+  });
+
+  it('caches the listing with the catalog TTL', async () => {
+    repository.addToStorage(FamilyReadViewMother.random());
+
+    await useCase.execute();
+
+    expect(cache.setMock).toHaveBeenCalledWith(
+      expect.stringContaining('agro:v1:families:list:'),
+      expect.anything(),
+      CATALOG_TTL
+    );
+  });
+
+  it('serves a repeated listing from cache without re-querying the repository', async () => {
+    repository.addToStorage(FamilyReadViewMother.random());
+    const findAll = jest.spyOn(repository, 'findAll');
+
+    await useCase.execute();
+    await useCase.execute();
+
+    expect(findAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-queries after the catalog generation is bumped', async () => {
+    repository.addToStorage(FamilyReadViewMother.random());
+    const findAll = jest.spyOn(repository, 'findAll');
+
+    await useCase.execute();
+    await cache.bumpGeneration('agro:v1:families');
+    await useCase.execute();
+
+    expect(findAll).toHaveBeenCalledTimes(2);
   });
 });

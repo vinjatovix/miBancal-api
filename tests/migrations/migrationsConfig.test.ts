@@ -21,6 +21,7 @@ jest.mock('../../src/Contexts/shared/plugins/logger.plugin.js', () => ({
   buildLogger: () => ({ info: jest.fn(), error: jest.fn() })
 }));
 
+// eslint-disable-next-line sonarjs/super-linear-regex -- matches semantic-version segments in a bounded, first-party directory name; input is trusted and short
 const VERSION_PATTERN = /\d+\.\d+\.\d+/;
 
 describe('migrations runner', () => {

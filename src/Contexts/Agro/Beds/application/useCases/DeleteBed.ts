@@ -1,29 +1,25 @@
 import type { UserSessionInfo } from '../../../../Auth/application/index.js';
+import type { EventBus } from '../../../../shared/application/eventBus/index.js';
 import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
 import { ensureFound } from '../../../../shared/application/utils/ensureFound.js';
 import { ensureVersion } from '../../../../shared/application/utils/ensureVersion.js';
-import type { PlantInstanceRepository } from '../../../PlantInstances/domain/repositories/interfaces/PlantInstanceRepository.js';
 import type { BedRepository } from '../../domain/repositories/interfaces/BedRepository.js';
 import { bedDomainMapper } from '../../mappers/bedDomainMapper.js';
 
 export type DeleteBedDependencies = {
   bedRepository: BedRepository;
-  plantInstanceRepository: PlantInstanceRepository;
+  eventBus: EventBus;
   unitOfWork: UnitOfWork;
 };
 
 export class DeleteBed {
   private readonly bedRepository: BedRepository;
-  private readonly plantInstanceRepository: PlantInstanceRepository;
+  private readonly eventBus: EventBus;
   private readonly unitOfWork: UnitOfWork;
 
-  constructor({
-    bedRepository,
-    plantInstanceRepository,
-    unitOfWork
-  }: DeleteBedDependencies) {
+  constructor({ bedRepository, eventBus, unitOfWork }: DeleteBedDependencies) {
     this.bedRepository = bedRepository;
-    this.plantInstanceRepository = plantInstanceRepository;
+    this.eventBus = eventBus;
     this.unitOfWork = unitOfWork;
   }
 
@@ -44,16 +40,14 @@ export class DeleteBed {
     bed.markAsDeleted(user.username, at);
     const deleted = bedDomainMapper.toPrimitives(bed);
 
-    // The bed and its crops change together or not at all. The bed goes
-    // first so a stale version fails before any crop is touched.
+    // Pulled before `run` because the unit of work may retry its callback; a
+    // second attempt would drain an empty buffer and commit the deletion with
+    // no events.
+    const events = bed.pullDomainEvents();
+
     await this.unitOfWork.run(async () => {
       await this.bedRepository.updateWithDiff(current, deleted);
-      await this.plantInstanceRepository.markAllInBedAsRemoved(
-        bed.id,
-        user.id,
-        at,
-        user.username
-      );
+      await this.eventBus.publish(events);
     });
   }
 }

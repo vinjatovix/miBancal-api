@@ -57,6 +57,7 @@ class Random {
     max = 256
   }: { min?: number; max?: number } = {}): string {
     return this.chance.word({
+      // eslint-disable-next-line sonarjs/pseudo-random -- test data generator: Math.random is adequate for non-security test fixtures
       length: Math.floor(Math.random() * (max - min + 1) + min)
     });
   }

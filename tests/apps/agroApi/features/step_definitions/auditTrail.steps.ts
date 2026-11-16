@@ -66,6 +66,21 @@ Given(
 );
 
 Then(
+  'the response audit data should show the {role} as creator',
+  async function (this: AgroWorld, role: Role) {
+    const { metadata } = (await currentResponse(this)).body as {
+      metadata: Record<
+        'createdAt' | 'createdBy' | 'updatedAt' | 'updatedBy',
+        string
+      >;
+    };
+
+    assert.strictEqual(metadata.createdBy, usernameFor(this, role));
+    assert.strictEqual(metadata.updatedBy, usernameFor(this, role));
+  }
+);
+
+Then(
   'the response audit data should show the {role} as last editor',
   async function (this: AgroWorld, role: Role) {
     const { metadata } = (await currentResponse(this)).body as {

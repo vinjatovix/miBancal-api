@@ -1,20 +1,32 @@
 import { ListPlants } from '../../../../../../src/Contexts/Agro/Plants/application/useCases/ListPlants.js';
 import { PlantStatus } from '../../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantStatus.js';
 import type { UserSessionInfo } from '../../../../../../src/Contexts/Auth/application/index.js';
+import { DomainUnauthorizedException } from '../../../../../../src/Contexts/shared/domain/errors/DomainUnauthorizedException.js';
+import { CacheRepositoryFake } from '../../../../shared/__mocks__/CacheRepositoryFake.js';
 import { random } from '../../../../shared/fixtures/random.js';
+import { UserBookmarksRepositoryMock } from '../../../Bookmarks/__mocks__/UserBookmarksRepositoryMock.js';
+import { UserBookmarksMother } from '../../../Bookmarks/domain/entities/UserBookmarksMother.js';
 import { FamilySummaryReaderMock } from '../../__mocks__/FamilySummaryReaderMock.js';
+import { PlantLikesCounterReaderFake } from '../../__mocks__/PlantLikesCounterReaderFake.js';
 import { PlantReadRepositoryMock } from '../../__mocks__/PlantReadRepositoryMock.js';
 import { FamilySummaryViewMother } from '../queries/FamilySummaryViewMother.js';
 import { PlantReadViewMother } from '../queries/PlantReadViewMother.js';
 
+const CATALOG_TTL = 86400;
+
 describe('ListPlants', () => {
   let repository: PlantReadRepositoryMock;
   let familySummaryReader: FamilySummaryReaderMock;
+  let userBookmarksRepository: UserBookmarksRepositoryMock;
+  let likesCounter: PlantLikesCounterReaderFake;
+  let cache: CacheRepositoryFake;
   let listPlants: ListPlants;
   const USER = {
+    id: random.uuid(),
     roles: ['user']
   } as UserSessionInfo;
   const ADMIN = {
+    id: random.uuid(),
     roles: ['admin']
   } as UserSessionInfo;
   const COLLABORATOR = {
@@ -24,9 +36,16 @@ describe('ListPlants', () => {
   beforeEach(() => {
     repository = new PlantReadRepositoryMock();
     familySummaryReader = new FamilySummaryReaderMock();
+    userBookmarksRepository = new UserBookmarksRepositoryMock();
+    likesCounter = new PlantLikesCounterReaderFake();
+    cache = new CacheRepositoryFake();
     listPlants = new ListPlants({
       plantReadRepository: repository,
-      familySummaryReader
+      familySummaryReader,
+      userBookmarksRepository,
+      plantLikesCounterRepository: likesCounter,
+      cacheRepository: cache,
+      cacheCatalogTtlSeconds: CATALOG_TTL
     });
   });
 
@@ -160,6 +179,124 @@ describe('ListPlants', () => {
 
       expect(data[0]).not.toHaveProperty('identity');
       familySummaryReader.assertNotCalled();
+    });
+  });
+
+  describe('with bookmark filter', () => {
+    it('should throw authentication error for anonymous users', async () => {
+      await expect(
+        listPlants.execute(undefined, {
+          query: { filter: { bookmarked: { eq: true } } }
+        })
+      ).rejects.toThrow(DomainUnauthorizedException);
+    });
+
+    it('should filter by bookmarked plants', async () => {
+      const plant1 = PlantReadViewMother.random();
+      const bookmarks = UserBookmarksMother.ofPlants(USER.id, [plant1.id]);
+      userBookmarksRepository.addToStorage(bookmarks);
+
+      await listPlants.execute(USER, {
+        query: { filter: { bookmarked: { eq: true } } }
+      });
+
+      repository.assertFindAllHasBeenCalledWith({
+        filter: { id: { in: [plant1.id] }, status: { eq: PlantStatus.ACTIVE } }
+      });
+    });
+
+    it('should filter by non-bookmarked plants', async () => {
+      const plant1 = PlantReadViewMother.random();
+      const bookmarks = UserBookmarksMother.ofPlants(USER.id, [plant1.id]);
+      userBookmarksRepository.addToStorage(bookmarks);
+
+      await listPlants.execute(USER, {
+        query: { filter: { bookmarked: { eq: false } } }
+      });
+
+      repository.assertFindAllHasBeenCalledWith({
+        filter: { id: { nin: [plant1.id] }, status: { eq: PlantStatus.ACTIVE } }
+      });
+    });
+  });
+
+  describe('caching', () => {
+    it('caches the public listing with the catalog TTL', async () => {
+      repository.addToStorage(PlantReadViewMother.random());
+
+      await listPlants.execute(USER);
+
+      expect(cache.setMock).toHaveBeenCalledWith(
+        expect.stringContaining('agro:v1:plants:list:'),
+        expect.anything(),
+        CATALOG_TTL
+      );
+    });
+
+    it('serves a repeated public listing from cache without re-querying', async () => {
+      repository.addToStorage(PlantReadViewMother.random());
+      const findAll = jest.spyOn(repository, 'findAll');
+
+      await listPlants.execute(USER);
+      await listPlants.execute(USER);
+
+      expect(findAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('merges the live likesCount on a cold read', async () => {
+      const plant = PlantReadViewMother.random();
+      repository.addToStorage(plant);
+      likesCounter.set(plant.id, 5);
+
+      const { data } = await listPlants.execute(USER);
+
+      expect(data[0]?.likesCount).toBe(5);
+    });
+
+    it('merges updated live likesCount on a warm cache read', async () => {
+      const plant = PlantReadViewMother.random();
+      repository.addToStorage(plant);
+      likesCounter.set(plant.id, 5);
+      await listPlants.execute(USER);
+      likesCounter.set(plant.id, 12);
+
+      const { data } = await listPlants.execute(USER);
+
+      expect(data[0]?.likesCount).toBe(12);
+    });
+
+    it('re-queries after the catalog generation is bumped', async () => {
+      repository.addToStorage(PlantReadViewMother.random());
+      const findAll = jest.spyOn(repository, 'findAll');
+
+      await listPlants.execute(USER);
+      await cache.bumpGeneration('agro:v1:plants');
+      await listPlants.execute(USER);
+
+      expect(findAll).toHaveBeenCalledTimes(2);
+    });
+
+    it('bypasses the cache entirely for curator listings', async () => {
+      repository.addToStorage(PlantReadViewMother.random());
+
+      await listPlants.execute(ADMIN);
+
+      expect(cache.getMock).not.toHaveBeenCalled();
+      expect(cache.setMock).not.toHaveBeenCalled();
+    });
+
+    it('bypasses the cache for identity-specific bookmark listings', async () => {
+      const plant = PlantReadViewMother.random();
+      userBookmarksRepository.addToStorage(
+        UserBookmarksMother.ofPlants(USER.id, [plant.id])
+      );
+
+      await listPlants.execute(USER, {
+        query: { filter: { bookmarked: { eq: true } } }
+      });
+
+      expect(cache.getMock).not.toHaveBeenCalled();
+      expect(cache.setMock).not.toHaveBeenCalled();
     });
   });
 });

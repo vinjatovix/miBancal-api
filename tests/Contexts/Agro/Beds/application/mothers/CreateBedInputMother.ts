@@ -6,6 +6,7 @@ export class CreateBedInputMother {
     return {
       id: random.uuid(),
       userId: random.uuid(),
+      locationId: random.uuid(),
       name: random.word(),
       width: random.integer({ min: 10, max: 500 }),
       height: random.integer({ min: 10, max: 500 }),

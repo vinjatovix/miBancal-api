@@ -49,13 +49,22 @@ export abstract class MongoRepository {
     );
   }
 
-  protected async delete(id: string): Promise<void> {
+  protected async delete(
+    id: string,
+    expectedVersion?: number
+  ): Promise<boolean> {
     const collection = this.collection();
-    const _id = toMongoId(id);
+    const filter: Record<string, unknown> = { _id: toMongoId(id) };
 
-    await this.handleMongoError(() =>
-      collection.deleteOne({ _id }, this.sessionOptions())
+    if (expectedVersion !== undefined) {
+      filter.version = expectedVersion;
+    }
+
+    const result = await this.handleMongoError(() =>
+      collection.deleteOne(filter, this.sessionOptions())
     );
+
+    return result.deletedCount === 1;
   }
 
   protected async handleMongoError<T>(operation: () => Promise<T>): Promise<T> {

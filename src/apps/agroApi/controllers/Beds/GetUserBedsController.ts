@@ -4,6 +4,7 @@ import type { ListUserBeds } from '../../../../Contexts/Agro/Beds/application/us
 import type { UserSessionInfo } from '../../../../Contexts/Auth/application/index.js';
 import { getValidatedRequest } from '../../middlewares/validateRequest.js';
 import { HttpController } from '../../shared/HttpController.js';
+import { parseBedIncludes, parseBedLocationFilter } from './bedQueryParser.js';
 import { toBedResponse } from './bedResponse.js';
 import { listBedsRequest } from './requestSchemas.js';
 
@@ -28,10 +29,18 @@ export class GetUserBedsController extends HttpController {
       const user = res.locals.user as UserSessionInfo;
       const { query } = getValidatedRequest(res, listBedsRequest);
 
-      const embedCrops = query.include === 'plantInstances';
-      const beds = await this.listUserBeds.execute(user.id, { embedCrops });
+      const locationId = parseBedLocationFilter(query);
+      const filter = locationId !== undefined ? { locationId } : undefined;
+      const { embedCrops, embedLocation } = parseBedIncludes(query.include);
 
-      const response = beds.map((bedWithCrops) => toBedResponse(bedWithCrops));
+      const beds = await this.listUserBeds.execute(user.id, filter, {
+        embedCrops,
+        embedLocation
+      });
+
+      const response = beds.map((bedWithRelations) =>
+        toBedResponse(bedWithRelations)
+      );
 
       res.status(this.status()).json(response);
     } catch (error) {

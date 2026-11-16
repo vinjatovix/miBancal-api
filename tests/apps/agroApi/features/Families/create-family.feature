@@ -37,6 +37,39 @@ Feature: Create Family
       """
     And response matches OpenAPI contract
 
+  Scenario: Collaborator creates a family successfully
+    Given a POST collaborator request to "/api/v1/families/" with body
+      """
+      {
+        "id": "7a3e6de7-93e8-40d0-b8e3-76014d5849c7",
+        "slug": "solanaceae-collab",
+        "name": "Solanaceae",
+        "aliases": [
+          "nightshade-family"
+        ],
+        "scientificName": "Solanaceae",
+        "shortDescription": "Nightshade family of flowering plants",
+        "highlights": [
+          "flowers",
+          "fruits"
+        ]
+      }
+      """
+    Then the response status code should be 201
+    And the response should have ETag '"0"'
+    And the response body should contain
+      """
+      {
+        "id": "7a3e6de7-93e8-40d0-b8e3-76014d5849c7",
+        "slug": "solanaceae-collab",
+        "name": "Solanaceae",
+        "scientificName": "Solanaceae",
+        "shortDescription": "Nightshade family of flowering plants"
+      }
+      """
+    And the response audit data should show the collaborator as creator
+    And response matches OpenAPI contract
+
   Scenario: Admin creates a family with extra fields
     Given a POST admin request to "/api/v1/families/" with body
       """

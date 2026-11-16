@@ -31,5 +31,6 @@ export interface BedRepository {
   ): Promise<WriteOutcome>;
   findAll(options?: QueryOptions<BedFilter>): Promise<PaginatedResult<Bed>>;
   exists(id: string): Promise<boolean>;
-  findByUserId(userId: string): Promise<Bed[]>;
+  findByUserId(userId: string, filter?: BedFilter): Promise<Bed[]>;
+  updateLayouts(beds: Bed[]): Promise<void>;
 }

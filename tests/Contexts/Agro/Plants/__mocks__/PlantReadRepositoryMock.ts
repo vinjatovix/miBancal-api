@@ -3,7 +3,8 @@ import type {
   PlantField,
   PlantReadRepository,
   PlantReadView,
-  PlantSparseView
+  PlantSparseView,
+  PlantSummary
 } from '../../../../../src/Contexts/Agro/Plants/application/queries/index.js';
 import type { PlantFilter } from '../../../../../src/Contexts/Agro/Plants/domain/entities/types/PlantFilter.js';
 import type { PaginatedResult } from '../../../../../src/shared/domain/query/interfaces/PaginatedResult.js';
@@ -21,8 +22,12 @@ import { PlantReadViewMother } from '../application/queries/PlantReadViewMother.
 export class PlantReadRepositoryMock implements PlantReadRepository {
   private readonly findByIdMock = jest.fn();
   private readonly findActiveByIdMock = jest.fn();
+  private readonly findBySlugMock = jest.fn();
+  private readonly findActiveBySlugMock = jest.fn();
   private readonly findAllMock = jest.fn();
+  private readonly findSummariesByIdsMock = jest.fn();
   private readonly storage = new Map<string, PlantReadView>();
+  private readonly slugIndex = new Map<string, PlantReadView>();
 
   async findById(
     id: string,
@@ -42,6 +47,30 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
     this.findActiveByIdMock(id, options);
 
     const view = this.storage.get(id);
+
+    return view && view.status !== 'DELETED'
+      ? this.select(view, options)
+      : null;
+  }
+
+  async findBySlug(
+    slug: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    this.findBySlugMock(slug, options);
+
+    const view = this.slugIndex.get(slug);
+
+    return view ? this.select(view, options) : null;
+  }
+
+  async findActiveBySlug(
+    slug: string,
+    options: ReadOptions<PlantField> = {}
+  ): Promise<Nullable<PlantSparseView>> {
+    this.findActiveBySlugMock(slug, options);
+
+    const view = this.slugIndex.get(slug);
 
     return view && view.status !== 'DELETED'
       ? this.select(view, options)
@@ -68,6 +97,40 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
     };
   }
 
+  async findSummariesByIds(
+    ids: readonly string[]
+  ): Promise<readonly PlantSummary[]> {
+    this.findSummariesByIdsMock(ids);
+
+    const idSet = new Set(ids);
+    const result: PlantSummary[] = [];
+
+    for (const view of this.storage.values()) {
+      if (idSet.has(view.id) && view.status !== 'DELETED') {
+        result.push({
+          id: view.id,
+          slug: view.slug ?? '',
+          name: {
+            primary: view.identity.name.primary,
+            ...(view.identity.name.aliases && {
+              aliases: view.identity.name.aliases
+            })
+          },
+          scientificName: view.identity.scientificName,
+          image: view.image
+            ? {
+                url: view.image.url,
+                ...(view.image.title && { title: view.image.title }),
+                ...(view.image.source && { source: view.image.source })
+              }
+            : null
+        });
+      }
+    }
+
+    return result;
+  }
+
   private select(
     view: PlantReadView,
     { fields }: ReadOptions<PlantField>
@@ -81,6 +144,7 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
 
   addToStorage(view: PlantReadView): void {
     this.storage.set(view.id, view);
+    if (view.slug) this.slugIndex.set(view.slug, view);
   }
 
   /* ---------- assertions ---------- */
@@ -104,7 +168,22 @@ export class PlantReadRepositoryMock implements PlantReadRepository {
     expect(this.findActiveByIdMock).not.toHaveBeenCalled();
   }
 
+  assertFindBySlugHasBeenCalledWith(slug: string, options: unknown = {}): void {
+    expect(this.findBySlugMock).toHaveBeenCalledWith(slug, options);
+  }
+
+  assertFindActiveBySlugHasBeenCalledWith(
+    slug: string,
+    options: unknown = {}
+  ): void {
+    expect(this.findActiveBySlugMock).toHaveBeenCalledWith(slug, options);
+  }
+
   assertFindAllHasBeenCalledWith(options: unknown): void {
     expect(this.findAllMock).toHaveBeenCalledWith(options);
+  }
+
+  assertFindSummariesByIdsHasBeenCalledWith(ids: readonly string[]): void {
+    expect(this.findSummariesByIdsMock).toHaveBeenCalledWith(ids);
   }
 }

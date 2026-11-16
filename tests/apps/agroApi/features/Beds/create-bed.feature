@@ -4,6 +4,18 @@ Feature: Create Bed
     I want to create a bed
     So that I can have a place to plant my plants
 
+    Background:
+        Given a POST user request to "/api/v1/locations" with body
+            """
+            {
+                "id": "e1111111-1111-4111-8111-111111111101",
+                "name": "Huerto Para Bancal",
+                "latitude": 40.4168,
+                "longitude": -3.7038
+            }
+            """
+        Then the response status code should be 201
+
     Scenario: Create a bed successfully
         Given a POST user request to "/api/v1/beds" with body
             """
@@ -12,7 +24,8 @@ Feature: Create Bed
                 "name": "My Bed",
                 "width": 200,
                 "height": 300,
-                "depth": 50
+                "depth": 50,
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         Then the response status code should be 201
@@ -27,7 +40,8 @@ Feature: Create Bed
                 "name": "My Bed",
                 "width": 200,
                 "height": 300,
-                "depth": 50
+                "depth": 50,
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         Then the response status code should be 401
@@ -41,7 +55,8 @@ Feature: Create Bed
                 "name": "  Raised bed  ",
                 "width": 120,
                 "height": 240,
-                "depth": 30.5
+                "depth": 30.5,
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         Then the response status code should be 201
@@ -53,13 +68,15 @@ Feature: Create Bed
                 "width": 120,
                 "height": 240,
                 "depth": 30.5,
+                "locationId": "e1111111-1111-4111-8111-111111111101",
                 "version": 0
             }
             """
         And a GET user request to "/api/v1/beds/5a0f3c5e-4b8e-4e0e-9a7c-1f2d3e4a5b6c" should return a body containing
             """
             {
-                "name": "Raised bed"
+                "name": "Raised bed",
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         And response matches OpenAPI contract
@@ -75,6 +92,7 @@ Feature: Create Bed
         And the response errors should include "width"
         And the response errors should include "height"
         And the response errors should include "depth"
+        And the response errors should include "locationId"
         And the response body should contain
             """
             {
@@ -95,6 +113,37 @@ Feature: Create Bed
         Then the response status code should be 400
         And the response errors should include "name"
         And the response errors should include "depth"
+        And the response errors should include "locationId"
+        And response matches OpenAPI contract
+
+    Scenario: Create a bed without locationId is rejected
+        Given a POST user request to "/api/v1/beds" with body
+            """
+            {
+                "id": "3d3fae8e-cd70-4190-a8c3-e144e6482403",
+                "name": "My Bed",
+                "width": 200,
+                "height": 300,
+                "depth": 50
+            }
+            """
+        Then the response status code should be 400
+        And the response errors should include "locationId"
+        And response matches OpenAPI contract
+
+    Scenario: Create a bed with unknown locationId returns 404
+        Given a POST user request to "/api/v1/beds" with body
+            """
+            {
+                "id": "3d3fae8e-cd70-4190-a8c3-e144e6482403",
+                "name": "My Bed",
+                "width": 200,
+                "height": 300,
+                "depth": 50,
+                "locationId": "00000000-0000-4000-8000-000000000000"
+            }
+            """
+        Then the response status code should be 404
         And response matches OpenAPI contract
 
     Scenario: Create a bed with invalid id
@@ -105,7 +154,8 @@ Feature: Create Bed
                 "name": "My Bed",
                 "width": 200,
                 "height": 300,
-                "depth": 50
+                "depth": 50,
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         Then the response status code should be 400
@@ -122,6 +172,7 @@ Feature: Create Bed
                 "width": 100,
                 "height": 100,
                 "depth": 30,
+                "locationId": "e1111111-1111-4111-8111-111111111101",
                 "<field>": <value>
             }
             """
@@ -148,6 +199,7 @@ Feature: Create Bed
                 "width": 100,
                 "height": 100,
                 "depth": 30,
+                "locationId": "e1111111-1111-4111-8111-111111111101",
                 "<field>": <value>
             }
             """
@@ -173,7 +225,8 @@ Feature: Create Bed
                 "name": "Bed",
                 "width": 100,
                 "height": 100,
-                "depth": 30
+                "depth": 30,
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         Then the response status code should be 400
@@ -193,7 +246,8 @@ Feature: Create Bed
                 "name": "My Bed",
                 "width": 200,
                 "height": 300,
-                "depth": 50
+                "depth": 50,
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         Then the response status code should be 201
@@ -204,7 +258,8 @@ Feature: Create Bed
                 "name": "My Bed 2",
                 "width": 200,
                 "height": 300,
-                "depth": 50
+                "depth": 50,
+                "locationId": "e1111111-1111-4111-8111-111111111101"
             }
             """
         Then the response status code should be 409
