@@ -13,9 +13,7 @@ export type EventSubscription = {
 };
 
 export const EVENT_SUBSCRIPTIONS: EventSubscription[] = [
-  { eventName: 'bed.deleted', handler: 'removeCropsOnBedDeleted' },
-  { eventName: 'plant.liked', handler: 'incrementLikeCountOnPlantLiked' },
-  { eventName: 'plant.unliked', handler: 'decrementLikeCountOnPlantUnliked' }
+  { eventName: 'bed.deleted', handler: 'removeCropsOnBedDeleted' }
 ];
 
 export function registerEventSubscribers(container: AppContainer): void {

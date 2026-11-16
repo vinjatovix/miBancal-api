@@ -68,4 +68,12 @@ describe('registerEventSubscribers (SC-005 / FR-010)', () => {
 
     expect(calls).toEqual(['removeCropsOnBedDeleted', 'secondReactor']);
   });
+
+  it('excludes plant.liked and plant.unliked from in-process subscriptions', () => {
+    const eventNames = EVENT_SUBSCRIPTIONS.map((sub) => sub.eventName);
+
+    expect(eventNames).not.toContain('plant.liked');
+    expect(eventNames).not.toContain('plant.unliked');
+    expect(eventNames).toEqual(['bed.deleted']);
+  });
 });

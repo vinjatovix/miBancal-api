@@ -1,9 +1,20 @@
-import { Given, Then } from '@cucumber/cucumber';
+import { Before, Given, Then, When } from '@cucumber/cucumber';
 import { assert } from 'chai';
 import type { Binary } from 'mongodb';
+import { v7 as uuidv7 } from 'uuid';
 
+import { up as createProcessedEventsCollection } from '../../../../../migrations/scripts/20261116120000-create-processed-events-collection.js';
 import type { MongoPlantLikeDocument } from '../../../../../src/Contexts/Agro/PlantLikes/infrastructure/persistence/types/MongoPlantLikeDocument.js';
+import { PlantLikesCounterConsumer } from '../../../../../src/Contexts/Agro/Plants/application/consumers/PlantLikesCounterConsumer.js';
+import { PlantQueryMapper } from '../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/mappers/PlantQueryMapper.js';
+import { MongoPlantLikesCounterRepository } from '../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantLikesCounterRepository.js';
+import { MongoPlantRepository } from '../../../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
+import { plantPersistenceMapper } from '../../../../../src/Contexts/Agro/Plants/mappers/plantPersistenceMapper.js';
+import type { KafkaDomainEventEnvelope } from '../../../../../src/Contexts/shared/domain/events/index.js';
 import { toMongoId } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoId.js';
+import { MongoProcessedEventsRepository } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoProcessedEventsRepository.js';
+import { MongoUnitOfWork } from '../../../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
+import { buildLogger } from '../../../../../src/Contexts/shared/plugins/index.js';
 import { random } from '../../../../Contexts/shared/fixtures/random.js';
 import { currentResponse, suite, type AgroWorld } from './utils/index.js';
 
@@ -158,5 +169,77 @@ Then(
     const body = response.body as { liked: boolean; likedAt?: string };
     assert.isFalse(body.liked);
     assert.isUndefined(body.likedAt);
+  }
+);
+
+const initializedDbs = new WeakSet<object>();
+
+Before(async () => {
+  const db = suite().client.db();
+  if (!initializedDbs.has(db)) {
+    await createProcessedEventsCollection(db);
+    initializedDbs.add(db);
+  }
+});
+
+const buildConsumer = (): PlantLikesCounterConsumer => {
+  const db = suite().client.db();
+  const processedEventsRepository = new MongoProcessedEventsRepository({ db });
+  const plantLikesCounterRepository = new MongoPlantLikesCounterRepository({
+    db
+  });
+  const plantRepository = new MongoPlantRepository({
+    db,
+    plantPersistenceMapper,
+    plantQueryMapper: new PlantQueryMapper()
+  });
+  const logger = buildLogger('cucumberPlantLikesConsumer');
+  const unitOfWork = new MongoUnitOfWork({ DBClient: suite().client, logger });
+
+  return new PlantLikesCounterConsumer({
+    processedEventsRepository,
+    plantLikesCounterRepository,
+    plantRepository,
+    unitOfWork,
+    logger
+  });
+};
+
+const processStagedEvents = async (): Promise<void> => {
+  const consumer = buildConsumer();
+  const outboxDocs = await suite()
+    .client.db()
+    .collection('outbox')
+    .find()
+    .sort({ _id: 1 })
+    .toArray();
+
+  for (const doc of outboxDocs) {
+    const payload = doc.payload as KafkaDomainEventEnvelope;
+    await consumer.handle(payload);
+  }
+};
+
+When('the plant likes consumer processes staged events', processStagedEvents);
+
+When(
+  'the plant likes consumer processes staged events again',
+  processStagedEvents
+);
+
+When(
+  'the plant likes consumer processes a direct {string} event for the plant',
+  async function (this: AgroWorld, eventName: string) {
+    const plantId = requirePlantId(this);
+    const consumer = buildConsumer();
+    const envelope: KafkaDomainEventEnvelope = {
+      eventId: uuidv7(),
+      eventName,
+      aggregateId: plantId,
+      occurredAt: new Date().toISOString(),
+      payload: { plantId }
+    };
+
+    await consumer.handle(envelope);
   }
 );
