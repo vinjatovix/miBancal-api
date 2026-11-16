@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "docker:mongo": "docker compose -f ./docker/docker-compose.yml up --build -d --wait",
+    "docker:infra": "docker compose -f ./docker/docker-compose.yml up --build -d --wait",
+    "docker:infra:down": "docker compose -f ./docker/docker-compose.yml down",
     "restoreDB": "./docker/mongo/scripts/restoreDB.sh",
     "restoreDump": "./docker/mongo/scripts/restoreDump.sh",
     "dev": "tsx watch --clear-screen=false src/index.ts",

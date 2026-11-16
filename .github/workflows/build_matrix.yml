@@ -102,9 +102,9 @@ jobs:
       - name: Check Docker Compose
         run: docker compose version
 
-      - name: Run mongo docker
+      - name: Run infra docker
         run: |
-          npm run docker:mongo
+          npm run docker:infra
 
       - name: Run tests and generate coverage
         run: |
