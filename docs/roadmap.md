@@ -12,24 +12,24 @@ Delivery has **not** followed phase order strictly — several late features (hi
 
 Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
 
-| Phase                         | Iterations                                                                                                                                                                                                                                                                                                                                              | Status  |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 0 — Core Architecture         | 1–19b                                                                                                                                                                                                                                                                                                                                                   | ✅ Done |
-| 1 — Spatial Engine Prep       | 20–24                                                                                                                                                                                                                                                                                                                                                   | ✅ Done |
-| 2 — Identity & Access         | 25–30b                                                                                                                                                                                                                                                                                                                                                  | ✅ Done |
-| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                                                                                                                                                                                                                                                                       | 🟡      |
-| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                                                                                                                                                                                                                                                                   | 🟡      |
-| 5 — Organics & Diagnostics    | 39–42                                                                                                                                                                                                                                                                                                                                                   | ✅ Done |
-| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                                                                                                                                                                                                                                                                    | ⬜      |
-| **7 — Distributed Event Bus** | **45b ✅ (domain-event primitives + record/pull seam) · 45c ✅ (`EventBus` port + in-process `InMemoryEventBusAdapter` + central subscriber registry) · 45d ✅ (use cases publish + first two in-process consumer pairs) · 46 ✅ (`outbox` collection) · 47 ✅ (transactional outbox write) · 45e, 48–51 ⬜ (no Change Stream tailer / Kafka in code)** | 🟡      |
-| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                                                                                                                                                                                                                                                                               | ⬜      |
-| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                                                                                                                                                                                                                                                                                | 🟡      |
-| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                                                                                                                                                                                                                                                                                | ⬜      |
-| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                                                                                                                                                                                                                                                                       | 🟡      |
-| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                                                                                                                                                                                                                                                                          | ⬜      |
-| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                                                                                                                                                                                                                                                                    | ⬜      |
-| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                                                                                                                                                                                                                                                                                | 🟡      |
-| GDPR                          | 91, 92 ⬜                                                                                                                                                                                                                                                                                                                                               | ⬜      |
+| Phase                         | Iterations                                                                                                                                                                                                                | Status  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 0 — Core Architecture         | 1–19b                                                                                                                                                                                                                     | ✅ Done |
+| 1 — Spatial Engine Prep       | 20–24                                                                                                                                                                                                                     | ✅ Done |
+| 2 — Identity & Access         | 25–30b                                                                                                                                                                                                                    | ✅ Done |
+| 3 — Taxonomy & Social         | 31, 33, 34 ✅ · **32 ⬜ (no DeleteFamily route)**                                                                                                                                                                         | 🟡      |
+| 4 — Botanical Enhancements    | 35, 37, 38 ✅ · **36 ⬜ (southern-hemisphere shift)**                                                                                                                                                                     | 🟡      |
+| 5 — Organics & Diagnostics    | 39–42                                                                                                                                                                                                                     | ✅ Done |
+| 6 — Telemetry                 | 44 🟡 (PII masking partial) · **43, 45 ⬜ (no Kafka dep installed)**                                                                                                                                                      | ⬜      |
+| **7 — Distributed Event Bus** | **45b ✅ · 45c ✅ · 45d ✅ · 46 ✅ · 47 ✅ · 48 ✅ (Change Stream tailer) · 48b ✅ (watchdog self-exit) · 49 ✅ (Kafka routing by partition key) · 49b ✅ (Local Kafka Web UI) · 45e, 50, 51, 51b ⬜ (no consumers yet)** | 🟡      |
+| 8 — Inventory                 | 52–55 ⬜ (no `SeedBatch`)                                                                                                                                                                                                 | ⬜      |
+| 9 — Spatial Engine Core       | 56, 59, 60 ✅ · 57, 58 🟡 (verify SFG snap / volumetric)                                                                                                                                                                  | 🟡      |
+| 10 — Microclimates            | 61–64 ⬜ (no `shadeZones`/`sunExposure`)                                                                                                                                                                                  | ⬜      |
+| 11 — Interactive Layout API   | 66, 67 ✅ · 65 🟡 · **68, 69 ⬜**                                                                                                                                                                                         | 🟡      |
+| 12 — Cultivation Logs         | 70–73 ⬜ (no `CultivationLog`)                                                                                                                                                                                            | ⬜      |
+| 13 — Nurseries & Analytics    | 74–78 ⬜ (no `Nursery`/`Transplant` API/`occupancy`)                                                                                                                                                                      | ⬜      |
+| 14 — Reminders Engine         | 79–86 ⬜ (no `Reminder`) · 87–90 ✅ (companions, id filter, genus, slug)                                                                                                                                                  | 🟡      |
+| GDPR                          | 91, 92 ⬜                                                                                                                                                                                                                 | ⬜      |
 
 **Blocking the most work:** Phase 7 (the event bus). Its async consumers (69, 76, 80–82) and GDPR deletion (91) all sit behind it. See the sequencing note at the head of Phase 7.
 
@@ -1241,12 +1241,30 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
   WHAT: Implement a Kafka EventBus adapter routing messages via plantInstanceId or bedId partitions, and flag them as processed in the outbox.
   ```
 
+## Iteration 49b: Local Kafka Web UI for Developer Observability
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Status**: ✅ Delivered (2026-11-16, branch `070-local-kafka-web-ui`). Developer-tooling only; no application code.
+- **Value delivered**: Inspect topics, messages, partitions, consumer groups and lag on the **local** broker from a browser, so published `agro.domain.events` (with their partition key) can be verified locally without waiting for a dev deployment.
+- **Definition of Done**: A `kafbat-ui` (Apache-2.0, maintained fork of the former provectus/kafka-ui) service is added to the development Docker Compose stack (`docker/docker-compose.yml`) on `http://localhost:8080`, pointing at the broker through an **internal** listener. The broker is reconfigured with a dual listener — `INTERNAL://agro-api-kafka:29092` for in-network containers and `HOST://localhost:9092` for host clients — in a backward-compatible way, so the host-run outbox worker keeps connecting on `localhost:9092` unchanged. Dev-only: the service is absent from the production stack and off the production request path.
+- **Rationale**: The current single listener advertises `localhost:9092`, which an in-network UI container cannot reach (it would resolve the broker's advertised address to its own localhost). The dual-listener split is the standard fix and the only broker change required.
+- **Dependencies**: Iteration 49 (needs the broker and the `agro.domain.events` topic).
+- **Risks**: None at application runtime — a read-only observability tool outside the production path.
+- **Prompt for /speckit.specify**:
+  ```text
+  ADD LOCAL KAFKA WEB UI FOR DEVELOPER OBSERVABILITY
+  WHY: Developers must inspect local topics, messages and consumer lag without deploying to dev.
+  WHAT: Add a kafbat-ui service to the development Docker Compose stack and give the broker a dual listener (internal for containers, host for the worker) so the UI can connect in-network while host clients keep localhost:9092. Dev-only, absent in production.
+  ```
+
 ## Iteration 50: Implement Consumer Idempotence with TTL Store
 
 **Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
 
 - **Value delivered**: Protects asynchronous side-effects against duplicate message processing.
 - **Definition of Done**: Kafka consumers implement an idempotence check, tracking processed UUIDs in a store with a TTL.
+- **First / reference consumer**: the like-counter handler (`IncrementLikeCountOnPlantLiked` / `DecrementLikeCountOnPlantUnliked`, on `plant.liked` / `plant.unliked`) is migrated to the first real Kafka consumer as the validation case for the idempotence store. It is the lowest-criticality side-effect (a miscounted like is cosmetic), and because a counter increment is itself **not** idempotent, it genuinely exercises the TTL-backed dedup. The higher-criticality bed-deletion crop cascade is deliberately deferred to [Iteration 51b](#iteration-51b-migrate-bed-deletion-crop-cascade-to-async-kafka-consumer), after the full safety net (idempotence + retry/DLQ) is in place.
 - **Dependencies**: Iteration 49.
 - **Risks**: Redis/Store drops causing idempotence failures.
 - **Prompt for /speckit.specify**:
@@ -1269,6 +1287,23 @@ Legend: ✅ Done · 🟡 Partial / verify · ⬜ Pending
   BUILD PROGRESSIVE RETRY AND DLQ CONSUMER FLOWS
   WHY: Poison pills or transient DB drops must not block healthy messages in the same partition.
   WHAT: Route consumer exceptions through progressive delay topics. If retries are exhausted, route to a Dead Letter Queue (DLQ).
+  ```
+
+## Iteration 51b: Migrate Bed-Deletion Crop Cascade to Async Kafka Consumer
+
+**Spec Module(s)**: [event-bus.md](spec/modules/event-bus.md)
+
+- **Status**: ⬜ Proposed (2026-11-16). First business side-effect moved off the in-process bus onto Kafka.
+- **Value delivered**: Decouples PlantInstances from Beds **at runtime** — deleting the crops of a bed stops happening synchronously inside the bed-deletion request and becomes an asynchronous consumer of `bed.deleted`. The bed-deletion API no longer blocks on, or fails because of, the crop cascade.
+- **Definition of Done**: `RemoveCropsOnBedDeleted` runs as a Kafka consumer (no longer dispatched in-process by the API), idempotent over `markAllInBedAsRemoved` (naturally a set-to-state operation, reinforced by the Iteration 50 dedup store) and protected by the Iteration 51 retry/DLQ flow. The API's in-process subscription for `bed.deleted` is removed.
+- **Why after Iteration 51 (not earlier)**: the crop cascade is a data-integrity concern, so the full safety net — idempotence **and** retry/DLQ — must exist before the logic moves async. Its natural idempotence gives headroom but does not justify jumping ahead of the DLQ.
+- **Dependencies**: Iteration 51.
+- **Risks**: Eventual-consistency window — a bed is deleted while its crops are still active until the consumer processes the event; must be acceptable to the read models and clients that observe both.
+- **Prompt for /speckit.specify**:
+  ```text
+  MIGRATE BED-DELETION CROP CASCADE TO ASYNC KAFKA CONSUMER
+  WHY: Deleting a bed's crops should not run synchronously inside the bed-deletion request; decouple PlantInstances from Beds at runtime.
+  WHAT: Move RemoveCropsOnBedDeleted from the in-process event bus to a Kafka consumer of bed.deleted, idempotent over markAllInBedAsRemoved and protected by the progressive-retry/DLQ flow. Remove the in-process bed.deleted subscription from the API.
   ```
 
 ---
