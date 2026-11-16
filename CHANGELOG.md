@@ -1,5 +1,56 @@
 # Changelog
 
+## [1.1.0](https://github.com/vinjatovix/miBancal-api/compare/v1.0.1...v1.1.0) (2026-11-16)
+
+
+### Features
+
+* add geographic context features for beds and locations ([c53a2a8](https://github.com/vinjatovix/miBancal-api/commit/c53a2a841a2e5e837a72a30dd3c254e7ce28e318))
+* **anomalies:** add encyclopedic content with support resources and confused-with ([72bc52b](https://github.com/vinjatovix/miBancal-api/commit/72bc52b5d9cc6a776708bdac7b8e1bbb661351c6))
+* **anomalies:** implement anomaly bounded context with CRUD ([3de9829](https://github.com/vinjatovix/miBancal-api/commit/3de9829f6eedf45d92a9de6200524df19a786017))
+* **auth:** add admin role management concurrency safeguard ([822c42f](https://github.com/vinjatovix/miBancal-api/commit/822c42fe14c091fcefd2cf7af69d147855ce1160))
+* **auth:** add admin role management with user discovery ([0354531](https://github.com/vinjatovix/miBancal-api/commit/03545312ce443d1932971141568f946d44d70f4e))
+* **auth:** add collaborator role ([9025a82](https://github.com/vinjatovix/miBancal-api/commit/9025a8233c82c3af8ea24142163bc5d98a79f43d))
+* **auth:** add GitHub OAuth login ([d284698](https://github.com/vinjatovix/miBancal-api/commit/d284698bd7fa473c259ca34b4ce6109f68ee121a))
+* **auth:** add Google OAuth login ([0c93f32](https://github.com/vinjatovix/miBancal-api/commit/0c93f3207cb91633f7f30d73fa13f66d7c4ec27a))
+* **beds:** link beds to locations and support location filtering ([c61f187](https://github.com/vinjatovix/miBancal-api/commit/c61f1874feb08a629418e0bffe7f71d7d48aac0f))
+* **bookmarks:** add user plant bookmarks collection ([656720a](https://github.com/vinjatovix/miBancal-api/commit/656720ad85538b1f8f5143737201bd736b576f1f))
+* **bookmarks:** enhance plant bookmark functionality with user metadata tracking ([3ce8631](https://github.com/vinjatovix/miBancal-api/commit/3ce863115e1ee069250ed4882cad2a4b5eee599a))
+* **cache:** integrate Redis and in-memory cache-aside for catalog reads ([7785412](https://github.com/vinjatovix/miBancal-api/commit/7785412bac044ea23574a40f7df55129906693af))
+* **events:** add local kafka web ui for developer observability ([49401ca](https://github.com/vinjatovix/miBancal-api/commit/49401cae64c803f097628fa5caa6401ebf600571))
+* **events:** consume domain events idempotently via processed-events ttl ([1790856](https://github.com/vinjatovix/miBancal-api/commit/179085602b6ce87f44bd2406636c49a0537b6af4))
+* **events:** create outbox collection and pending-lookup index ([1494b0c](https://github.com/vinjatovix/miBancal-api/commit/1494b0cb84aba14969565ab0bb7c01d5dc39c830))
+* **events:** publish and handle domain events for bed deletion and plant likes ([bf35918](https://github.com/vinjatovix/miBancal-api/commit/bf35918b24fa2fb9929a4c9935ad7ebf9afa0c2f))
+* **events:** recover stalled outbox tailer with watchdog ([4d96ec7](https://github.com/vinjatovix/miBancal-api/commit/4d96ec7a754c68e5646f5edddb577a8c7b1ef1cd))
+* **events:** route outbox events to kafka with configurable topic ensure ([1e3dcba](https://github.com/vinjatovix/miBancal-api/commit/1e3dcba3998b359461ba11ba94afa98da657acb2))
+* **events:** stage domain events to outbox within transactions ([560bd9c](https://github.com/vinjatovix/miBancal-api/commit/560bd9c5d43bec4f873f8900e2da45695de22952))
+* **events:** tail outbox collection with change stream worker ([58f731d](https://github.com/vinjatovix/miBancal-api/commit/58f731d632a416f6c43d568645e13a0236d4f785))
+* **garden-inputs:** implement garden input bounded context with CRUD and recipes ([905fe2e](https://github.com/vinjatovix/miBancal-api/commit/905fe2e84053613d405efe5cb5487a2a024da8dc))
+* **locations:** redefine location model to geographic coordinates ([f205423](https://github.com/vinjatovix/miBancal-api/commit/f205423cea4c3fd21cca15abd28954e00695f800))
+* **plant-instances:** support atomic batch placement, update, and removal ([461caff](https://github.com/vinjatovix/miBancal-api/commit/461caff015a90c0a98d8704447c9cdbe012f7183))
+* **plant-relations:** implement aggregate root and mongo repository ([ae0f1a9](https://github.com/vinjatovix/miBancal-api/commit/ae0f1a9135d17dfb9c98b5ddcc4a538a7131cd0b))
+* **plant-relations:** implement CRUD use cases and API endpoints ([94388d5](https://github.com/vinjatovix/miBancal-api/commit/94388d5c0b6744b2ad3c2b0209e59675d2c5fdcc))
+* **plant-relations:** implement hierarchical and broadcast companion resolution ([65cfca9](https://github.com/vinjatovix/miBancal-api/commit/65cfca90e4295362f9a9b9d407e9e7ced28dcb04))
+* **plant:** add likes functionality with ([24f090f](https://github.com/vinjatovix/miBancal-api/commit/24f090fea5c40903cf65a769cf58087ce928aa99))
+* **plants:** implement genus-based filtering and slug lookup with data migrations ([1654dbe](https://github.com/vinjatovix/miBancal-api/commit/1654dbe442a4fb6678cf1d9d9a4c884a4784fb88))
+* **plants:** make phenology.sowing block optional ([845365d](https://github.com/vinjatovix/miBancal-api/commit/845365d42f85684a200e29e3ca61c08c41f44970))
+* **rate-limit:** implement per-user rate limiter for authenticated routes ([3e6eab1](https://github.com/vinjatovix/miBancal-api/commit/3e6eab1cfa00d6b2634ddfe5caf4ffa4af4cbb94))
+* **shared:** add domain event primitives and aggregate event recording ([220217e](https://github.com/vinjatovix/miBancal-api/commit/220217e4bce096bd1838915072993d5833effc53))
+* **shared:** add EventBus port and in-memory adapter ([c3e415a](https://github.com/vinjatovix/miBancal-api/commit/c3e415abc915ca7eda306adf9acc5d30fd8f9856))
+* **spatial:** allow negative bed coordinates and remove canvas dimensions ([9d89cf0](https://github.com/vinjatovix/miBancal-api/commit/9d89cf0132eef525313b9c91202c6f29e556a928))
+* **spatial:** implement cross-bed companion and location layout engine ([1db6cf6](https://github.com/vinjatovix/miBancal-api/commit/1db6cf6f581c42ed95c1b67321852f3d33e333ea))
+
+
+### Bug Fixes
+
+* **anomalies:** remove weeds category ([d12be57](https://github.com/vinjatovix/miBancal-api/commit/d12be577def8cf46d3d07ebe16b59e5ee8726bdc))
+* **cache:** set family 0 for railway ([2890d66](https://github.com/vinjatovix/miBancal-api/commit/2890d66b5c4a8bdb7f7c4298056e6f4310bf193d))
+* **env:** add placeholders for Google and GitHub OAuth credentials ([42227d4](https://github.com/vinjatovix/miBancal-api/commit/42227d44df8db65a0e6917c4a13a9d3ce1cefbf4))
+* **release:** add manifest file and update release-please configuration ([2067b97](https://github.com/vinjatovix/miBancal-api/commit/2067b9781e919d333143cd2e987f2db863247d02))
+* **release:** configure packages mapping and openapi extra-files path ([b08c68b](https://github.com/vinjatovix/miBancal-api/commit/b08c68b89c1a2b154849c2351199e89b9fb5f982))
+* **security:** fix client ip rate limit ([a07c819](https://github.com/vinjatovix/miBancal-api/commit/a07c819c2bb2a9bbb18c90a38124df944fe01115))
+* **worker:** decouple mongo and logger envs from api config ([cdf2930](https://github.com/vinjatovix/miBancal-api/commit/cdf29303397ad3c7944b83b38a6c1b350e4fb82f))
+
 ## [1.0.1](https://github.com/vinjatovix/agro-back/compare/v1.0.0...v1.0.1) (2026-10-16)
 
 
