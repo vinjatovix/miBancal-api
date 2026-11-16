@@ -4,10 +4,18 @@ import 'winston-mongodb';
 import { getLoggerEnv } from './loggerEnv.js';
 
 export interface AppLogger {
-  debug: (message: string) => void;
-  info: (message: string) => void;
-  warn: (message: string, error?: unknown) => void;
-  error: (message: string, error?: unknown) => void;
+  debug: (message: string, meta?: Record<string, unknown>) => void;
+  info: (message: string, meta?: Record<string, unknown>) => void;
+  warn: (
+    message: string,
+    error?: unknown,
+    meta?: Record<string, unknown>
+  ) => void;
+  error: (
+    message: string,
+    error?: unknown,
+    meta?: Record<string, unknown>
+  ) => void;
 }
 
 const { combine, timestamp, json } = winston.format;
@@ -97,27 +105,37 @@ export const detachMongoTransport = (): void => {
 
 export const buildLogger = (service: string): AppLogger => {
   return {
-    debug: (message: string) => {
-      getRootLogger().debug({ service, message });
+    debug: (message: string, meta?: Record<string, unknown>) => {
+      getRootLogger().debug({ service, message, ...meta });
     },
 
-    info: (message: string) => {
-      getRootLogger().info({ service, message });
+    info: (message: string, meta?: Record<string, unknown>) => {
+      getRootLogger().info({ service, message, ...meta });
     },
 
-    warn: (message: string, error?: unknown) => {
+    warn: (
+      message: string,
+      error?: unknown,
+      meta?: Record<string, unknown>
+    ) => {
       getRootLogger().warn({
         service,
         message,
-        error: error instanceof Error ? error.stack : error
+        error: error instanceof Error ? error.stack : error,
+        ...meta
       });
     },
 
-    error: (message: string, error?: unknown) => {
+    error: (
+      message: string,
+      error?: unknown,
+      meta?: Record<string, unknown>
+    ) => {
       getRootLogger().error({
         service,
         message,
-        error: error instanceof Error ? error.stack : error
+        error: error instanceof Error ? error.stack : error,
+        ...meta
       });
     }
   };

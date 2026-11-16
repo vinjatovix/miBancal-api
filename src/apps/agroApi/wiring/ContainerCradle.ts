@@ -368,8 +368,6 @@ export type ContainerCradle = {
   deletePlantRelation: DeletePlantRelation;
 
   removeCropsOnBedDeleted: EventHandler;
-  incrementLikeCountOnPlantLiked: EventHandler;
-  decrementLikeCountOnPlantUnliked: EventHandler;
 
   healthController: HealthController;
   registerUserLocalController: RegisterUserLocalController;
