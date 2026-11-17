@@ -22,13 +22,7 @@ type StoredOutbox = {
   eventName: string;
   aggregateId: string;
   occurredAt: Date;
-  payload: {
-    eventId: string;
-    eventName: string;
-    aggregateId: string;
-    occurredAt: string;
-    payload: Record<string, unknown>;
-  };
+  payload: Record<string, unknown>;
   createdAt: Date;
   processedAt?: Date;
 };
@@ -123,18 +117,17 @@ describe('MongoOutboxRepository (integration)', () => {
       expect(doc.createdAt).toBeInstanceOf(Date);
     });
 
-    it('keeps the record consistent with its self-contained payload', async () => {
+    it('stores the domain payload flat, with envelope fields only at the top level', async () => {
       const event = bedDeleted();
 
       await unitOfWork.run(() => outboxRepository.stage([event]));
 
       const doc = await firstStored();
       expect(doc._id).toBe(event.eventId);
-      expect(doc._id).toBe(doc.payload.eventId);
-      expect(doc.eventName).toBe(doc.payload.eventName);
-      expect(doc.aggregateId).toBe(doc.payload.aggregateId);
-      expect(doc.occurredAt.toISOString()).toBe(doc.payload.occurredAt);
-      expect(doc.payload.payload).toEqual(event.payload);
+      expect(doc.eventName).toBe(event.eventName);
+      expect(doc.aggregateId).toBe(event.aggregateId);
+      expect(doc.occurredAt.toISOString()).toBe(event.occurredAt.toISOString());
+      expect(doc.payload).toEqual(event.payload);
     });
 
     it('preserves exact occurrence order under an ascending _id sort', async () => {

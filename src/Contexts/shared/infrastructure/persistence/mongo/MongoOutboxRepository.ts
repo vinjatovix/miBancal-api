@@ -46,7 +46,7 @@ export class MongoOutboxRepository
       eventName: event.eventName,
       aggregateId: event.aggregateId,
       occurredAt: event.occurredAt,
-      payload: event.toPrimitives(),
+      payload: event.payload,
       createdAt: now
     }));
 

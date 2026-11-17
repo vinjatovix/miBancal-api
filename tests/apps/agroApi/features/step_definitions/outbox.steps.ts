@@ -9,13 +9,7 @@ type OutboxDocument = {
   eventName: string;
   aggregateId: string;
   occurredAt: Date;
-  payload: {
-    eventId: string;
-    eventName: string;
-    aggregateId: string;
-    occurredAt: string;
-    payload: Record<string, unknown>;
-  };
+  payload: Record<string, unknown>;
   createdAt: Date;
   processedAt?: Date;
 };
@@ -78,9 +72,7 @@ Then(
       Object.prototype.hasOwnProperty.call(doc, 'processedAt'),
       'processedAt must be absent, never null'
     );
-    assert.strictEqual(doc._id, doc.payload.eventId);
-    assert.strictEqual(doc.eventName, doc.payload.eventName);
-    assert.strictEqual(doc.aggregateId, doc.payload.aggregateId);
+    assert.strictEqual(doc.aggregateId, doc.payload.bedId);
     assert.instanceOf(doc.occurredAt, Date);
     assert.instanceOf(doc.createdAt, Date);
   }
