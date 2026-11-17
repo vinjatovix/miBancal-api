@@ -9,7 +9,7 @@ import type { DomainEvent } from '../../../../src/Contexts/shared/domain/events/
 import { InMemoryEventBusAdapter } from '../../../../src/Contexts/shared/infrastructure/eventBus/index.js';
 import { random } from '../../../Contexts/shared/fixtures/random.js';
 
-describe('registerEventSubscribers (SC-005 / FR-010)', () => {
+describe('registerEventSubscribers', () => {
   const buildContainer = (
     bus: InMemoryEventBusAdapter,
     calls: string[]

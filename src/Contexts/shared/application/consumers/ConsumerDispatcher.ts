@@ -1,5 +1,9 @@
 import type { KafkaDomainEventEnvelope } from '../../domain/events/index.js';
 import type { AppLogger } from '../../plugins/index.js';
+import {
+  ConsumerDispatchFailure,
+  type ConsumerFailure
+} from './ConsumerDispatchFailure.js';
 import type { DomainEventConsumer } from './DomainEventConsumer.js';
 
 export type ConsumerDispatcherDependencies = {
@@ -25,7 +29,7 @@ export class ConsumerDispatcher {
       return;
     }
 
-    const errors: unknown[] = [];
+    const failures: ConsumerFailure[] = [];
     for (const consumer of matching) {
       try {
         await consumer.handle(envelope);
@@ -35,15 +39,12 @@ export class ConsumerDispatcher {
           eventId: envelope.eventId,
           eventName: envelope.eventName
         });
-        errors.push(error);
+        failures.push({ consumer: consumer.name, error });
       }
     }
 
-    if (errors.length > 0) {
-      throw new AggregateError(
-        errors,
-        'One or more domain event consumers failed'
-      );
+    if (failures.length > 0) {
+      throw new ConsumerDispatchFailure(failures);
     }
   }
 }

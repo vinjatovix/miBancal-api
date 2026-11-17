@@ -1,6 +1,9 @@
 import { v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 
-import { ConsumerDispatcher } from '../../../../../src/Contexts/shared/application/consumers/index.js';
+import {
+  ConsumerDispatcher,
+  ConsumerDispatchFailure
+} from '../../../../../src/Contexts/shared/application/consumers/index.js';
 import type { KafkaDomainEventEnvelope } from '../../../../../src/Contexts/shared/domain/events/index.js';
 import type { AppLogger } from '../../../../../src/Contexts/shared/plugins/index.js';
 
@@ -42,51 +45,7 @@ const buildLogger = (): AppLogger => ({
 });
 
 describe('ConsumerDispatcher', () => {
-  it('invokes only the consumer that declares the event name', async () => {
-    const consumerA = buildConsumer('consumer-a', ['A']);
-    const consumerB = buildConsumer('consumer-b', ['B']);
-    const dispatcher = new ConsumerDispatcher({
-      consumers: [consumerA, consumerB],
-      logger: buildLogger()
-    });
-
-    await dispatcher.dispatch(buildEnvelope('A'));
-
-    expect(consumerA.handle).toHaveBeenCalledTimes(1);
-    expect(consumerB.handle).not.toHaveBeenCalled();
-  });
-
-  it('invokes every consumer that declares the event name exactly once', async () => {
-    const consumerA = buildConsumer('consumer-a', ['A']);
-    const consumerB = buildConsumer('consumer-b', ['A']);
-    const dispatcher = new ConsumerDispatcher({
-      consumers: [consumerA, consumerB],
-      logger: buildLogger()
-    });
-
-    await dispatcher.dispatch(buildEnvelope('A'));
-
-    expect(consumerA.handle).toHaveBeenCalledTimes(1);
-    expect(consumerB.handle).toHaveBeenCalledTimes(1);
-  });
-
-  it('runs no consumer and resolves when the event is declared by none', async () => {
-    const consumerA = buildConsumer('consumer-a', ['A']);
-    const consumerB = buildConsumer('consumer-b', ['B']);
-    const dispatcher = new ConsumerDispatcher({
-      consumers: [consumerA, consumerB],
-      logger: buildLogger()
-    });
-
-    await expect(
-      dispatcher.dispatch(buildEnvelope('Z'))
-    ).resolves.toBeUndefined();
-
-    expect(consumerA.handle).not.toHaveBeenCalled();
-    expect(consumerB.handle).not.toHaveBeenCalled();
-  });
-
-  it('resolves when every matching consumer succeeds', async () => {
+  it('resolves without throwing when every matching consumer succeeds', async () => {
     const consumerA = buildConsumer('consumer-a', ['A']);
     const consumerB = buildConsumer('consumer-b', ['A']);
     const logger = buildLogger();
@@ -104,57 +63,23 @@ describe('ConsumerDispatcher', () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  it('runs all matching consumers without fail-fast and throws an aggregated error', async () => {
-    const failure = new Error('consumer-a exploded');
-    const consumerA = buildConsumer('consumer-a', ['A'], () =>
-      Promise.reject(failure)
-    );
-    const consumerB = buildConsumer('consumer-b', ['A']);
-    const logger = buildLogger();
+  it('resolves as a no-op when no consumer declares the event name', async () => {
+    const consumerA = buildConsumer('consumer-a', ['A']);
+    const consumerB = buildConsumer('consumer-b', ['B']);
     const dispatcher = new ConsumerDispatcher({
       consumers: [consumerA, consumerB],
-      logger
+      logger: buildLogger()
     });
-    const envelope = buildEnvelope('A');
 
-    await expect(dispatcher.dispatch(envelope)).rejects.toBeInstanceOf(
-      AggregateError
-    );
+    await expect(
+      dispatcher.dispatch(buildEnvelope('Z'))
+    ).resolves.toBeUndefined();
 
-    expect(consumerA.handle).toHaveBeenCalledTimes(1);
-    expect(consumerB.handle).toHaveBeenCalledTimes(1);
+    expect(consumerA.handle).not.toHaveBeenCalled();
+    expect(consumerB.handle).not.toHaveBeenCalled();
   });
 
-  it('emits exactly one error log per failing consumer and none for succeeding consumers', async () => {
-    const failure = new Error('consumer-a exploded');
-    const consumerA = buildConsumer('consumer-a', ['A'], () =>
-      Promise.reject(failure)
-    );
-    const consumerB = buildConsumer('consumer-b', ['A']);
-    const logger = buildLogger();
-    const dispatcher = new ConsumerDispatcher({
-      consumers: [consumerA, consumerB],
-      logger
-    });
-    const envelope = buildEnvelope('A');
-
-    await expect(dispatcher.dispatch(envelope)).rejects.toBeInstanceOf(
-      AggregateError
-    );
-
-    expect(logger.error).toHaveBeenCalledTimes(1);
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.any(String),
-      failure,
-      expect.objectContaining({
-        consumer: 'consumer-a',
-        eventId: envelope.eventId,
-        eventName: envelope.eventName
-      })
-    );
-  });
-
-  it('carries each thrown cause inside the aggregated error', async () => {
+  it('throws ConsumerDispatchFailure listing each failing consumer and error in run order', async () => {
     const failureA = new Error('consumer-a exploded');
     const failureB = new Error('consumer-b exploded');
     const consumerA = buildConsumer('consumer-a', ['A'], () =>
@@ -168,31 +93,78 @@ describe('ConsumerDispatcher', () => {
       logger: buildLogger()
     });
 
-    let thrownError: unknown;
+    let thrown: unknown;
     try {
       await dispatcher.dispatch(buildEnvelope('A'));
     } catch (error) {
-      thrownError = error;
+      thrown = error;
     }
 
-    expect(thrownError).toBeInstanceOf(AggregateError);
-    expect((thrownError as AggregateError).errors).toEqual([
-      failureA,
-      failureB
+    expect(thrown).toBeInstanceOf(ConsumerDispatchFailure);
+    const failure = thrown as ConsumerDispatchFailure;
+    expect(failure.failures).toEqual([
+      { consumer: 'consumer-a', error: failureA },
+      { consumer: 'consumer-b', error: failureB }
     ]);
+    expect(failure.failingConsumers()).toEqual(['consumer-a', 'consumer-b']);
   });
 
-  it('aggregates and rethrows even when a consumer rejects with a falsy value', async () => {
-    const consumerA = buildConsumer('consumer-a', ['A']);
-    consumerA.handle.mockRejectedValue(undefined);
+  it('applies only the successful consumer side effect and lists only the failing one', async () => {
+    let consumerASideEffects = 0;
+    const consumerA = buildConsumer('consumer-a', ['A'], () => {
+      consumerASideEffects += 1;
+      return Promise.resolve();
+    });
+    const failureB = new Error('consumer-b exploded');
+    const consumerB = buildConsumer('consumer-b', ['A'], () =>
+      Promise.reject(failureB)
+    );
     const dispatcher = new ConsumerDispatcher({
-      consumers: [consumerA],
+      consumers: [consumerA, consumerB],
       logger: buildLogger()
     });
 
-    await expect(
-      dispatcher.dispatch(buildEnvelope('A'))
-    ).rejects.toBeInstanceOf(AggregateError);
+    let thrown: unknown;
+    try {
+      await dispatcher.dispatch(buildEnvelope('A'));
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(consumerASideEffects).toBe(1);
+    const failure = thrown as ConsumerDispatchFailure;
+    expect(failure.failures).toEqual([
+      { consumer: 'consumer-b', error: failureB }
+    ]);
+  });
+
+  it('logs exactly one error per failing consumer and none for succeeding consumers', async () => {
+    const failure = new Error('consumer-a exploded');
+    const consumerA = buildConsumer('consumer-a', ['A'], () =>
+      Promise.reject(failure)
+    );
+    const consumerB = buildConsumer('consumer-b', ['A']);
+    const logger = buildLogger();
+    const dispatcher = new ConsumerDispatcher({
+      consumers: [consumerA, consumerB],
+      logger
+    });
+    const envelope = buildEnvelope('A');
+
+    await expect(dispatcher.dispatch(envelope)).rejects.toBeInstanceOf(
+      ConsumerDispatchFailure
+    );
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.any(String),
+      failure,
+      expect.objectContaining({
+        consumer: 'consumer-a',
+        eventId: envelope.eventId,
+        eventName: envelope.eventName
+      })
+    );
   });
 
   it('preserves per-consumer idempotence under fan-out and redelivery', async () => {
@@ -234,7 +206,7 @@ describe('ConsumerDispatcher', () => {
     const envelope = buildEnvelope('A');
 
     await expect(dispatcher.dispatch(envelope)).rejects.toBeInstanceOf(
-      AggregateError
+      ConsumerDispatchFailure
     );
     expect(consumerASideEffectCount).toBe(1);
     expect(consumerBSideEffectCount).toBe(0);

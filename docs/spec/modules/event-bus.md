@@ -102,7 +102,7 @@ Because the Outbox publisher guarantees _at-least-once_ delivery, network failur
 
 ---
 
-### 3.4 Non-Blocking Multi-Topic Consumer Retry Flow `[TARGET STATE (Pending [Iteration 51](../../roadmap.md#iteration-51-build-progressive-retry-and-dlq-consumer-flows))]`
+### 3.4 Non-Blocking Multi-Topic Consumer Retry Flow `[DELIVERED — [Iteration 51](../../roadmap.md#iteration-51-build-progressive-retry-and-dlq-consumer-flows), 2026-11-17]`
 
 To prevent a transient failure (e.g., MongoDB unreachable or external API timeout) from blocking healthy messages in the same partition (Head-of-Line blocking), a dedicated non-blocking retry flow is established:
 
@@ -114,14 +114,14 @@ To prevent a transient failure (e.g., MongoDB unreachable or external API timeou
 [ agro.domain.events.dlq (DLQ) ] ◄─── (Failure) ─── [ retry.30s ]
 ```
 
-1.  **Main Partition Offset Release:** On failure, the consumer captures the exception, publishes the message to `agro.domain.events.retry.5s` (incrementing a retry counter in Kafka headers), and immediately commits the offset on the main topic.
+1.  **Main Partition Offset Release:** On failure, the consumer captures the exception and republishes the whole message to `agro.domain.events.retry.5s` (incrementing a retry counter in Kafka headers), **then** releases the main-topic offset only once that publish is acknowledged — never before (FR-008). The consume loop runs `eachBatch` with manual offset resolution so no offset advances until the next destination (retry topic, DLQ, or successful consumption) is durably accepted.
 2.  **Progressive Retry Topics:** The system defines specific topics for progressive backoff levels:
     - `agro.domain.events.retry.5s`
     - `agro.domain.events.retry.30s`
     - `agro.domain.events.retry.5m`
-3.  **Delay Consumer Scheduling:** Consumers of retry topics inspect the message timestamp in headers and pause fetching or wait until the progressive delay has elapsed, ensuring healthy partitions are never blocked.
-4.  **Dead Letter Queue (DLQ) & Manual Replay (No Data Drift):** If a message fails after exceeding the maximum retry limit (e.g., 3 attempts), it is classified as a "poison pill" and redirected to `agro.domain.events.dlq` with failure metadata in headers. This triggers critical alerts in Grafana.
-    - **Replay Protocol:** To prevent permanent data drift (e.g., a seed inventory deduction that never executed, or a reminder that never cleared), the platform MUST include an administrative **Replay Tool** (CLI script or internal admin endpoint). Once engineers resolve the underlying outage, this tool re-injects the DLQ messages back into the main `agro.domain.events` topic.
+3.  **Delay Consumer Scheduling:** Consumers of retry topics inspect the `x-retry-enqueued-at` header and, while the level's progressive delay has not elapsed, **pause that topic-partition, seek back to the message offset, and schedule a timed resume** (never a blocking sleep), ensuring healthy partitions are never blocked. A missing, non-numeric, out-of-range, or `> maxRetries` retry counter is treated as corrupt and routed straight to the DLQ.
+4.  **Dead Letter Queue (DLQ):** If a message exhausts the maximum retry budget (default 3), fails with a non-retryable domain-validation error, or carries a corrupt retry counter, it is classified as a "poison pill" and redirected to `agro.domain.events.dlq` with failure metadata in headers (`x-dlq-dead-lettered-at`, final `x-retry-attempt`, `x-retry-failing-consumers`, truncated `x-retry-last-error`). Dead-lettering emits **exactly one** critical structured log carrying the stable marker `event: "domain-event.dead-lettered"` — the signal downstream Grafana alerting keys on. The DLQ is terminal: the worker does not subscribe to it.
+    - **Replay Protocol `[TARGET STATE — deferred, out of scope for Iteration 51]`:** To prevent permanent data drift (e.g., a seed inventory deduction that never executed, or a reminder that never cleared), a later iteration MUST add an administrative **Replay Tool** (CLI script or internal admin endpoint) that, once engineers resolve the underlying outage, re-injects the DLQ messages back into the main `agro.domain.events` topic. This iteration only guarantees DLQ contents are safe to replay later (idempotent consumers).
     - **Safety:** Because all consumers are strictly mandated to be idempotent (see Section 3.3), this replay operation is 100% safe and will not cause duplicate state mutations if a consumer partially succeeded before failing.
 
 ---

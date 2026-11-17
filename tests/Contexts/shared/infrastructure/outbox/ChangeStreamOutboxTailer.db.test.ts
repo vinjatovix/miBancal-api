@@ -258,7 +258,7 @@ describe('ChangeStreamOutboxTailer (real change stream)', () => {
   });
 
   describe('rotated-oplog fallback and resilience (US3)', () => {
-    it('serves the fallback catch-up query with an index scan and no in-memory sort (SC-006)', async () => {
+    it('serves the fallback catch-up query with an index scan and no in-memory sort', async () => {
       await insertOutbox();
       await insertOutbox();
 
@@ -274,7 +274,7 @@ describe('ChangeStreamOutboxTailer (real change stream)', () => {
       expect(serialized).not.toContain('"stage":"SORT"');
     });
 
-    it('recovers from a connection drop and an oplog rotation in one run without losing events (SC-008)', async () => {
+    it('recovers from a connection drop and an oplog rotation in one run without losing events', async () => {
       const backlog1 = await insertOutbox();
       const backlog2 = await insertOutbox();
 
@@ -311,7 +311,7 @@ describe('ChangeStreamOutboxTailer (real change stream)', () => {
       expect(ids.indexOf(backlog1)).toBeLessThan(ids.indexOf(backlog2));
     });
 
-    it('loses no event and marks each dispatched across an oplog rotation, tolerating duplicates (SC-001/SC-006)', async () => {
+    it('loses no event and marks each dispatched across an oplog rotation, tolerating duplicates', async () => {
       const backlog = await insertOutbox();
 
       const scripted = new ScriptedOutboxCollection(

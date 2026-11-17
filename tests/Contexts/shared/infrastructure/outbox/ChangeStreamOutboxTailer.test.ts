@@ -442,7 +442,7 @@ describe('ChangeStreamOutboxTailer', () => {
     });
   });
 
-  describe('at-least-once on forward failure (FR-010)', () => {
+  describe('at-least-once on forward failure', () => {
     it('does not advance progress past a record whose forward rejected', async () => {
       const collection = new FakeOutboxCollection([
         { inserts: [insert('id-1', { _data: 't1' })] },

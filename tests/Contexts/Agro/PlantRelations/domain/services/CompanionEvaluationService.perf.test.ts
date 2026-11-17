@@ -6,7 +6,7 @@ import { TaxonomicScope } from '../../../../../../src/Contexts/Agro/PlantRelatio
 import { PlantRelationMother } from '../mothers/PlantRelationMother.js';
 
 describe('CompanionEvaluationService performance benchmark', () => {
-  it('evaluates compatibility for 50 placed crops in under 20ms (SC-005)', () => {
+  it('evaluates compatibility for 50 placed crops in under 20ms', () => {
     const service = new CompanionEvaluationService();
 
     const genera = ['Solanum', 'Ocimum', 'Tagetes', 'Trifolium', 'Phaseolus'];

@@ -4,7 +4,15 @@ import { createConsumerContainer } from '../../../src/apps/consumerWorker/contai
 import { PlantLikesCounterConsumer } from '../../../src/Contexts/Agro/Plants/application/consumers/PlantLikesCounterConsumer.js';
 import { MongoPlantLikesCounterRepository } from '../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantLikesCounterRepository.js';
 import { MongoPlantRepository } from '../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
-import { ConsumerDispatcher } from '../../../src/Contexts/shared/application/consumers/index.js';
+import {
+  ConsumerDispatcher,
+  DelayGate,
+  FailureClassifier,
+  RetryContext,
+  RetryPolicy,
+  RetryRouter
+} from '../../../src/Contexts/shared/application/consumers/index.js';
+import { KafkaMessagePublisher } from '../../../src/Contexts/shared/infrastructure/consumers/index.js';
 import { MongoProcessedEventsRepository } from '../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoProcessedEventsRepository.js';
 import { MongoUnitOfWork } from '../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import type { AppLogger } from '../../../src/Contexts/shared/plugins/logger.plugin.js';
@@ -33,7 +41,34 @@ describe('createConsumerContainer', () => {
       clientId: 'test-client'
     },
     processedEventsTtlSeconds: 1209600,
-    topicRetentionSeconds: 604800
+    topicRetentionSeconds: 604800,
+    retry: {
+      maxRetries: 3,
+      levels: [
+        {
+          label: '5s',
+          topic: 'agro.domain.events.retry.5s',
+          delayMs: 5000,
+          attempt: 1
+        },
+        {
+          label: '30s',
+          topic: 'agro.domain.events.retry.30s',
+          delayMs: 30000,
+          attempt: 2
+        },
+        {
+          label: '5m',
+          topic: 'agro.domain.events.retry.5m',
+          delayMs: 300000,
+          attempt: 3
+        }
+      ],
+      dlqTopic: 'agro.domain.events.dlq',
+      clientId: 'agro-domain-events-consumer-producer',
+      topicPartitions: 6,
+      replicationFactor: 1
+    }
   };
 
   it('registers and resolves all expected services in the cradle', () => {
@@ -66,6 +101,30 @@ describe('createConsumerContainer', () => {
     expect(container.resolve('consumerDispatcher')).toBeInstanceOf(
       ConsumerDispatcher
     );
+  });
+
+  it('registers and resolves the retry/DLQ routing components', () => {
+    const container = createConsumerContainer({
+      db,
+      client,
+      logger,
+      consumerConfig
+    });
+
+    expect(container.resolve('retry')).toBe(consumerConfig.retry);
+    expect(container.resolve('retryKafka')).toBeDefined();
+    expect(container.resolve('kafkaRetryProducer')).toBeDefined();
+    expect(container.resolve('kafkaRetryAdmin')).toBeDefined();
+    expect(container.resolve('messagePublisher')).toBeInstanceOf(
+      KafkaMessagePublisher
+    );
+    expect(container.resolve('retryPolicy')).toBeInstanceOf(RetryPolicy);
+    expect(container.resolve('failureClassifier')).toBeInstanceOf(
+      FailureClassifier
+    );
+    expect(container.resolve('retryContext')).toBeInstanceOf(RetryContext);
+    expect(container.resolve('delayGate')).toBeInstanceOf(DelayGate);
+    expect(container.resolve('retryRouter')).toBeInstanceOf(RetryRouter);
   });
 
   it('wires plantLikesCounterConsumer into the resolved consumerDispatcher', async () => {
