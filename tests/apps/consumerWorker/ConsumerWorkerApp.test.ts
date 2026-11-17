@@ -46,8 +46,8 @@ const buildHarness = () => {
       })
   };
 
-  const plantLikesCounterConsumer = {
-    handle: jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined)
+  const consumerDispatcher = {
+    dispatch: jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined)
   };
 
   const close = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
@@ -63,8 +63,7 @@ const buildHarness = () => {
       return {
         resolve: jest.fn().mockImplementation((name: string) => {
           if (name === 'kafkaConsumer') return kafkaConsumer;
-          if (name === 'plantLikesCounterConsumer')
-            return plantLikesCounterConsumer;
+          if (name === 'consumerDispatcher') return consumerDispatcher;
           return undefined;
         })
       } as unknown as ConsumerContainer;
@@ -84,7 +83,7 @@ const buildHarness = () => {
     app,
     logger,
     kafkaConsumer,
-    plantLikesCounterConsumer,
+    consumerDispatcher,
     client,
     close,
     connect,
@@ -168,8 +167,8 @@ describe('ConsumerWorkerApp', () => {
     expect(close).not.toHaveBeenCalled();
   });
 
-  it('parses valid Kafka message and dispatches it to plantLikesCounterConsumer', async () => {
-    const { app, plantLikesCounterConsumer, triggerMessage } = buildHarness();
+  it('parses a valid Kafka message and delegates it to the consumer dispatcher', async () => {
+    const { app, consumerDispatcher, triggerMessage } = buildHarness();
     const eventId = uuidv7();
     const plantId = uuidv4();
     const message = JSON.stringify({
@@ -183,7 +182,7 @@ describe('ConsumerWorkerApp', () => {
     await app.start();
     await triggerMessage(message);
 
-    expect(plantLikesCounterConsumer.handle).toHaveBeenCalledWith(
+    expect(consumerDispatcher.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         eventId,
         eventName: 'plant.liked',
@@ -192,9 +191,28 @@ describe('ConsumerWorkerApp', () => {
     );
   });
 
-  it('logs error and skips processing when message payload is invalid JSON', async () => {
-    const { app, logger, plantLikesCounterConsumer, triggerMessage } =
-      buildHarness();
+  it('rejects the message when the dispatcher rejects so the offset is not committed', async () => {
+    const { app, consumerDispatcher, triggerMessage } = buildHarness();
+    consumerDispatcher.dispatch.mockRejectedValueOnce(
+      new AggregateError([new Error('consumer failed')], 'fan-out failed')
+    );
+    const message = JSON.stringify({
+      eventId: uuidv7(),
+      eventName: 'plant.liked',
+      aggregateId: uuidv4(),
+      occurredAt: new Date().toISOString(),
+      payload: {}
+    });
+
+    await app.start();
+
+    await expect(triggerMessage(message)).rejects.toBeInstanceOf(
+      AggregateError
+    );
+  });
+
+  it('logs error and skips dispatch when message payload is invalid JSON', async () => {
+    const { app, logger, consumerDispatcher, triggerMessage } = buildHarness();
 
     await app.start();
     await triggerMessage('invalid-json');
@@ -203,12 +221,11 @@ describe('ConsumerWorkerApp', () => {
       'Failed to parse Kafka message JSON',
       expect.any(Error)
     );
-    expect(plantLikesCounterConsumer.handle).not.toHaveBeenCalled();
+    expect(consumerDispatcher.dispatch).not.toHaveBeenCalled();
   });
 
-  it('logs error and skips processing when message envelope is malformed', async () => {
-    const { app, logger, plantLikesCounterConsumer, triggerMessage } =
-      buildHarness();
+  it('logs error and skips dispatch when message envelope is malformed', async () => {
+    const { app, logger, consumerDispatcher, triggerMessage } = buildHarness();
     const malformed = JSON.stringify({
       eventId: 'not-uuidv7',
       eventName: 'plant.liked'
@@ -221,6 +238,6 @@ describe('ConsumerWorkerApp', () => {
       'Malformed Kafka domain event envelope',
       expect.anything()
     );
-    expect(plantLikesCounterConsumer.handle).not.toHaveBeenCalled();
+    expect(consumerDispatcher.dispatch).not.toHaveBeenCalled();
   });
 });

@@ -55,10 +55,8 @@ describe('consumerConfig', () => {
 
     expect(config.kafka.brokers).toEqual(['broker-1:9092', 'broker-2:9092']);
     expect(config.kafka.topic).toBe('agro.domain.events');
-    expect(config.kafka.consumerGroupId).toBe(
-      'agro-plant-likes-counter-consumer'
-    );
-    expect(config.kafka.clientId).toBe('agro-plant-likes-counter-consumer');
+    expect(config.kafka.consumerGroupId).toBe('agro-domain-events-consumer');
+    expect(config.kafka.clientId).toBe('agro-domain-events-consumer');
     expect(config.processedEventsTtlSeconds).toBe(1209600);
     expect(config.topicRetentionSeconds).toBe(604800);
   });

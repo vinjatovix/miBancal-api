@@ -117,7 +117,11 @@ describe('PlantLikesCounterConsumer', () => {
       await consumer.handle(envelope);
 
       expect(run).toHaveBeenCalledTimes(1);
-      expect(claim).toHaveBeenCalledWith(envelope.eventId, expect.any(Date));
+      expect(claim).toHaveBeenCalledWith(
+        'plant-likes-counter',
+        envelope.eventId,
+        expect.any(Date)
+      );
       expect(increment).toHaveBeenCalledWith(plantId);
       expect(info).toHaveBeenCalledWith(
         'Domain event applied',
@@ -155,7 +159,11 @@ describe('PlantLikesCounterConsumer', () => {
       await consumer.handle(envelope);
 
       expect(run).toHaveBeenCalledTimes(1);
-      expect(claim).toHaveBeenCalledWith(envelope.eventId, expect.any(Date));
+      expect(claim).toHaveBeenCalledWith(
+        'plant-likes-counter',
+        envelope.eventId,
+        expect.any(Date)
+      );
       expect(decrement).toHaveBeenCalledWith(plantId);
       expect(info).toHaveBeenCalledWith(
         'Domain event applied',
@@ -184,6 +192,15 @@ describe('PlantLikesCounterConsumer', () => {
           aggregateId: envelope.aggregateId
         })
       );
+    });
+  });
+
+  describe('DomainEventConsumer declaration', () => {
+    it('exposes a stable name and the declared event names it handles', () => {
+      expect(consumer.name).toBe('plant-likes-counter');
+      expect(
+        [...consumer.eventNames].sort((a, b) => a.localeCompare(b))
+      ).toEqual(['plant.liked', 'plant.unliked']);
     });
 
     it('ignores unrelated domain events without modifying storage or claiming events', async () => {
@@ -293,7 +310,11 @@ describe('PlantLikesCounterConsumer', () => {
 
       await consumer.handle(envelope);
 
-      expect(claim).toHaveBeenCalledWith(envelope.eventId, expect.any(Date));
+      expect(claim).toHaveBeenCalledWith(
+        'plant-likes-counter',
+        envelope.eventId,
+        expect.any(Date)
+      );
       expect(increment).not.toHaveBeenCalled();
       expect(info).toHaveBeenCalledWith(
         'Domain event target plant not found; acknowledged without counter update',

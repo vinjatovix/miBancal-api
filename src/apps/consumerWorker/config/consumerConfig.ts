@@ -24,12 +24,12 @@ function loadConsumerConfig() {
 
   const consumerGroupId = env
     .get('KAFKA_CONSUMER_GROUP_ID')
-    .default('agro-plant-likes-counter-consumer')
+    .default('agro-domain-events-consumer')
     .asString();
 
   const clientId = env
     .get('KAFKA_CLIENT_ID')
-    .default('agro-plant-likes-counter-consumer')
+    .default('agro-domain-events-consumer')
     .asString();
 
   const processedEventsTtlSeconds = env

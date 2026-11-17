@@ -1,5 +1,5 @@
 export interface ProcessedEventsRepository {
-  claim(eventId: string, processedAt?: Date): Promise<void>;
-  has(eventId: string): Promise<boolean>;
+  claim(consumer: string, eventId: string, processedAt?: Date): Promise<void>;
+  has(consumer: string, eventId: string): Promise<boolean>;
   count(): Promise<number>;
 }

@@ -4,6 +4,7 @@ import { createConsumerContainer } from '../../../src/apps/consumerWorker/contai
 import { PlantLikesCounterConsumer } from '../../../src/Contexts/Agro/Plants/application/consumers/PlantLikesCounterConsumer.js';
 import { MongoPlantLikesCounterRepository } from '../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantLikesCounterRepository.js';
 import { MongoPlantRepository } from '../../../src/Contexts/Agro/Plants/infrastructure/persistence/mongo/MongoPlantRepository.js';
+import { ConsumerDispatcher } from '../../../src/Contexts/shared/application/consumers/index.js';
 import { MongoProcessedEventsRepository } from '../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoProcessedEventsRepository.js';
 import { MongoUnitOfWork } from '../../../src/Contexts/shared/infrastructure/persistence/mongo/MongoUnitOfWork.js';
 import type { AppLogger } from '../../../src/Contexts/shared/plugins/logger.plugin.js';
@@ -61,6 +62,39 @@ describe('createConsumerContainer', () => {
     expect(container.resolve('unitOfWork')).toBeInstanceOf(MongoUnitOfWork);
     expect(container.resolve('plantLikesCounterConsumer')).toBeInstanceOf(
       PlantLikesCounterConsumer
+    );
+    expect(container.resolve('consumerDispatcher')).toBeInstanceOf(
+      ConsumerDispatcher
+    );
+  });
+
+  it('wires plantLikesCounterConsumer into the resolved consumerDispatcher', async () => {
+    const container = createConsumerContainer({
+      db,
+      client,
+      logger,
+      consumerConfig
+    });
+
+    const plantLikesCounterConsumer =
+      container.resolve<PlantLikesCounterConsumer>('plantLikesCounterConsumer');
+    const handleSpy = jest
+      .spyOn(plantLikesCounterConsumer, 'handle')
+      .mockResolvedValue(undefined);
+
+    const dispatcher =
+      container.resolve<ConsumerDispatcher>('consumerDispatcher');
+    await dispatcher.dispatch({
+      eventId: '019318a0-0000-7000-8000-000000000000',
+      eventName: 'plant.liked',
+      aggregateId: '00000000-0000-4000-8000-000000000000',
+      occurredAt: new Date().toISOString(),
+      payload: {}
+    });
+
+    expect(handleSpy).toHaveBeenCalledTimes(1);
+    expect(handleSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ eventName: 'plant.liked' })
     );
   });
 });

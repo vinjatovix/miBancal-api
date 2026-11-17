@@ -12,6 +12,8 @@ import {
 
 class RollbackError extends Error {}
 
+const CONSUMER = 'test-consumer';
+
 let context: DbTestContext;
 let db: Db;
 let repository: MongoProcessedEventsRepository;
@@ -39,38 +41,61 @@ describe('MongoProcessedEventsRepository (integration)', () => {
     it('records a new event id and makes it discoverable via has', async () => {
       const eventId = uuidv7();
 
-      await repository.claim(eventId);
+      await repository.claim(CONSUMER, eventId);
 
-      const exists = await repository.has(eventId);
+      const exists = await repository.has(CONSUMER, eventId);
       expect(exists).toBe(true);
 
       const doc = await db
-        .collection<{ _id: string; processedAt: Date }>('processed_events')
-        .findOne({ _id: eventId });
-      expect(doc?._id).toBe(eventId);
+        .collection<{
+          _id: string;
+          consumer: string;
+          eventId: string;
+          processedAt: Date;
+        }>('processed_events')
+        .findOne({ _id: `${CONSUMER}#${eventId}` });
+      expect(doc?.consumer).toBe(CONSUMER);
+      expect(doc?.eventId).toBe(eventId);
       expect(doc?.processedAt).toBeInstanceOf(Date);
     });
 
-    it('throws DomainConflictException on repeat claim with the same eventId', async () => {
+    it('throws DomainConflictException on repeat claim by the same consumer', async () => {
       const eventId = uuidv7();
-      await repository.claim(eventId);
+      await repository.claim(CONSUMER, eventId);
 
-      await expect(repository.claim(eventId)).rejects.toBeInstanceOf(
+      await expect(repository.claim(CONSUMER, eventId)).rejects.toBeInstanceOf(
         DomainConflictException
       );
+    });
+
+    it('lets two consumers claim the same event id independently', async () => {
+      const eventId = uuidv7();
+
+      await repository.claim('consumer-a', eventId);
+      await repository.claim('consumer-b', eventId);
+
+      expect(await repository.has('consumer-a', eventId)).toBe(true);
+      expect(await repository.has('consumer-b', eventId)).toBe(true);
     });
 
     it('records an explicit processedAt date', async () => {
       const eventId = uuidv7();
       const processedAt = new Date('2026-11-16T12:00:00.000Z');
 
-      await repository.claim(eventId, processedAt);
+      await repository.claim(CONSUMER, eventId, processedAt);
 
       const doc = await db
-        .collection<{ _id: string; processedAt: Date }>('processed_events')
-        .findOne({ _id: eventId });
+        .collection<{
+          _id: string;
+          consumer: string;
+          eventId: string;
+          processedAt: Date;
+        }>('processed_events')
+        .findOne({ _id: `${CONSUMER}#${eventId}` });
       expect(doc).toEqual({
-        _id: eventId,
+        _id: `${CONSUMER}#${eventId}`,
+        consumer: CONSUMER,
+        eventId,
         processedAt
       });
     });
@@ -80,7 +105,16 @@ describe('MongoProcessedEventsRepository (integration)', () => {
     it('returns false when the event id was never claimed', async () => {
       const eventId = uuidv7();
 
-      const exists = await repository.has(eventId);
+      const exists = await repository.has(CONSUMER, eventId);
+
+      expect(exists).toBe(false);
+    });
+
+    it('returns false for a different consumer than the one that claimed', async () => {
+      const eventId = uuidv7();
+      await repository.claim('consumer-a', eventId);
+
+      const exists = await repository.has('consumer-b', eventId);
 
       expect(exists).toBe(false);
     });
@@ -94,8 +128,8 @@ describe('MongoProcessedEventsRepository (integration)', () => {
     });
 
     it('accurately counts claimed events', async () => {
-      await repository.claim(uuidv7());
-      await repository.claim(uuidv7());
+      await repository.claim(CONSUMER, uuidv7());
+      await repository.claim(CONSUMER, uuidv7());
 
       const total = await repository.count();
 
@@ -109,12 +143,12 @@ describe('MongoProcessedEventsRepository (integration)', () => {
 
       await expect(
         unitOfWork.run(async () => {
-          await repository.claim(eventId);
+          await repository.claim(CONSUMER, eventId);
           throw new RollbackError('aborted transaction');
         })
       ).rejects.toBeInstanceOf(RollbackError);
 
-      const exists = await repository.has(eventId);
+      const exists = await repository.has(CONSUMER, eventId);
       expect(exists).toBe(false);
     });
 
@@ -122,10 +156,10 @@ describe('MongoProcessedEventsRepository (integration)', () => {
       const eventId = uuidv7();
 
       await unitOfWork.run(async () => {
-        await repository.claim(eventId);
+        await repository.claim(CONSUMER, eventId);
       });
 
-      const exists = await repository.has(eventId);
+      const exists = await repository.has(CONSUMER, eventId);
       expect(exists).toBe(true);
     });
   });

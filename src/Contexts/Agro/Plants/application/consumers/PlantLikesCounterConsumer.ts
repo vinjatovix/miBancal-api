@@ -1,3 +1,4 @@
+import type { DomainEventConsumer } from '../../../../shared/application/consumers/index.js';
 import type { UnitOfWork } from '../../../../shared/application/interfaces/index.js';
 import { DomainConflictException } from '../../../../shared/domain/errors/index.js';
 import type {
@@ -16,9 +17,13 @@ export type PlantLikesCounterConsumerDependencies = {
   logger: AppLogger;
 };
 
-const SUPPORTED_EVENTS = new Set(['plant.liked', 'plant.unliked']);
+export class PlantLikesCounterConsumer implements DomainEventConsumer {
+  public readonly name = 'plant-likes-counter';
+  public readonly eventNames: ReadonlySet<string> = new Set([
+    'plant.liked',
+    'plant.unliked'
+  ]);
 
-export class PlantLikesCounterConsumer {
   private readonly processedEventsRepository: ProcessedEventsRepository;
   private readonly plantLikesCounterRepository: PlantLikesCounterRepository;
   private readonly plantRepository: PlantRepository;
@@ -42,7 +47,7 @@ export class PlantLikesCounterConsumer {
   public async handle(envelope: KafkaDomainEventEnvelope): Promise<void> {
     const { eventId, eventName, aggregateId, occurredAt, payload } = envelope;
 
-    if (!SUPPORTED_EVENTS.has(eventName)) {
+    if (!this.eventNames.has(eventName)) {
       this.logger.debug('Domain event ignored by consumer', {
         eventId,
         eventName
@@ -50,7 +55,10 @@ export class PlantLikesCounterConsumer {
       return;
     }
 
-    const alreadyProcessed = await this.processedEventsRepository.has(eventId);
+    const alreadyProcessed = await this.processedEventsRepository.has(
+      this.name,
+      eventId
+    );
     if (alreadyProcessed) {
       this.logger.info('Duplicate domain event skipped', {
         eventId,
@@ -65,7 +73,11 @@ export class PlantLikesCounterConsumer {
 
     try {
       await this.unitOfWork.run(async () => {
-        await this.processedEventsRepository.claim(eventId, processedAt);
+        await this.processedEventsRepository.claim(
+          this.name,
+          eventId,
+          processedAt
+        );
 
         const plantExists = await this.plantRepository.exists(plantId);
         if (!plantExists) {

@@ -215,8 +215,17 @@ const processStagedEvents = async (): Promise<void> => {
     .toArray();
 
   for (const doc of outboxDocs) {
-    const payload = doc.payload as KafkaDomainEventEnvelope;
-    await consumer.handle(payload);
+    const envelope: KafkaDomainEventEnvelope = {
+      eventId: doc._id.toString(),
+      eventName: doc.eventName as string,
+      aggregateId: doc.aggregateId as string,
+      occurredAt:
+        doc.occurredAt instanceof Date
+          ? doc.occurredAt.toISOString()
+          : (doc.occurredAt as string),
+      payload: (doc.payload ?? {}) as KafkaDomainEventEnvelope['payload']
+    };
+    await consumer.handle(envelope); // NOSONAR: events replayed in occurrence order; the counter depends on the sequence
   }
 };
 

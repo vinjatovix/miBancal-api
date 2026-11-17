@@ -63,9 +63,7 @@ export class ConsumerWorkerApp {
     });
 
     this.consumer = container.resolve('kafkaConsumer');
-    const plantLikesCounterConsumer = container.resolve(
-      'plantLikesCounterConsumer'
-    );
+    const consumerDispatcher = container.resolve('consumerDispatcher');
 
     await this.consumer.connect();
     this.logger.info('Kafka consumer connected');
@@ -101,7 +99,7 @@ export class ConsumerWorkerApp {
           return;
         }
 
-        await plantLikesCounterConsumer.handle(parseResult.data);
+        await consumerDispatcher.dispatch(parseResult.data);
       }
     });
 

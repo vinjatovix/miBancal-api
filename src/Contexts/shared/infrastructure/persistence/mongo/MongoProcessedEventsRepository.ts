@@ -9,8 +9,13 @@ export type MongoProcessedEventsRepositoryDependencies = {
 
 type ProcessedEventDocument = Document & {
   _id: string;
+  consumer: string;
+  eventId: string;
   processedAt: Date;
 };
+
+const buildKey = (consumer: string, eventId: string): string =>
+  `${consumer}#${eventId}`;
 
 export class MongoProcessedEventsRepository
   extends MongoRepository
@@ -29,11 +34,14 @@ export class MongoProcessedEventsRepository
   }
 
   public async claim(
+    consumer: string,
     eventId: string,
     processedAt: Date = new Date()
   ): Promise<void> {
     const document: ProcessedEventDocument = {
-      _id: eventId,
+      _id: buildKey(consumer, eventId),
+      consumer,
+      eventId,
       processedAt
     };
 
@@ -42,10 +50,10 @@ export class MongoProcessedEventsRepository
     );
   }
 
-  public async has(eventId: string): Promise<boolean> {
+  public async has(consumer: string, eventId: string): Promise<boolean> {
     const count = await this.handleMongoError(() =>
       this.collection().countDocuments(
-        { _id: eventId },
+        { _id: buildKey(consumer, eventId) },
         { limit: 1, ...this.sessionOptions() }
       )
     );
